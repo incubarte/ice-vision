@@ -1,4 +1,5 @@
-import { google } from 'googleapis';
+
+import { google, Auth } from 'googleapis';
 import stream from 'stream';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -11,42 +12,49 @@ const SCOPES = ['https://www.googleapis.com/auth/drive'];
 const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
 
 let drive: any;
+let authClient: Auth.JWT;
 let isInitialized = false;
 
 async function initializeDrive() {
     if (isInitialized) return;
 
     if (!FOLDER_ID) {
-        throw new Error("[GDRIVE_PROVIDER] La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
+        throw new Error("[GDRIVE_PROVIDER] FATAL: La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
     }
-    
+
     try {
         const credentialsFileContent = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
         const credentials = JSON.parse(credentialsFileContent);
 
-        const auth = new google.auth.JWT(
+        authClient = new google.auth.JWT(
             credentials.client_email,
             undefined,
             credentials.private_key,
             SCOPES
         );
-        
-        await auth.authorize();
 
-        drive = google.drive({ version: 'v3', auth });
+        await authClient.authorize(); // Forzar la autorización explícita aquí.
+
+        drive = google.drive({ version: 'v3', auth: authClient });
         isInitialized = true;
         console.log("[GDRIVE_PROVIDER] Cliente de Google Drive inicializado y autenticado correctamente.");
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? `Error en la inicialización de Google Drive: ${error.message}` : "Error desconocido durante la inicialización de Google Drive.";
-        console.error("[GDRIVE_PROVIDER] !! FALLO EN LA INICIALIZACIÓN !!", errorMessage);
-        isInitialized = false; // Asegurarse de que no se considere inicializado en caso de error.
-        throw new Error(errorMessage);
+        const errorMessage = error instanceof Error ? error.message : "Error desconocido durante la inicialización de Google Drive.";
+        console.error("[GDRIVE_PROVIDER] !! FALLO CRÍTICO EN LA INICIALIZACIÓN !!", errorMessage);
+        isInitialized = false;
+        throw new Error(`Fallo al inicializar la autenticación con Google Drive: ${errorMessage}`);
+    }
+}
+
+async function checkPrerequisites() {
+    if (!isInitialized) {
+        await initializeDrive();
     }
 }
 
 async function findFileId(name: string, parentId: string): Promise<string | null> {
-    await initializeDrive(); // Asegura la autenticación antes de cualquier operación
+    await checkPrerequisites();
     try {
         const res = await drive.files.list({
             q: `name = '${name}' and '${parentId}' in parents and trashed = false`,
@@ -55,13 +63,16 @@ async function findFileId(name: string, parentId: string): Promise<string | null
         });
         return res.data.files?.[0]?.id || null;
     } catch (error: any) {
+        if (error.code === 403) {
+             throw new Error(`Error de Permiso (403) al buscar '${name}'. Asegúrate de que la API de Google Drive esté HABILITADA en tu proyecto de Google Cloud y que la cuenta de servicio tenga permisos de 'Lector' o 'Editor' en la carpeta de Drive.`);
+        }
         console.error(`[GDRIVE_PROVIDER] Error en la API de Drive al buscar '${name}':`, error.message);
         throw new Error(`Fallo en la API de Google Drive al buscar el archivo: ${name}`);
     }
 }
 
 async function readFileContent<T>(fileId: string): Promise<T | null> {
-    await initializeDrive();
+    await checkPrerequisites();
     try {
         const res = await drive.files.get({ fileId: fileId, alt: 'media' });
         const chunks: any[] = [];
@@ -87,7 +98,7 @@ async function readFileContent<T>(fileId: string): Promise<T | null> {
 export async function readConfig(): Promise<Partial<ConfigState>> {
     const fileId = await findFileId('config.json', FOLDER_ID!);
     if (!fileId) {
-        throw new Error("El archivo 'config.json' no se encontró en la carpeta de Google Drive. Asegúrate de que el archivo exista y esté compartido correctamente.");
+        throw new Error("FATAL: El archivo 'config.json' no se encontró en la carpeta de Google Drive. Asegúrate de que el archivo exista y esté compartido correctamente con el email de la cuenta de servicio.");
     }
     return (await readFileContent<ConfigState>(fileId)) || {};
 }
@@ -95,16 +106,13 @@ export async function readConfig(): Promise<Partial<ConfigState>> {
 export async function readLiveState(): Promise<Partial<LiveState>> {
     const fileId = await findFileId('live.json', FOLDER_ID!);
     if (!fileId) {
-        throw new Error("El archivo 'live.json' no se encontró en la carpeta de Google Drive. Asegúrate de que el archivo exista y esté compartido correctamente.");
+        throw new Error("FATAL: El archivo 'live.json' no se encontró en la carpeta de Google Drive. Asegúrate de que el archivo exista y esté compartido correctamente.");
     }
     return (await readFileContent<LiveState>(fileId)) || {};
 }
 
-
-// --- El resto de las funciones de escritura y lectura de torneos ---
-// No se modifican sustancialmente, pero se benefician de la inicialización robusta.
-
 async function createOrUpdateFile(fileName: string, parentId: string, data: any): Promise<void> {
+    await checkPrerequisites();
     const fileId = await findFileId(fileName, parentId);
     const media = {
         mimeType: 'application/json',
@@ -116,17 +124,26 @@ async function createOrUpdateFile(fileName: string, parentId: string, data: any)
         }),
     };
 
-    if (fileId) {
-        await drive.files.update({ fileId, media });
-    } else {
-        await drive.files.create({
-            media,
-            requestBody: { name: fileName, parents: [parentId] },
-        });
+    try {
+        if (fileId) {
+            await drive.files.update({ fileId, media });
+        } else {
+            await drive.files.create({
+                media,
+                requestBody: { name: fileName, parents: [parentId] },
+            });
+        }
+    } catch (error: any) {
+        if (error.code === 403) {
+             throw new Error(`Error de Permiso (403) al escribir '${fileName}'. Asegúrate de que la API de Google Drive esté HABILITADA y que la cuenta de servicio tenga permisos de 'Editor' en la carpeta de Drive.`);
+        }
+        console.error(`[GDRIVE_PROVIDER] Error al escribir el archivo '${fileName}':`, error.message);
+        throw new Error(`No se pudo escribir el archivo en Google Drive: ${fileName}`);
     }
 }
 
 async function getOrCreateFolder(name: string, parentId: string): Promise<string> {
+    await checkPrerequisites();
     let folderId = await findFileId(name, parentId);
     if (!folderId) {
         const fileMetadata = {
@@ -138,7 +155,7 @@ async function getOrCreateFolder(name: string, parentId: string): Promise<string
             requestBody: fileMetadata,
             fields: 'id',
         });
-        if (!res.data.id) throw new Error(`No se pudo crear o encontrar el folder ${name}`);
+        if (!res.data.id) throw new Error(`No se pudo crear o encontrar la carpeta ${name}`);
         folderId = res.data.id;
     }
     return folderId;
@@ -228,7 +245,7 @@ export async function listFiles(folderId?: string): Promise<{ id: string; name: 
     if (!targetFolderId) {
         throw new Error("No se ha proporcionado un ID de carpeta para listar archivos.");
     }
-    await initializeDrive();
+    await checkPrerequisites();
     try {
         const res = await drive.files.list({
             q: `'${targetFolderId}' in parents and trashed = false`,
@@ -238,6 +255,9 @@ export async function listFiles(folderId?: string): Promise<{ id: string; name: 
         });
         return res.data.files || [];
     } catch (error: any) {
+        if (error.code === 403) {
+             throw new Error(`Error de Permiso (403). Asegúrate de que la API de Google Drive esté HABILITADA en tu proyecto de Google Cloud y que la cuenta de servicio tenga permisos de 'Lector' o 'Editor' en la carpeta de Drive.`);
+        }
         console.error(`[GDRIVE_PROVIDER] Error listando archivos en la carpeta ${targetFolderId}:`, error.message);
         throw error;
     }
