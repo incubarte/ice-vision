@@ -72,52 +72,48 @@ if (process.env.NODE_ENV !== 'production') {
   globalForEmitters.commandEmitter = commandEmitter;
 }
 
-async function initializeStore() {
-    if (globalForEmitters.initializationPromise) {
-        return globalForEmitters.initializationPromise;
-    }
+const performInitialization = async () => {
+    console.log("[Store] Initializing store... fetching data from provider.");
+    const defaultState = getInitialState();
+    try {
+        const [configResult, liveStateResult] = await Promise.all([
+            readConfigFromProvider(),
+            readLiveStateFromProvider()
+        ]);
 
-    const performInitialization = async () => {
-        console.log("[Store] Initializing store... fetching data from provider.");
-        const defaultState = getInitialState();
-        try {
-            const [configResult, liveStateResult] = await Promise.all([
-                readConfigFromProvider(),
-                readLiveStateFromProvider()
-            ]);
-
-            if (configResult && Object.keys(configResult).length > 0) {
-                storedConfig = configResult as ConfigState;
-            } else {
-                console.warn("[Store] Config not found or is empty. Using default config.");
-                storedConfig = defaultState.config;
-            }
-
-            if (liveStateResult && Object.keys(liveStateResult).length > 0) {
-                storedGameState = liveStateResult as LiveState;
-            } else {
-                console.warn("[Store] Live state not found or is empty. Using default live state.");
-                storedGameState = defaultState.live;
-            }
-            
-            console.log("[Store] Initialization complete. Config and Live State are loaded.");
-
-        } catch (error) {
-            console.error("[Store] CRITICAL: Unhandled error during storage initialization. App will use default state.", error);
+        if (configResult && Object.keys(configResult).length > 0) {
+            storedConfig = configResult as ConfigState;
+        } else {
+            console.warn("[Store] Config not found or is empty. Using default config.");
             storedConfig = defaultState.config;
-            storedGameState = defaultState.live;
-            throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
         }
-    };
 
-    globalForEmitters.initializationPromise = performInitialization();
-    return globalForEmitters.initializationPromise;
-}
+        if (liveStateResult && Object.keys(liveStateResult).length > 0) {
+            storedGameState = liveStateResult as LiveState;
+        } else {
+            console.warn("[Store] Live state not found or is empty. Using default live state.");
+            storedGameState = defaultState.live;
+        }
+        
+        console.log("[Store] Initialization complete. Config and Live State are loaded.");
+
+    } catch (error) {
+        console.error("[Store] CRITICAL: Unhandled error during storage initialization. App will use default state.", error);
+        // As a last resort, ensure we have a valid state to prevent total crash.
+        // The error will still be thrown to indicate a critical failure.
+        storedConfig = defaultState.config;
+        storedGameState = defaultState.live;
+        throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
+    }
+};
+
+// This is the core change. The promise is created once and its result (or failure) is awaited by all callers.
+globalForEmitters.initializationPromise = globalForEmitters.initializationPromise || performInitialization();
 
 
 export async function getConfig(): Promise<ConfigState> {
-  await initializeStore();
-  // Guaranteed to be non-null after initialization because initializeStore throws on failure
+  await globalForEmitters.initializationPromise;
+  // Guaranteed to be non-null after initialization because performInitialization throws on critical failure.
   return storedConfig!;
 }
 
@@ -137,7 +133,7 @@ export function updateTunnelState(updates: Partial<TunnelState>) {
 }
 
 export async function getGameState(): Promise<LiveState> {
-  await initializeStore();
+  await globalForEmitters.initializationPromise;
   // Guaranteed to be non-null after initialization
   return storedGameState!;
 }
@@ -281,3 +277,5 @@ export function disconnectTunnel(): void {
 // Ensure password file is checked/created on startup
 getRemoteAccessPassword();
 // The store is now initialized on-demand by the first getter that needs it.
+
+    
