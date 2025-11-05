@@ -1,21 +1,30 @@
 
 // Este archivo actúa como un punto de entrada para el sistema de almacenamiento.
 // Lee la variable de entorno para decidir qué proveedor de almacenamiento usar.
-// Por ahora, solo soporta el almacenamiento local.
 
 import * as localProvider from './local-provider';
+import * as gdriveProvider from './gdrive-provider';
+import type { ConfigState, LiveState, Tournament } from '@/types';
 
-const provider = process.env.STORAGE_PROVIDER;
-
-if (provider === 'local') {
-    console.log("Using 'local' storage provider.");
-} else {
-    // En el futuro, aquí se podría manejar un proveedor de 'googledrive' o dar un error.
-    console.warn(`Storage provider '${provider}' is not supported. Falling back to 'local'.`);
+interface StorageProvider {
+    readConfig: () => Promise<Partial<ConfigState>>;
+    writeConfig: (config: ConfigState) => Promise<void>;
+    readLiveState: () => Promise<Partial<LiveState>>;
+    writeLiveState: (liveState: LiveState) => Promise<void>;
+    readTournament: (tournamentId: string) => Promise<Partial<Tournament> | null>;
+    writeTournament: (tournament: Tournament) => Promise<void>;
 }
 
-// Re-exportamos las funciones del proveedor local.
-// Cuando añadamos Google Drive, aquí habrá una lógica condicional.
+let provider: StorageProvider;
+
+if (process.env.STORAGE_PROVIDER === 'googledrive') {
+    console.log("Using 'googledrive' storage provider.");
+    provider = gdriveProvider;
+} else {
+    console.log("Using 'local' storage provider.");
+    provider = localProvider;
+}
+
 export const {
     readConfig,
     writeConfig,
@@ -23,4 +32,4 @@ export const {
     writeLiveState,
     readTournament,
     writeTournament,
-} = localProvider;
+} = provider;
