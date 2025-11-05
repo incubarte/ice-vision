@@ -9,6 +9,7 @@ import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
+const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
 
 let drive: any;
 let authError: string | null = null;
@@ -18,8 +19,7 @@ async function initializeDrive() {
     if (isInitialized) return;
 
     try {
-        const credentialsPath = path.join(process.cwd(), 'env_drive_credentials.json');
-        const credentialsFile = await fs.readFile(credentialsPath, 'utf-8');
+        const credentialsFile = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
         const credentials = JSON.parse(credentialsFile);
 
         const auth = new google.auth.JWT(
@@ -31,15 +31,20 @@ async function initializeDrive() {
 
         drive = google.drive({ version: 'v3', auth });
         isInitialized = true;
-
+        authError = null; // Clear any previous auth error on successful init
     } catch (error) {
-        authError = error instanceof Error ? error.message : "Error desconocido durante la inicialización de Google Drive.";
+        authError = error instanceof Error ? `Error al leer o parsear las credenciales: ${error.message}` : "Error desconocido durante la inicialización de Google Drive.";
         console.error("[GDRIVE_PROVIDER] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", authError);
+        isInitialized = false; // Ensure we can retry if it fails
     }
 }
 
 const checkPrerequisites = async () => {
-    await initializeDrive(); // Asegurarse de que esté inicializado
+    // Always try to initialize if not already done.
+    if (!isInitialized) {
+        await initializeDrive();
+    }
+    // After attempting initialization, check for errors.
     if (authError) {
         throw new Error(`Fallo en la inicialización de Google Drive: ${authError}`);
     }
@@ -155,7 +160,7 @@ export async function readConfig(): Promise<Partial<ConfigState> | null> {
     await checkPrerequisites();
     const fileId = await findFileOrFolder('config.json', FOLDER_ID!);
     if (!fileId) {
-        return null;
+         throw new Error("config.json no encontrado en la carpeta de Google Drive. Asegúrate de que el archivo exista.");
     }
     return await readFileContent<ConfigState>(fileId);
 }
@@ -169,7 +174,7 @@ export async function readLiveState(): Promise<Partial<LiveState> | null> {
     await checkPrerequisites();
     const fileId = await findFileOrFolder('live.json', FOLDER_ID!);
      if (!fileId) {
-        return null;
+        throw new Error("live.json no encontrado en la carpeta de Google Drive. Asegúrate de que el archivo exista.");
     }
     return await readFileContent<LiveState>(fileId);
 }
@@ -203,8 +208,11 @@ export async function readTournament(tournamentId: string): Promise<Partial<Tour
         if (summariesFolderId) {
             const matchSummaryPromises = partialTournament.matches.map(async (match: MatchData) => {
                 const summaryFileId = await findFileOrFolder(`${match.id}.json`, summariesFolderId);
-                const summary = summaryFileId ? await readFileContent(summaryFileId) : undefined;
-                return { ...match, summary };
+                if (summaryFileId) {
+                    const summary = await readFileContent(summaryFileId);
+                     return { ...match, summary: summary || undefined };
+                }
+                return match;
             });
             partialTournament.matches = await Promise.all(matchSummaryPromises);
         }
@@ -230,13 +238,11 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
         if (summary) {
             summaryWritePromises.push(createOrUpdateFile(`${match.id}.json`, summariesFolderId, summary));
             
-            const homeGoals = summary.statsByPeriod?.reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) ?? 0;
-            const awayGoals = summary.statsByPeriod?.reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) ?? 0;
-            const homeShootoutGoals = summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0;
-            const awayShootoutGoals = summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0;
+            const homeGoals = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
+            const awayGoals = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
             
-            matchWithoutSummary.homeScore = homeGoals + homeShootoutGoals;
-            matchWithoutSummary.awayScore = awayGoals + awayShootoutGoals;
+            matchWithoutSummary.homeScore = homeGoals + (homeGoals > awayGoals && summary.overTimeOrShootouts ? 1 : 0);
+            matchWithoutSummary.awayScore = awayGoals + (awayGoals > homeGoals && summary.overTimeOrShootouts ? 1 : 0);
             matchWithoutSummary.overTimeOrShootouts = summary.overTimeOrShootouts;
         }
         fixtureMatches.push(matchWithoutSummary);
