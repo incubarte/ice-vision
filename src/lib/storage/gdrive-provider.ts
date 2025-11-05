@@ -10,35 +10,39 @@ import path from 'path';
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
-const getCredentials = () => {
-    try {
-        const credentialsPath = path.join(process.cwd(), 'env_drive_credentials.json');
-        const credentialsFile = fs.readFile(credentialsPath, 'utf-8');
-        return JSON.parse(credentialsFile.toString());
-    } catch (error) {
-        console.error("Error al leer 'env_drive_credentials.json':", error);
-        return null;
-    }
-};
+let drive: any;
+let authError: string | null = null;
 
-const credentials = getCredentials();
+try {
+    const credentialsPath = path.join(process.cwd(), 'env_drive_credentials.json');
+    const credentialsFile = fs.readFileSync(credentialsPath, 'utf-8');
+    const credentials = JSON.parse(credentialsFile);
+    
+    console.log("[GDRIVE_PROVIDER_DEBUG] Credenciales leídas correctamente. client_email:", credentials.client_email);
 
-const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: credentials?.client_email,
-    private_key: credentials?.private_key,
-  },
-  scopes: SCOPES,
-});
+    const auth = new google.auth.GoogleAuth({
+        credentials: {
+            client_email: credentials.client_email,
+            private_key: credentials.private_key,
+        },
+        scopes: SCOPES,
+    });
 
-const drive = google.drive({ version: 'v3', auth });
+    drive = google.drive({ version: 'v3', auth });
+    console.log("[GDRIVE_PROVIDER_DEBUG] Cliente de Google Drive inicializado.");
+
+} catch (error) {
+    authError = error instanceof Error ? error.message : "Error desconocido durante la autenticación de Google Drive.";
+    console.error("[GDRIVE_PROVIDER_DEBUG] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", authError);
+}
+
 
 const checkPrerequisites = () => {
+    if (authError) {
+        throw new Error(`Fallo en la inicialización de Google Drive: ${authError}`);
+    }
     if (!FOLDER_ID) {
         throw new Error("La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
-    }
-    if (!credentials?.client_email || !credentials?.private_key) {
-        throw new Error("El archivo de credenciales 'env_drive_credentials.json' es inválido, está incompleto o no se pudo leer.");
     }
 };
 
@@ -47,18 +51,27 @@ async function findFileOrFolder(name: string, parentId: string, mimeType?: strin
     if (mimeType) {
         query += ` and mimeType = '${mimeType}'`;
     }
+    console.log(`[GDRIVE_PROVIDER_DEBUG] Buscando con query: "${query}"`);
     try {
         const res = await drive.files.list({
             q: query,
-            fields: 'files(id)',
+            fields: 'files(id, name)',
             spaces: 'drive',
         });
-        return res.data.files && res.data.files.length > 0 ? res.data.files[0].id || null : null;
-    } catch (error) {
-        console.error(`Error finding file/folder '${name}':`, error);
+        
+        if (res.data.files && res.data.files.length > 0) {
+            console.log(`[GDRIVE_PROVIDER_DEBUG] Encontrado: ${res.data.files[0].name} con ID: ${res.data.files[0].id}`);
+            return res.data.files[0].id || null;
+        } else {
+            console.log(`[GDRIVE_PROVIDER_DEBUG] No se encontró ningún archivo o carpeta con el nombre '${name}' en la carpeta padre '${parentId}'.`);
+            return null;
+        }
+    } catch (error: any) {
+        console.error(`[GDRIVE_PROVIDER_DEBUG] Error en la API de Drive al buscar '${name}':`, error.message);
         throw error;
     }
 }
+
 
 async function createFolder(name: string, parentId: string): Promise<string> {
     try {
@@ -160,7 +173,7 @@ export async function writeConfig(config: ConfigState): Promise<void> {
 export async function readLiveState(): Promise<Partial<LiveState>> {
     checkPrerequisites();
     const fileId = await findFileOrFolder('live.json', FOLDER_ID!);
-    if (!fileId) {
+     if (!fileId) {
         throw new Error("El archivo 'live.json' no se encontró en la carpeta de Google Drive. Por favor, asegúrate de que exista o vuelve al modo local para crearlo.");
     }
     const liveData = await readFileContent<LiveState>(fileId);
