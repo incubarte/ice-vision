@@ -2,13 +2,14 @@
 
 import { NextResponse } from 'next/server';
 import type { GameState, ConfigState, LiveState } from '@/types';
-import { getGameState, setGameState, getConfig, setConfig } from '@/lib/server-side-store';
+import { getGameState, getConfig, setGameState, setConfig } from '@/lib/server-side-store';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    // These functions now wait for initialization and are guaranteed to return a valid state.
+    // Estas funciones ahora esperan a que la inicialización termine.
+    // Garantizan que siempre se devolverá un estado válido.
     const [config, liveState] = await Promise.all([
         getConfig(),
         getGameState()
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
     console.error(`[API/DB] CRITICAL ERROR fetching initial data:`, errorMessage);
-    // This provides a more specific error message to the client if initialization fails catastrophically.
+    // Este error ahora solo debería ocurrir si la inicialización falla catastróficamente.
     return NextResponse.json({ message: `El servidor de datos no está listo o falló al iniciar. Revisa los logs del servidor.`, error: errorMessage }, { status: 503 });
   }
 }
