@@ -119,6 +119,11 @@ async function readFileContent<T>(fileId: string): Promise<T | null> {
     }
 }
 
+// Export a separate function for the API route to use
+export async function readFileContentById(fileId: string): Promise<any> {
+    return readFileContent(fileId);
+}
+
 
 export async function readConfig(): Promise<Partial<ConfigState> | null> {
     try {

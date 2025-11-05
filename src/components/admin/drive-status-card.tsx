@@ -7,10 +7,14 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, HardDrive, File, AlertTriangle, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '../ui/scroll-area';
+
 
 interface DriveFile {
   id: string;
   name: string;
+  content?: string;
 }
 
 interface LogEntry {
@@ -119,12 +123,26 @@ export function DriveStatusCard() {
                     <h4 className="text-sm font-semibold mb-2">Archivos encontrados en la carpeta raíz:</h4>
                     {files.length > 0 ? (
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                      <TooltipProvider>
                         {files.map(file => (
-                        <div key={file.id} className="flex items-center gap-2 text-sm p-2 bg-muted/50 rounded-md">
-                            <File className="h-4 w-4 text-muted-foreground" />
-                            <span>{file.name}</span>
-                        </div>
+                        <Tooltip key={file.id} delayDuration={100}>
+                            <TooltipTrigger asChild>
+                                <div className="flex items-center gap-2 text-sm p-2 bg-muted/50 rounded-md cursor-help">
+                                    <File className="h-4 w-4 text-muted-foreground" />
+                                    <span>{file.name}</span>
+                                </div>
+                            </TooltipTrigger>
+                            {file.content && (
+                                <TooltipContent side="right" align="start" className="max-w-lg max-h-80">
+                                    <p className="font-bold mb-2 text-primary">{file.name}</p>
+                                    <ScrollArea className="h-full">
+                                        <pre className="text-xs bg-muted p-2 rounded-md">{file.content}</pre>
+                                    </ScrollArea>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
                         ))}
+                      </TooltipProvider>
                     </div>
                     ) : (
                         <p className="text-sm text-muted-foreground italic">No se encontraron archivos en la carpeta raíz.</p>
