@@ -78,20 +78,28 @@ async function initializeStore() {
     }
 
     const performInitialization = async () => {
-        console.log("[Store] Initializing store... fetching data from provider.");
+        console.log("[Store] Initializing store...");
         const defaultState = getInitialState();
+        
+        // Step 1: Set default state immediately to prevent nulls.
+        storedConfig = defaultState.config;
+        storedGameState = defaultState.live;
+        console.log("[Store] Default state loaded as fallback.");
+
+        // Step 2: Try to read from the provider.
         try {
+            console.log("[Store] Fetching data from provider...");
             const [configResult, liveStateResult] = await Promise.all([
                 readConfigFromProvider(),
                 readLiveStateFromProvider()
             ]);
             
+            // Step 3: If data is valid, overwrite the defaults.
             if (configResult && Object.keys(configResult).length > 0) {
                 storedConfig = configResult as ConfigState;
                 console.log("[Store] Config loaded successfully from provider.");
             } else {
                  console.warn("[Store] Could not read config from provider or it was empty. Using default config.");
-                 storedConfig = defaultState.config;
             }
 
             if (liveStateResult && Object.keys(liveStateResult).length > 0) {
@@ -99,17 +107,11 @@ async function initializeStore() {
                  console.log("[Store] Live State loaded successfully from provider.");
             } else {
                  console.warn("[Store] Could not read live state from provider or it was empty. Using default live state.");
-                 storedGameState = defaultState.live;
             }
 
         } catch (error) {
-            console.error("[Store] CRITICAL: Unhandled error during storage initialization. Loading default state as a fallback.", error);
-            storedConfig = defaultState.config;
-            storedGameState = defaultState.live;
+            console.error("[Store] CRITICAL: Unhandled error during storage initialization. Using default state as a fallback.", error);
         } finally {
-             // Final guarantee that state is never null
-            if (!storedConfig) storedConfig = defaultState.config;
-            if (!storedGameState) storedGameState = defaultState.live;
             console.log("[Store] Initialization complete.");
         }
     };
@@ -285,5 +287,3 @@ export function disconnectTunnel(): void {
 // Ensure password file is checked/created on startup and data is loaded
 getRemoteAccessPassword();
 initializeStore();
-
-    
