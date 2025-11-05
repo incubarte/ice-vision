@@ -19,23 +19,26 @@ export function DriveStatusCard() {
   const [error, setError] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(false);
 
-  useEffect(() => {
-    // Determine active status on client side. Use NEXT_PUBLIC_ for client-side access.
-    const provider = process.env.NEXT_PUBLIC_STORAGE_PROVIDER;
-    setIsActive(provider === 'googledrive');
-  }, []);
-
   const fetchFiles = async () => {
-    if (!isActive) return;
     setIsLoading(true);
     setError(null);
+    setFiles([]);
+    setIsActive(false);
+
     try {
       const response = await fetch('/api/drive-files');
       const data = await response.json();
+      
       if (!response.ok) {
+        // Si la API devuelve un error (ej. 400 porque el provider no es drive), lo manejamos como un error.
+        setIsActive(response.status !== 400); // Consider it active if it's not the specific 'provider not active' error
         throw new Error(data.message || 'Error en el servidor al intentar obtener los archivos de Drive.');
       }
+      
+      // Si la respuesta es exitosa, el proveedor es Drive.
+      setIsActive(true);
       setFiles(data.files);
+
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -44,10 +47,8 @@ export function DriveStatusCard() {
   };
 
   useEffect(() => {
-    if (isActive) {
-      fetchFiles();
-    }
-  }, [isActive]);
+    fetchFiles();
+  }, []);
 
   return (
     <Card>
@@ -57,21 +58,23 @@ export function DriveStatusCard() {
             <HardDrive className="h-5 w-5" />
             <span>Estado de Google Drive</span>
           </div>
-          {isActive ? (
+          {isLoading ? (
+             <Badge variant="secondary">Verificando...</Badge>
+          ) : isActive ? (
              <Badge className="bg-green-600 hover:bg-green-700">Activo</Badge>
           ) : (
             <Badge variant="secondary">Inactivo</Badge>
           )}
         </CardTitle>
         <CardDescription>
+          Diagnóstico de conexión con la carpeta de Google Drive.
           {isActive
-            ? "Muestra los archivos encontrados en la carpeta raíz de Google Drive configurada. Si hay un error, indica un problema de permisos o de conexión."
-            : "El proveedor de almacenamiento local está en uso. Esta sección está inactiva."
+            ? " Muestra los archivos encontrados. Si hay un error, indica un problema de permisos o de conexión."
+            : " Para usar Google Drive, configura la variable de entorno `STORAGE_PROVIDER` a `googledrive`."
           }
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isActive ? (
           <>
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-semibold">Archivos en la Carpeta Raíz:</h4>
@@ -100,12 +103,11 @@ export function DriveStatusCard() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground italic">No se encontraron archivos en la carpeta raíz.</p>
+               isActive ? 
+                <p className="text-sm text-muted-foreground italic">No se encontraron archivos en la carpeta raíz.</p>
+                : <p className="text-sm text-muted-foreground">El proveedor de almacenamiento local está en uso. Esta sección está inactiva.</p>
             )}
           </>
-        ) : (
-            <p className="text-sm text-muted-foreground">Para usar Google Drive, configura la variable de entorno `STORAGE_PROVIDER` a `googledrive` en tu archivo `.env` y reinicia la aplicación.</p>
-        )}
       </CardContent>
     </Card>
   );
