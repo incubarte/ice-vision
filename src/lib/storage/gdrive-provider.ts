@@ -19,8 +19,9 @@ interface LogEntry {
 }
 
 async function initializeDrive(logs: LogEntry[]) {
-    // Si ya estamos inicializados o en proceso, no hacer nada.
-    if (drive || initializationPromise) {
+    if (drive) return;
+    
+    if (initializationPromise) {
         return initializationPromise;
     }
 
@@ -30,19 +31,16 @@ async function initializeDrive(logs: LogEntry[]) {
             throw new Error("[GDRIVE_PROVIDER] FATAL: La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
         }
         
-        const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
         let credentials;
         try {
-            const credentialsFileContent = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
-            // Limpia cualquier BOM o caracter extraño al principio del archivo
-            const cleanedContent = credentialsFileContent.trim().replace(/^\uFEFF/, '');
-            credentials = JSON.parse(cleanedContent);
-            logs.push({ step: "Leer Credenciales", status: "success", message: "Archivo env_drive_credentials.json encontrado y parseado." });
-        } catch (error: any) {
-            if (error.code === 'ENOENT') {
-                throw new Error(`Credenciales no encontradas en: ${CREDENTIALS_PATH}`);
+            const credentialsJson = JSON.parse(Buffer.from(process.env.GOOGLE_DRIVE_CREDENTIALS_BASE64 || '', 'base64').toString('utf8'));
+            if (!credentialsJson.client_email || !credentialsJson.private_key) {
+                throw new Error("Credenciales decodificadas de Base64 son inválidas o incompletas.");
             }
-            throw new Error(`Error al parsear env_drive_credentials.json: ${error.message}`);
+            credentials = credentialsJson;
+            logs.push({ step: "Leer Credenciales", status: "success", message: "Credenciales decodificadas desde la variable de entorno." });
+        } catch (error: any) {
+            throw new Error(`Error al parsear GOOGLE_DRIVE_CREDENTIALS_BASE64: ${error.message}`);
         }
 
         try {
@@ -62,20 +60,25 @@ async function initializeDrive(logs: LogEntry[]) {
     
     initializationPromise = performInitialization().catch(err => {
         initializationPromise = null;
+        drive = null; // Ensure drive is null on failure
         throw err;
     });
 
     return initializationPromise;
 }
 
-async function getDriveClient(logs: LogEntry[]) {
-    await initializeDrive(logs);
+
+async function getDriveClient(logs?: LogEntry[]) {
+    // Pass an empty array if logs are not provided to avoid breaking the function
+    const internalLogs = logs || [];
+    await initializeDrive(internalLogs);
     return drive;
 }
 
 async function findFileId(name: string, parentId: string): Promise<string | null> {
     try {
-        const res = await drive.files.list({
+        const driveClient = await getDriveClient([]);
+        const res = await driveClient.files.list({
             q: `name = '${name}' and '${parentId}' in parents and trashed = false`,
             fields: 'files(id)',
             spaces: 'drive',
@@ -89,7 +92,8 @@ async function findFileId(name: string, parentId: string): Promise<string | null
 
 async function readFileContent<T>(fileId: string): Promise<T | null> {
     try {
-        const res = await drive.files.get({ fileId: fileId, alt: 'media' });
+        const driveClient = await getDriveClient([]);
+        const res = await driveClient.files.get({ fileId: fileId, alt: 'media' });
         const chunks: any[] = [];
         return new Promise((resolve, reject) => {
             (res.data as any).on('data', (chunk: any) => chunks.push(chunk));
@@ -114,10 +118,9 @@ async function readFileContent<T>(fileId: string): Promise<T | null> {
 }
 
 
-export async function readConfig(): Promise<Partial<ConfigState>> {
-    const logs: any[] = []; 
+export async function readConfig(): Promise<Partial<ConfigState> | null> {
     try {
-        await getDriveClient(logs);
+        await getDriveClient([]);
         const fileId = await findFileId('config.json', process.env.GOOGLE_DRIVE_FOLDER_ID!);
         if (!fileId) {
             console.warn("ADVERTENCIA: El archivo 'config.json' no se encontró en Google Drive. Se usará una configuración vacía.");
@@ -126,14 +129,13 @@ export async function readConfig(): Promise<Partial<ConfigState>> {
         return (await readFileContent<ConfigState>(fileId)) || {};
     } catch (error) {
         console.error("Error crítico en readConfig:", error);
-        throw error; // Re-lanza el error para que la API lo maneje
+        return null;
     }
 }
 
-export async function readLiveState(): Promise<Partial<LiveState>> {
-    const logs: any[] = [];
+export async function readLiveState(): Promise<Partial<LiveState> | null> {
      try {
-        await getDriveClient(logs);
+        await getDriveClient([]);
         const fileId = await findFileId('live.json', process.env.GOOGLE_DRIVE_FOLDER_ID!);
         if (!fileId) {
             console.warn("ADVERTENCIA: El archivo 'live.json' no se encontró en Google Drive. Se usará un estado en vivo vacío.");
@@ -142,7 +144,7 @@ export async function readLiveState(): Promise<Partial<LiveState>> {
         return (await readFileContent<LiveState>(fileId)) || {};
     } catch (error) {
         console.error("Error crítico en readLiveState:", error);
-        throw error; // Re-lanza el error
+        return null;
     }
 }
 
@@ -275,9 +277,8 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
 
 export async function listFiles(logs: LogEntry[]): Promise<{ id: string; name: string }[] | null> {
     const driveClient = await getDriveClient(logs);
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
 
-    // Paso 1: Verificar el acceso a la carpeta
     try {
         logs.push({ step: "Verificar Acceso a Carpeta", status: "success", message: `Intentando acceder a la carpeta ID: ...${folderId!.slice(-6)}` });
         const folderRes = await driveClient.files.get({
@@ -292,7 +293,6 @@ export async function listFiles(logs: LogEntry[]): Promise<{ id: string; name: s
         throw new Error(errorMessage);
     }
     
-    // Paso 2: Listar los archivos dentro de la carpeta
     try {
         logs.push({ step: "Listar Contenido de Carpeta", status: "success", message: "Buscando archivos..." });
         const res = await driveClient.files.list({
@@ -310,3 +310,5 @@ export async function listFiles(logs: LogEntry[]): Promise<{ id: string; name: s
         throw new Error(errorMessage);
     }
 }
+
+    

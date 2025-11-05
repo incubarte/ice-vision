@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
     console.error(`[API/DB] CRITICAL ERROR fetching initial data:`, errorMessage);
-    return NextResponse.json({ message: `Error crítico del servidor: ${errorMessage}` }, { status: 500 });
+    return NextResponse.json({ message: `El servidor de datos no está listo o falló al iniciar. Revisa los logs del servidor.`, error: errorMessage }, { status: 503 });
   }
 }
 
@@ -54,3 +54,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'An unknown server error occurred.'}, { status: 500 });
   }
 }
+
+    

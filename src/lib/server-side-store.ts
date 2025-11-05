@@ -86,15 +86,20 @@ async function initializeStore() {
                 readLiveStateFromProvider()
             ]);
             
-            // Si cualquiera de las lecturas falla, usamos los valores por defecto para AMBOS.
-            if (!configResult || !liveStateResult) {
-                console.warn("[Store] Could not read config or live state from provider. Using default state for both.");
-                storedConfig = defaultState.config;
-                storedGameState = defaultState.live;
-            } else {
+            if (configResult && Object.keys(configResult).length > 0) {
                 storedConfig = configResult as ConfigState;
-                storedGameState = liveStateResult as LiveState;
-                console.log("[Store] Config and Live State loaded successfully from provider.");
+                console.log("[Store] Config loaded successfully from provider.");
+            } else {
+                 console.warn("[Store] Could not read config from provider or it was empty. Using default config.");
+                 storedConfig = defaultState.config;
+            }
+
+            if (liveStateResult && Object.keys(liveStateResult).length > 0) {
+                 storedGameState = liveStateResult as LiveState;
+                 console.log("[Store] Live State loaded successfully from provider.");
+            } else {
+                 console.warn("[Store] Could not read live state from provider or it was empty. Using default live state.");
+                 storedGameState = defaultState.live;
             }
 
         } catch (error) {
@@ -102,7 +107,7 @@ async function initializeStore() {
             storedConfig = defaultState.config;
             storedGameState = defaultState.live;
         } finally {
-             // Aseguramos que las variables nunca sean null después de la inicialización.
+             // Final guarantee that state is never null
             if (!storedConfig) storedConfig = defaultState.config;
             if (!storedGameState) storedGameState = defaultState.live;
             console.log("[Store] Initialization complete.");
@@ -280,3 +285,5 @@ export function disconnectTunnel(): void {
 // Ensure password file is checked/created on startup and data is loaded
 getRemoteAccessPassword();
 initializeStore();
+
+    
