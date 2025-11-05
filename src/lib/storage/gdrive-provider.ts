@@ -95,20 +95,16 @@ async function findFileId(name: string, parentId: string): Promise<string | null
 async function readFileContent<T>(fileId: string): Promise<T | null> {
     try {
         const driveClient = await getDriveClient([]);
-        const res = await driveClient.files.get({ fileId: fileId, alt: 'media' });
-        const chunks: any[] = [];
-        return new Promise((resolve, reject) => {
-            (res.data as any).on('data', (chunk: any) => chunks.push(chunk));
-            (res.data as any).on('end', () => {
-                try {
-                    const content = Buffer.concat(chunks).toString();
-                    resolve(JSON.parse(content));
-                } catch (e) {
-                    reject(new Error(`Fallo al parsear el contenido JSON del archivo con ID ${fileId}`));
-                }
-            });
-            (res.data as any).on('error', (err: any) => reject(err));
-        });
+        const res = await driveClient.files.get({ fileId: fileId, alt: 'media' }, { responseType: 'json' });
+        
+        // La respuesta ya es el objeto JSON, no un stream.
+        if (res.data) {
+            return res.data as T;
+        } else {
+             console.warn(`[GDRIVE_PROVIDER] La respuesta para el archivo ID '${fileId}' no contenía datos.`);
+             return null;
+        }
+
     } catch (error: any) {
         if (error.code === 404) {
             console.warn(`[GDRIVE_PROVIDER] Archivo con ID '${fileId}' no encontrado.`);
