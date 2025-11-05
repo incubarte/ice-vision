@@ -2,18 +2,33 @@
 import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 import { google } from 'googleapis';
 import stream from 'stream';
-import credentials from '../../../../env_drive_credentials.json';
+import fs from 'fs';
+import path from 'path';
 
 // --- Configuración y Autenticación con Google Drive ---
 
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
+// Helper para cargar las credenciales de forma segura
+const getCredentials = () => {
+    try {
+        const credentialsPath = path.join(process.cwd(), 'env_drive_credentials.json');
+        const credentialsFile = fs.readFileSync(credentialsPath, 'utf-8');
+        return JSON.parse(credentialsFile);
+    } catch (error) {
+        console.error("Error al leer 'env_drive_credentials.json':", error);
+        return null;
+    }
+};
+
+const credentials = getCredentials();
+
 // Autentica y crea un cliente de la API de Drive
 const auth = new google.auth.GoogleAuth({
   credentials: {
-    client_email: credentials.client_email,
-    private_key: credentials.private_key,
+    client_email: credentials?.client_email,
+    private_key: credentials?.private_key,
   },
   scopes: SCOPES,
 });
@@ -25,8 +40,8 @@ const checkPrerequisites = () => {
     if (!FOLDER_ID) {
         throw new Error("La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
     }
-    if (!credentials.client_email || !credentials.private_key) {
-        throw new Error("El archivo de credenciales 'env_drive_credentials.json' es inválido o está incompleto.");
+    if (!credentials?.client_email || !credentials?.private_key) {
+        throw new Error("El archivo de credenciales 'env_drive_credentials.json' es inválido, está incompleto o no se pudo leer.");
     }
 };
 
@@ -58,7 +73,7 @@ async function createFolder(name: string, parentId: string): Promise<string> {
             parents: [parentId],
         };
         const res = await drive.files.create({
-            resource: fileMetadata,
+            requestBody: fileMetadata,
             fields: 'id',
         });
         if (!res.data.id) throw new Error("Failed to get ID for created folder.");
