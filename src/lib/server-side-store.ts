@@ -1,4 +1,6 @@
+
 'use server';
+import 'server-only';
 import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState, Tournament, GameState, FormatAndTimingsProfile, ScoreboardLayoutSettings, ScoreboardLayoutProfile, ReplaySettings, PenaltyTypeDefinition } from '@/types';
 import { EventEmitter } from 'events';
 import fs from 'fs';
