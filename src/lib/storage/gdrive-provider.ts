@@ -1,7 +1,7 @@
 
 import { google } from 'googleapis';
 import stream from 'stream';
-import fs from 'fs/promises';
+import { promises as fs } from 'fs';
 import path from 'path';
 import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 
@@ -12,32 +12,37 @@ const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
 let drive: any;
 let authError: string | null = null;
+let isInitialized = false;
 
-try {
-    const credentialsPath = path.join(process.cwd(), 'env_drive_credentials.json');
-    const credentialsFile = fs.readFileSync(credentialsPath, 'utf-8');
-    const credentials = JSON.parse(credentialsFile);
-    
-    console.log("[GDRIVE_PROVIDER_DEBUG] Credenciales leídas correctamente. client_email:", credentials.client_email);
+async function initializeDrive() {
+    if (isInitialized) return;
 
-    // Usar JWT auth client, que es más explícito para cuentas de servicio
-    const auth = new google.auth.JWT(
-        credentials.client_email,
-        undefined,
-        credentials.private_key,
-        SCOPES
-    );
+    try {
+        const credentialsPath = path.join(process.cwd(), 'env_drive_credentials.json');
+        const credentialsFile = await fs.readFile(credentialsPath, 'utf-8');
+        const credentials = JSON.parse(credentialsFile);
+        
+        console.log("[GDRIVE_PROVIDER_DEBUG] Credenciales leídas correctamente. client_email:", credentials.client_email);
 
-    drive = google.drive({ version: 'v3', auth });
-    console.log("[GDRIVE_PROVIDER_DEBUG] Cliente de Google Drive inicializado con JWT.");
+        const auth = new google.auth.JWT(
+            credentials.client_email,
+            undefined,
+            credentials.private_key,
+            SCOPES
+        );
 
-} catch (error) {
-    authError = error instanceof Error ? error.message : "Error desconocido durante la autenticación de Google Drive.";
-    console.error("[GDRIVE_PROVIDER_DEBUG] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", authError);
+        drive = google.drive({ version: 'v3', auth });
+        isInitialized = true;
+        console.log("[GDRIVE_PROVIDER_DEBUG] Cliente de Google Drive inicializado con JWT.");
+
+    } catch (error) {
+        authError = error instanceof Error ? error.message : "Error desconocido durante la inicialización de Google Drive.";
+        console.error("[GDRIVE_PROVIDER_DEBUG] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", authError);
+    }
 }
 
-
-const checkPrerequisites = () => {
+const checkPrerequisites = async () => {
+    await initializeDrive(); // Asegurarse de que esté inicializado
     if (authError) {
         throw new Error(`Fallo en la inicialización de Google Drive: ${authError}`);
     }
@@ -153,7 +158,7 @@ async function createOrUpdateFile(fileName: string, parentId: string, data: any)
 }
 
 export async function readConfig(): Promise<Partial<ConfigState>> {
-    checkPrerequisites();
+    await checkPrerequisites();
     const fileId = await findFileOrFolder('config.json', FOLDER_ID!);
     if (!fileId) {
         throw new Error("El archivo 'config.json' no se encontró en la carpeta de Google Drive. Por favor, asegúrate de que exista o vuelve al modo local para crearlo.");
@@ -166,12 +171,12 @@ export async function readConfig(): Promise<Partial<ConfigState>> {
 }
 
 export async function writeConfig(config: ConfigState): Promise<void> {
-    checkPrerequisites();
+    await checkPrerequisites();
     await createOrUpdateFile('config.json', FOLDER_ID!, config);
 }
 
 export async function readLiveState(): Promise<Partial<LiveState>> {
-    checkPrerequisites();
+    await checkPrerequisites();
     const fileId = await findFileOrFolder('live.json', FOLDER_ID!);
      if (!fileId) {
         throw new Error("El archivo 'live.json' no se encontró en la carpeta de Google Drive. Por favor, asegúrate de que exista o vuelve al modo local para crearlo.");
@@ -184,12 +189,12 @@ export async function readLiveState(): Promise<Partial<LiveState>> {
 }
 
 export async function writeLiveState(liveState: LiveState): Promise<void> {
-    checkPrerequisites();
+    await checkPrerequisites();
     await createOrUpdateFile('live.json', FOLDER_ID!, liveState);
 }
 
 export async function readTournament(tournamentId: string): Promise<Partial<Tournament> | null> {
-    checkPrerequisites();
+    await checkPrerequisites();
     const tournamentsFolderId = await getOrCreateFolder('tournaments', FOLDER_ID!);
     const tournamentFolderId = await findFileOrFolder(tournamentId, tournamentsFolderId, 'application/vnd.google-apps.folder');
     if (!tournamentFolderId) return null;
@@ -223,7 +228,7 @@ export async function readTournament(tournamentId: string): Promise<Partial<Tour
 }
 
 export async function writeTournament(tournament: Tournament): Promise<void> {
-    checkPrerequisites();
+    await checkPrerequisites();
     const tournamentsFolderId = await getOrCreateFolder('tournaments', FOLDER_ID!);
     const tournamentFolderId = await getOrCreateFolder(tournament.id, tournamentsFolderId);
 
