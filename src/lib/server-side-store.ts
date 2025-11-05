@@ -79,19 +79,21 @@ async function initializeStore() {
 
     const performInitialization = async () => {
         console.log("[Store] Initializing store... fetching data from provider.");
+        const defaultState = getInitialState();
         try {
             const [configResult, liveStateResult] = await Promise.all([
                 readConfigFromProvider(),
                 readLiveStateFromProvider()
             ]);
 
+            // If a provider returns null (critical error), this will throw.
+            // If it returns {} (file not found), we use defaults.
             if (!configResult || !liveStateResult) {
-                throw new Error("One or both storage providers returned null.");
+                throw new Error("One or both storage providers returned a critical error (null).");
             }
             
-            // If data is empty, use defaults, but don't treat it as a catastrophic error.
-            storedConfig = (Object.keys(configResult).length > 0 ? configResult : getInitialState().config) as ConfigState;
-            storedGameState = (Object.keys(liveStateResult).length > 0 ? liveStateResult : getInitialState().live) as LiveState;
+            storedConfig = Object.keys(configResult).length > 0 ? configResult as ConfigState : defaultState.config;
+            storedGameState = Object.keys(liveStateResult).length > 0 ? liveStateResult as LiveState : defaultState.live;
             
             console.log("[Store] Initialization complete. Config and Live State are loaded.");
 
@@ -273,3 +275,5 @@ export function disconnectTunnel(): void {
 // Ensure password file is checked/created on startup
 getRemoteAccessPassword();
 // The store is now initialized on-demand by the first getter that needs it.
+
+    
