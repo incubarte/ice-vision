@@ -104,6 +104,9 @@ const performInitialization = async () => {
 
     } catch (error) {
         console.error("[Store] CRITICAL: Unhandled error during storage initialization.", error);
+        // Si la inicialización falla, nos aseguramos de que el estado no sea nulo para evitar errores en cascada.
+        appGlobal.storedConfig = getInitialState().config;
+        appGlobal.storedGameState = getInitialState().live;
         throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
     }
 };
@@ -216,43 +219,47 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
     const subdomain = getDynamicSubdomain();
     isManuallyClosing = false;
     console.log(`[Tunnel] Attempting to connect on port ${port} with subdomain ${subdomain}...`);
-    
-    return new Promise(async (resolve) => {
-        const createAndHandleTunnel = async () => {
-            try {
-                const tunnel = await localtunnel({ port, subdomain });
-                appGlobal.tunnelInstance = tunnel;
 
-                tunnel.on('url', (url: string) => {
-                    console.log(`[Tunnel] Connected successfully at: ${url}`);
-                    const successState: Partial<TunnelState> = { status: 'connected', url, subdomain };
-                    updateTunnelState(successState);
-                    resolve(successState);
-                });
+    try {
+        const tunnel = await localtunnel({ port, subdomain });
+        appGlobal.tunnelInstance = tunnel;
 
-                tunnel.on('error', (err: any) => {
-                    console.warn('[Tunnel] Error:', err?.message || err);
-                    updateTunnelState({ status: 'error', lastMessage: err.message || 'Unknown tunnel error' });
-                });
+        tunnel.on('url', (url: string) => {
+            console.log(`[Tunnel] Connected successfully at: ${url}`);
+            const successState: Partial<TunnelState> = { status: 'connected', url, subdomain };
+            updateTunnelState(successState);
+        });
 
-                tunnel.on('close', () => {
-                    console.log('[Tunnel] Connection closed.');
-                    appGlobal.tunnelInstance = undefined;
-                    updateTunnelState({ status: 'disconnected', url: null, subdomain: null });
-                    if (!isManuallyClosing) {
-                        console.log('[Tunnel] Unexpected close. Reconnecting in 3 seconds...');
-                        setTimeout(createAndHandleTunnel, 3000);
-                    }
-                });
-            } catch (error: any) {
-                console.error('[Tunnel] Failed to create tunnel:', error);
-                const errorState: Partial<TunnelState> = { status: 'error', lastMessage: error.message || 'Failed to start tunnel' };
-                updateTunnelState(errorState);
-                resolve(errorState);
+        tunnel.on('error', (err: any) => {
+            console.warn('[Tunnel] Error:', err?.message || err);
+            updateTunnelState({ status: 'error', lastMessage: err.message || 'Unknown tunnel error' });
+        });
+
+        tunnel.on('close', () => {
+            console.log('[Tunnel] Connection closed.');
+            appGlobal.tunnelInstance = undefined;
+            updateTunnelState({ status: 'disconnected', url: null, subdomain: null });
+            if (!isManuallyClosing) {
+                console.log('[Tunnel] Unexpected close. Reconnecting in 3 seconds...');
+                // The API route will need to be called again to reconnect.
+                // This self-reconnection logic might not work as expected in a serverless environment.
+                // It's better to rely on the client to re-trigger the connection.
             }
-        };
-        await createAndHandleTunnel();
-    });
+        });
+        
+        // Return a promise that resolves when the URL is received.
+        return new Promise((resolve) => {
+            tunnel.on('url', (url: string) => {
+                resolve({ status: 'connected', url, subdomain });
+            });
+        });
+
+    } catch (error: any) {
+        console.error('[Tunnel] Failed to create tunnel:', error);
+        const errorState: Partial<TunnelState> = { status: 'error', lastMessage: error.message || 'Failed to start tunnel' };
+        updateTunnelState(errorState);
+        return errorState;
+    }
 }
 
 export function disconnectTunnel(): void {
@@ -267,3 +274,4 @@ export function disconnectTunnel(): void {
 
 // Ensure password file is checked/created on startup
 getRemoteAccessPassword();
+
