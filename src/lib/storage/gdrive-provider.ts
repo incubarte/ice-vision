@@ -1,5 +1,4 @@
-
-
+import 'server-only';
 import { google } from 'googleapis';
 import stream from 'stream';
 import path from 'path';
@@ -21,7 +20,7 @@ interface LogEntry {
 }
 
 // Unica fuente de verdad para la inicialización
-async function initializeDrive(logs?: LogEntry[]) {
+async function initializeDrive() {
     if (drive) return;
     
     if (initializationPromise) {
@@ -41,7 +40,6 @@ async function initializeDrive(logs?: LogEntry[]) {
             if (!credentials.client_email || !credentials.private_key) {
                 throw new Error("El archivo de credenciales es inválido o está incompleto.");
             }
-            logs?.push({ step: "Leer Credenciales", status: "success", message: `Credenciales leídas exitosamente de ${path.basename(CREDENTIALS_PATH)}.` });
         } catch (error: any) {
              if (error.code === 'ENOENT') {
                 throw new Error(`El archivo de credenciales '${path.basename(CREDENTIALS_PATH)}' no se encontró en la raíz del proyecto.`);
@@ -58,7 +56,6 @@ async function initializeDrive(logs?: LogEntry[]) {
             );
             await authClient.authorize();
             drive = google.drive({ version: 'v3', auth: authClient });
-            logs?.push({ step: "Autenticación con Google", status: "success", message: "Autenticación JWT exitosa." });
         } catch (error: any) {
             throw new Error(`Fallo en la autenticación con Google: ${error.message}`);
         }
@@ -273,7 +270,7 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
 }
 
 export async function listFiles(logs: LogEntry[]): Promise<{ id: string; name: string }[] | null> {
-    await initializeDrive(logs);
+    await initializeDrive();
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
 
     try {

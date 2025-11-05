@@ -8,10 +8,8 @@ import type { Penalty, Team, TeamData, PlayerData, CategoryData, ConfigState, Li
 import { useToast as showToast } from '@/hooks/use-toast';
 import isEqual from 'lodash.isequal';
 import { updateConfigOnServer, updateGameStateOnServer, saveTournamentOnServer } from '@/app/actions';
-import { safeUUID } from '@/lib/utils';
-import defaultSettings from '@/config/defaults.json';
 import { generateSummaryData } from '@/lib/summary-generator';
-
+import { getInitialState } from '@/lib/server-side-store';
 
 // --- Constantes para la sincronización local ---
 export const BROADCAST_CHANNEL_NAME = 'icevision-game-state-channel';
@@ -21,8 +19,6 @@ const CENTISECONDS_PER_SECOND = 100;
 const FLASHING_ZERO_DURATION_MS = 5000;
 export const DEFAULT_HORN_SOUND_PATH = '/audio/default-horn.wav';
 export const DEFAULT_PENALTY_BEEP_PATH = '/audio/penalty_beep.wav';
-
-
 
 
 let TAB_ID: string;
@@ -36,73 +32,13 @@ if (typeof window !== 'undefined') {
   TAB_ID = 'server-tab-id-' + Math.random().toString(36).substring(2);
 }
 
-// Initial values (used as fallback if files are not found or are invalid)
-const IN_CODE_INITIAL_PROFILE_NAME = "Predeterminado (App)";
-const IN_CODE_INITIAL_LAYOUT_PROFILE_NAME = "Diseño Predeterminado (App)";
-
-// Sound and Display Defaults
-const IN_CODE_INITIAL_PLAY_SOUND_AT_PERIOD_END = true;
-const IN_CODE_INITIAL_CUSTOM_HORN_SOUND_DATA_URL = null;
-const IN_CODE_INITIAL_ENABLE_TEAM_SELECTION_IN_MINI_SCOREBOARD = true;
-const IN_CODE_INITIAL_ENABLE_PLAYER_SELECTION_FOR_PENALTIES = true;
-const IN_CODE_INITIAL_SHOW_ALIAS_IN_PENALTY_PLAYER_SELECTOR = true;
-const IN_CODE_INITIAL_SHOW_ALIAS_IN_CONTROLS_PENALTY_LIST = true;
-const IN_CODE_INITIAL_SHOW_ALIAS_IN_SCOREBOARD_PENALTIES = true;
-const IN_CODE_INITIAL_ENABLE_PENALTY_COUNTDOWN_SOUND = true;
-const IN_CODE_INITIAL_PENALTY_COUNTDOWN_START_TIME = 10;
-const IN_CODE_INITIAL_CUSTOM_PENALTY_BEEP_SOUND_DATA_URL = null;
-const IN_CODE_INITIAL_ENABLE_DEBUG_MODE = false;
-const IN_CODE_INITIAL_CHROME_BINARY_PATH = "/opt/google/chrome/google-chrome";
-
-const IN_CODE_INITIAL_TUNNEL_STATE: TunnelState = {
-  subdomain: defaultSettings.tunnel.subdomainPrefix,
-  port: defaultSettings.tunnel.port,
-  status: 'disconnected',
-  url: null,
-  lastMessage: null,
+const INITIAL_SHOOTOUT_STATE: ShootoutState = {
+  isActive: false,
+  rounds: 5,
+  homeAttempts: [],
+  awayAttempts: [],
+  initiator: null,
 };
-
-
-export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
-  scoreboardVerticalPosition: -4,
-  scoreboardHorizontalPosition: 0,
-  clockSize: 12,
-  teamNameSize: 3,
-  teamNameWidth: 16,
-  scoreSize: 8,
-  periodSize: 4.5,
-  playersOnIceIconSize: 1.75,
-  categorySize: 1.25,
-  teamLabelSize: 1,
-  penaltiesTitleSize: 2,
-  penaltyPlayerNumberSize: 3.5,
-  penaltyTimeSize: 3.5,
-  penaltyPlayerIconSize: 2.5,
-  standingsTableFontSize: 1.8,
-  standingsTableRowHeight: 4.25,
-  teamLogoOpacity: 10,
-  primaryColor: '223 65% 33%',
-  accentColor: '40 100% 67%',
-  backgroundColor: '223 70% 11%',
-  mainContentGap: 3,
-  scoreLabelGap: -2,
-};
-
-const IN_CODE_INITIAL_REPLAYS_SETTINGS: ReplaySettings = {
-    syncUrl: "https://hockeando-default-rtdb.firebaseio.com/Replays.json",
-    downloadUrlBase: "https://firebasestorage.googleapis.com/v0/b/hockeando.appspot.com/o/"
-};
-
-const IN_CODE_INITIAL_TOURNAMENT_NAME = "torneito";
-const IN_CODE_INITIAL_TOURNAMENT: Tournament = {
-  id: safeUUID(),
-  name: IN_CODE_INITIAL_TOURNAMENT_NAME,
-  status: 'active',
-  teams: [],
-  categories: [],
-  matches: [],
-};
-
 
 const INITIAL_LIVE_DATA: LiveState = {
   score: { home: 0, away: 0, homeShots: 0, awayShots: 0 },
@@ -112,7 +48,7 @@ const INITIAL_LIVE_DATA: LiveState = {
   shotsLog: { home: [], away: [] },
   attendance: { home: [], away: [] },
   clock: {
-    currentTime: 30000, // Default warm-up duration
+    currentTime: 30000,
     currentPeriod: 0,
     isClockRunning: false,
     periodDisplayOverride: 'Warm-up',
@@ -123,13 +59,7 @@ const INITIAL_LIVE_DATA: LiveState = {
     _liveAbsoluteElapsedTimeCs: 0,
     isFlashingZero: false,
   },
-  shootout: {
-    isActive: false,
-    rounds: 5,
-    homeAttempts: [],
-    awayAttempts: [],
-    initiator: null,
-  },
+  shootout: INITIAL_SHOOTOUT_STATE,
   homeTeamName: 'Local',
   awayTeamName: 'Visitante',
   playHornTrigger: 0,
@@ -143,74 +73,6 @@ const INITIAL_LIVE_DATA: LiveState = {
   playedPeriods: [],
 };
 
-export const createDefaultFormatAndTimingsProfile = (id?: string, name?: string): FormatAndTimingsProfile => ({
-  id: id || safeUUID(),
-  name: name || IN_CODE_INITIAL_PROFILE_NAME,
-  ...defaultSettings.formatAndTimings,
-  gameTimeMode: 'stopped',
-  autoActivatePuckPenalties: true, // Default changed as per user request
-  enableStoppedTimeAlert: false, // Default for new profiles
-  stoppedTimeAlertGoalDiff: 1,
-  stoppedTimeAlertTimeRemaining: 2,
-  penaltyTypes: defaultSettings.penaltyTypes.map(p => ({
-    ...p,
-    reducesPlayerCount: p.reducesPlayerCount,
-    clearsOnGoal: p.clearsOnGoal,
-    isBenchPenalty: p.isBenchPenalty || false,
-  })) as PenaltyTypeDefinition[],
-  defaultPenaltyTypeId: defaultSettings.defaultPenaltyTypeId,
-});
-
-export const createDefaultScoreboardLayoutProfile = (id?: string, name?: string): ScoreboardLayoutProfile => ({
-    id: id || safeUUID(),
-    name: name || IN_CODE_INITIAL_LAYOUT_PROFILE_NAME,
-    ...INITIAL_LAYOUT_SETTINGS
-});
-
-const defaultInitialProfile = createDefaultFormatAndTimingsProfile();
-const defaultInitialLayoutProfile = createDefaultScoreboardLayoutProfile();
-
-export const getInitialState = (): GameState => {
-  return {
-    config: {
-      ...defaultSettings.formatAndTimings,
-      gameTimeMode: 'stopped',
-      autoActivatePuckPenalties: true,
-      enableStoppedTimeAlert: false,
-      stoppedTimeAlertGoalDiff: 1,
-      stoppedTimeAlertTimeRemaining: 2,
-      penaltyTypes: defaultSettings.penaltyTypes.map(p => ({...p, isBenchPenalty: p.isBenchPenalty || false })) as PenaltyTypeDefinition[],
-      defaultPenaltyTypeId: defaultSettings.defaultPenaltyTypeId,
-      formatAndTimingsProfiles: [defaultInitialProfile],
-      selectedFormatAndTimingsProfileId: defaultInitialProfile.id,
-      playSoundAtPeriodEnd: IN_CODE_INITIAL_PLAY_SOUND_AT_PERIOD_END,
-      customHornSoundDataUrl: IN_CODE_INITIAL_CUSTOM_HORN_SOUND_DATA_URL,
-      enableTeamSelectionInMiniScoreboard: IN_CODE_INITIAL_ENABLE_TEAM_SELECTION_IN_MINI_SCOREBOARD,
-      enablePlayerSelectionForPenalties: IN_CODE_INITIAL_ENABLE_PLAYER_SELECTION_FOR_PENALTIES,
-      showAliasInPenaltyPlayerSelector: IN_CODE_INITIAL_SHOW_ALIAS_IN_PENALTY_PLAYER_SELECTOR,
-      showAliasInControlsPenaltyList: IN_CODE_INITIAL_SHOW_ALIAS_IN_CONTROLS_PENALTY_LIST,
-      showAliasInScoreboardPenalties: IN_CODE_INITIAL_SHOW_ALIAS_IN_SCOREBOARD_PENALTIES,
-      enablePenaltyCountdownSound: IN_CODE_INITIAL_ENABLE_PENALTY_COUNTDOWN_SOUND,
-      penaltyCountdownStartTime: IN_CODE_INITIAL_PENALTY_COUNTDOWN_START_TIME,
-      customPenaltyBeepSoundDataUrl: IN_CODE_INITIAL_CUSTOM_PENALTY_BEEP_SOUND_DATA_URL,
-      enableDebugMode: IN_CODE_INITIAL_ENABLE_DEBUG_MODE,
-      tickIntervalMs: 200,
-      scoreboardLayout: INITIAL_LAYOUT_SETTINGS,
-      scoreboardLayoutProfiles: [defaultInitialLayoutProfile],
-      selectedScoreboardLayoutProfileId: defaultInitialLayoutProfile.id,
-      selectedMatchCategory: '',
-      tournaments: [],
-      selectedTournamentId: null,
-      tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
-      replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,
-    },
-    live: {
-      ...INITIAL_LIVE_DATA,
-      clock: { ...INITIAL_LIVE_DATA.clock, currentTime: defaultInitialProfile.defaultWarmUpDuration }
-    },
-    _initialConfigLoadComplete: false,
-  };
-};
 
 type GameStateContextType = {
   state: GameState;
@@ -421,7 +283,7 @@ const sortPenaltiesByStatus = (penalties: Penalty[]): Penalty[] => {
 
 const applyFormatAndTimingsProfileToState = (state: GameState, profileId: string | null): GameState => {
   const profiles = state.config.formatAndTimingsProfiles || [];
-  const profileToApply = profiles.find(p => p.id === profileId) || profiles[0] || createDefaultFormatAndTimingsProfile();
+  const profileToApply = profiles.find(p => p.id === profileId) || profiles[0];
   if (!profileToApply) return state;
 
   return {
@@ -429,20 +291,21 @@ const applyFormatAndTimingsProfileToState = (state: GameState, profileId: string
     config: {
         ...state.config,
         selectedFormatAndTimingsProfileId: profileToApply.id,
-        // Apply all settings from the profile to the main config object
         ...profileToApply
     }
   };
 };
 
 const applyScoreboardLayoutProfileToState = (state: GameState, profileId: string | null): GameState => {
+    const { getInitialState } = require('@/lib/server-side-store');
+    const defaultState = getInitialState();
+    
     const profiles = state.config.scoreboardLayoutProfiles || [];
-    const profileToApply = profiles.find(p => p.id === profileId) || profiles[0] || createDefaultScoreboardLayoutProfile();
+    const profileToApply = profiles.find(p => p.id === profileId) || profiles[0] || defaultState.config.scoreboardLayoutProfiles[0];
     if (!profileToApply) return state;
 
-    // Ensure all properties from INITIAL_LAYOUT_SETTINGS have a default
     const layoutSettingsWithDefaults = {
-        ...INITIAL_LAYOUT_SETTINGS,
+        ...defaultState.config.scoreboardLayout,
         ...profileToApply,
     };
     
@@ -1443,17 +1306,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         };
         break;
     }
-    case 'ADD_FORMAT_AND_TIMINGS_PROFILE': 
-      newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: [...state.config.formatAndTimingsProfiles, createDefaultFormatAndTimingsProfile(undefined, action.payload.name)] } }; 
+    case 'ADD_FORMAT_AND_TIMINGS_PROFILE': {
+      const { getInitialState } = require('@/lib/server-side-store');
+      newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: [...state.config.formatAndTimingsProfiles, getInitialState().config.formatAndTimingsProfiles[0]] } }; 
       toastMessage = { title: "Perfil Creado", description: `Perfil "${action.payload.name.trim()}" añadido.` };
       break;
+    }
     case 'UPDATE_FORMAT_AND_TIMINGS_PROFILE_NAME': 
       newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: state.config.formatAndTimingsProfiles.map(p => p.id === action.payload.profileId ? {...p, name: action.payload.newName} : p) } }; 
       toastMessage = { title: "Nombre de Perfil Actualizado" };
       break;
     case 'DELETE_FORMAT_AND_TIMINGS_PROFILE': {
+        const { getInitialState } = require('@/lib/server-side-store');
         let newProfiles = state.config.formatAndTimingsProfiles.filter(p => p.id !== action.payload.profileId);
-        if (newProfiles.length === 0) newProfiles = [createDefaultFormatAndTimingsProfile()];
+        if (newProfiles.length === 0) newProfiles = [getInitialState().config.formatAndTimingsProfiles[0]];
         const newSelectedId = action.payload.profileId === state.config.selectedFormatAndTimingsProfileId ? newProfiles[0].id : state.config.selectedScoreboardLayoutProfileId;
         newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: newProfiles, selectedFormatAndTimingsProfileId: newSelectedId }};
         newState = applyFormatAndTimingsProfileToState(newState, newSelectedId);
@@ -1465,7 +1331,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'LOAD_FORMAT_AND_TIMINGS_PROFILES': {
-        const newProfiles = action.payload.length > 0 ? action.payload : [createDefaultFormatAndTimingsProfile()];
+        const { getInitialState } = require('@/lib/server-side-store');
+        const newProfiles = action.payload.length > 0 ? action.payload : [getInitialState().config.formatAndTimingsProfiles[0]];
         newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: newProfiles, selectedFormatAndTimingsProfileId: newProfiles[0].id } };
         newState = applyFormatAndTimingsProfileToState(newState, newProfiles[0].id);
         break;
@@ -1494,17 +1361,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         newState = { ...state, config: { ...state.config, scoreboardLayoutProfiles: state.config.scoreboardLayoutProfiles.map(p => p.id === state.config.selectedScoreboardLayoutProfileId ? { ...p, ...state.config.scoreboardLayout } : p) }};
         break;
     }
-    case 'ADD_SCOREBOARD_LAYOUT_PROFILE': 
-      newState = { ...state, config: { ...state.config, scoreboardLayoutProfiles: [...state.config.scoreboardLayoutProfiles, createDefaultScoreboardLayoutProfile(undefined, action.payload.name)] }}; 
-      toastMessage = { title: "Perfil de Diseño Creado", description: `Perfil "${action.payload.name.trim()}" añadido.` };
-      break;
+    case 'ADD_SCOREBOARD_LAYOUT_PROFILE': {
+        const { getInitialState } = require('@/lib/server-side-store');
+        newState = { ...state, config: { ...state.config, scoreboardLayoutProfiles: [...state.config.scoreboardLayoutProfiles, getInitialState().config.scoreboardLayoutProfiles[0]] }}; 
+        toastMessage = { title: "Perfil de Diseño Creado", description: `Perfil "${action.payload.name.trim()}" añadido.` };
+        break;
+    }
     case 'UPDATE_SCOREBOARD_LAYOUT_PROFILE_NAME': 
       newState = { ...state, config: { ...state.config, scoreboardLayoutProfiles: state.config.scoreboardLayoutProfiles.map(p => p.id === action.payload.profileId ? {...p, name: action.payload.newName} : p) }}; 
       toastMessage = { title: "Nombre de Perfil de Diseño Actualizado" };
       break;
     case 'DELETE_SCOREBOARD_LAYOUT_PROFILE': {
+        const { getInitialState } = require('@/lib/server-side-store');
         let newProfiles = state.config.scoreboardLayoutProfiles.filter(p => p.id !== action.payload.profileId);
-        if (newProfiles.length === 0) newProfiles = [createDefaultScoreboardLayoutProfile()];
+        if (newProfiles.length === 0) newProfiles = [getInitialState().config.scoreboardLayoutProfiles[0]];
         const newSelectedId = action.payload.profileId === state.config.selectedScoreboardLayoutProfileId ? newProfiles[0].id : state.config.selectedScoreboardLayoutProfileId;
         newState = { ...state, config: { ...state.config, scoreboardLayoutProfiles: newProfiles, selectedScoreboardLayoutProfileId: newSelectedId }};
         newState = applyScoreboardLayoutProfileToState(newState, newSelectedId);
@@ -1517,7 +1387,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'LOAD_SOUND_AND_DISPLAY_CONFIG': {
         const { scoreboardLayoutProfiles, ...otherSettings } = action.payload;
-        const newProfiles = scoreboardLayoutProfiles && scoreboardLayoutProfiles.length > 0 ? scoreboardLayoutProfiles : [createDefaultScoreboardLayoutProfile()];
+        const { getInitialState } = require('@/lib/server-side-store');
+        const newProfiles = scoreboardLayoutProfiles && scoreboardLayoutProfiles.length > 0 ? scoreboardLayoutProfiles : [getInitialState().config.scoreboardLayoutProfiles[0]];
         newState = { ...state, config: { ...state.config, ...otherSettings, scoreboardLayoutProfiles: newProfiles, selectedScoreboardLayoutProfileId: newProfiles[0].id }};
         newState = applyScoreboardLayoutProfileToState(newState, newProfiles[0].id);
         break;
@@ -1533,6 +1404,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'SET_SELECTED_MATCH_CATEGORY': newState = { ...state, config: { ...state.config, selectedMatchCategory: action.payload } }; toastMessage = { title: "Categoría del Partido Actualizada" }; break;
     case 'UPDATE_TUNNEL_STATE': newState = { ...state, config: { ...state.config, tunnel: { ...state.config.tunnel, ...action.payload } }}; break;
     case 'ADD_TOURNAMENT': {
+        const { safeUUID } = require('@/lib/utils');
         const newTournament: Tournament = {
             id: safeUUID(),
             name: action.payload.name,
@@ -1759,31 +1631,17 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         newState = { ...state, live: { ...state.live, ...action.payload } };
         break;
     case 'RESET_CONFIG_TO_DEFAULTS': {
-      const defaultFormatProfile = createDefaultFormatAndTimingsProfile();
-      const defaultLayoutParams = createDefaultScoreboardLayoutProfile();
+      const defaultState = getInitialState();
       newState = {
         ...state,
         config: {
           ...state.config,
-          ...defaultFormatProfile,
-          ...defaultLayoutParams,
-          formatAndTimingsProfiles: state.config.formatAndTimingsProfiles.map(p => p.id === state.config.selectedFormatAndTimingsProfileId ? { ...defaultFormatProfile, id: p.id, name: p.name } : p),
-          scoreboardLayout: INITIAL_LAYOUT_SETTINGS,
-          scoreboardLayoutProfiles: state.config.scoreboardLayoutProfiles.map(p => p.id === state.config.selectedScoreboardLayoutProfileId ? { ...defaultLayoutParams, id: p.id, name: p.name } : p),
-          playSoundAtPeriodEnd: IN_CODE_INITIAL_PLAY_SOUND_AT_PERIOD_END,
-          customHornSoundDataUrl: IN_CODE_INITIAL_CUSTOM_HORN_SOUND_DATA_URL,
-          enablePenaltyCountdownSound: IN_CODE_INITIAL_ENABLE_PENALTY_COUNTDOWN_SOUND,
-          penaltyCountdownStartTime: IN_CODE_INITIAL_PENALTY_COUNTDOWN_START_TIME,
-          customPenaltyBeepSoundDataUrl: IN_CODE_INITIAL_CUSTOM_PENALTY_BEEP_SOUND_DATA_URL,
-          enableTeamSelectionInMiniScoreboard: IN_CODE_INITIAL_ENABLE_TEAM_SELECTION_IN_MINI_SCOREBOARD,
-          enablePlayerSelectionForPenalties: IN_CODE_INITIAL_ENABLE_PLAYER_SELECTION_FOR_PENALTIES,
-          showAliasInPenaltyPlayerSelector: IN_CODE_INITIAL_SHOW_ALIAS_IN_PENALTY_PLAYER_SELECTOR,
-          showAliasInControlsPenaltyList: IN_CODE_INITIAL_SHOW_ALIAS_IN_CONTROLS_PENALTY_LIST,
-          showAliasInScoreboardPenalties: IN_CODE_INITIAL_SHOW_ALIAS_IN_SCOREBOARD_PENALTIES,
-          enableDebugMode: IN_CODE_INITIAL_ENABLE_DEBUG_MODE,
-          selectedMatchCategory: '', // Resets match category
-          tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
-          replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,
+          ...defaultState.config,
+          // Preserve existing profiles but reset the selected one
+          formatAndTimingsProfiles: state.config.formatAndTimingsProfiles.map(p => p.id === state.config.selectedFormatAndTimingsProfileId ? { ...defaultState.config.formatAndTimingsProfiles[0], id: p.id, name: p.name } : p),
+          scoreboardLayoutProfiles: state.config.scoreboardLayoutProfiles.map(p => p.id === state.config.selectedScoreboardLayoutProfileId ? { ...defaultState.config.scoreboardLayoutProfiles[0], id: p.id, name: p.name } : p),
+          scoreboardLayout: defaultState.config.scoreboardLayout,
+          selectedMatchCategory: '',
         }
       };
       toastMessage = { title: "Configuración Restablecida", description: "Todas las configuraciones han vuelto a sus valores predeterminados." };
@@ -1834,7 +1692,7 @@ const GameStateObserver = () => {
 
 
 export const GameStateProvider = ({ children }: { children: ReactNode }) => {
-  const { toast } = showToast(); // Renamed to avoid conflict
+  const { toast } = showToast();
   const [state, dispatch] = useReducer(gameReducer, getInitialState());
   const [isLoading, setIsLoading] = useState(true);
   const [isPageVisible, setIsPageVisible] = useState(true);
@@ -1876,7 +1734,6 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
             variant: "destructive",
             duration: 10000,
         });
-        // Fallback to default state so the app is still usable
         dispatch({ type: 'HYDRATE_FROM_SERVER', payload: getInitialState() });
       } finally {
         setIsLoading(false);
@@ -1922,12 +1779,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [fetchInitialData]);
 
-  // Effect to fetch full tournament data when selectedTournamentId changes
   useEffect(() => {
     const { selectedTournamentId, tournaments } = state.config;
     if (selectedTournamentId) {
         const tournament = tournaments.find(t => t.id === selectedTournamentId);
-        // Fetch details only if we don't have them (i.e., no teams or matches array)
         if (tournament && !tournament.teams) {
             fetchTournamentDetails(selectedTournamentId);
         }
@@ -1956,8 +1811,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
                   const tournamentsMeta = (tournaments || []).map(t => ({ id: t.id, name: t.name, status: t.status }));
                   updateConfigOnServer({ ...baseConfig, tournaments: tournamentsMeta });
               }
-              // Logic to save individual tournament if it changes
-              const changedTournament = state.config.tournaments.find((newTournament, index) => {
+              const changedTournament = state.config.tournaments.find((newTournament) => {
                 const oldTournament = oldState.config.tournaments.find(t => t.id === newTournament.id);
                 return oldTournament && !isEqual(newTournament, oldTournament);
               });
@@ -2102,26 +1956,15 @@ export const getCategoryNameById = (categoryId: string, availableCategories: Cat
   return category ? category.name : undefined;
 };
 
-export { createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProfile };
+// Re-exporting these as they were moved to server-side-store
+export { createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProfile } from '@/lib/server-side-store';
 
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-    
+const safeUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};

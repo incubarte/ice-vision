@@ -1,7 +1,6 @@
 
 import { NextResponse } from 'next/server';
 import { getRemoteAccessPassword, isClientLocal } from '@/lib/server-side-store';
-import { headers } from 'next/headers';
 
 // This endpoint is now a fallback and for local auth checks.
 // The primary remote auth flow is handled by /api/auth-challenge

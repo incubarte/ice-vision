@@ -1,23 +1,53 @@
-
-
-import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState } from '@/types';
+import 'server-only';
+import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState, Tournament, GameState, FormatAndTimingsProfile, ScoreboardLayoutSettings, ScoreboardLayoutProfile, ReplaySettings, PenaltyTypeDefinition } from '@/types';
 import { EventEmitter } from 'events';
-import { headers } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import localtunnel, { type Tunnel } from 'localtunnel';
 import { readConfig as readConfigFromProvider, readLiveState as readLiveStateFromProvider, writeConfig as writeConfigToProvider, writeLiveState as writeLiveStateToProvider } from './storage';
-import { getInitialState } from '@/contexts/game-state-context';
+import defaultSettings from '@/config/defaults.json';
+
+// --- Estado Global del Servidor y Emisores de Eventos ---
+
+// Definir una interfaz para nuestro objeto global personalizado
+interface AppGlobal {
+  gameStateEmitter: EventEmitter | undefined;
+  commandEmitter: EventEmitter | undefined;
+  tunnelInstance: Tunnel | undefined;
+  initializationPromise: Promise<void> | null;
+  storedConfig: ConfigState | null;
+  storedGameState: LiveState | null;
+}
+
+// Usar un símbolo único para evitar colisiones de nombres
+const APP_GLOBAL_KEY = Symbol.for('icevision.app.global');
+
+// Función para obtener nuestro espacio de nombres global, creándolo si no existe
+const getAppGlobal = (): AppGlobal => {
+  if (!(globalThis as any)[APP_GLOBAL_KEY]) {
+    (globalThis as any)[APP_GLOBAL_KEY] = {
+      gameStateEmitter: undefined,
+      commandEmitter: undefined,
+      tunnelInstance: undefined,
+      initializationPromise: null,
+      storedConfig: null,
+      storedGameState: null,
+    };
+  }
+  return (globalThis as any)[APP_GLOBAL_KEY];
+};
 
 
-let storedConfig: ConfigState | null = null;
-let storedGameState: LiveState | null = null;
-let accessRequests: Map<string, AccessRequest> = new Map();
+const appGlobal = getAppGlobal();
+
+export const gameStateEmitter = appGlobal.gameStateEmitter ?? (appGlobal.gameStateEmitter = new EventEmitter());
+export const commandEmitter = appGlobal.commandEmitter ?? (appGlobal.commandEmitter = new EventEmitter());
+
+// --- Gestión de Contraseña de Acceso Remoto ---
 
 const PASSWORD_FILE_PATH = path.join(os.tmpdir(), '.remote_password');
 
-// --- Centralized Password Management ---
 function generatePassword(): string {
     const newPassword = Math.floor(10000 + Math.random() * 90000).toString();
     try {
@@ -29,7 +59,6 @@ function generatePassword(): string {
         return newPassword;
     } catch (error) {
         console.error("!!! CRITICAL: FAILED TO WRITE PASSWORD FILE !!!", error);
-        // Fallback to in-memory if file system fails
         return newPassword;
     }
 }
@@ -53,26 +82,151 @@ export function getRemoteAccessPassword(): string {
     }
     return password;
 }
-// --- End Password Management ---
 
-const globalForEmitters = globalThis as unknown as {
-  gameStateEmitter: EventEmitter | undefined;
-  commandEmitter: EventEmitter | undefined;
-  tunnelInstance: Tunnel | undefined;
-  initializationPromise: Promise<void> | null;
+const safeUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 };
 
-export const gameStateEmitter =
-  globalForEmitters.gameStateEmitter ?? new EventEmitter();
+export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
+  scoreboardVerticalPosition: -4,
+  scoreboardHorizontalPosition: 0,
+  clockSize: 12,
+  teamNameSize: 3,
+  teamNameWidth: 16,
+  scoreSize: 8,
+  periodSize: 4.5,
+  playersOnIceIconSize: 1.75,
+  categorySize: 1.25,
+  teamLabelSize: 1,
+  penaltiesTitleSize: 2,
+  penaltyPlayerNumberSize: 3.5,
+  penaltyTimeSize: 3.5,
+  penaltyPlayerIconSize: 2.5,
+  standingsTableFontSize: 1.8,
+  standingsTableRowHeight: 4.25,
+  teamLogoOpacity: 10,
+  primaryColor: '223 65% 33%',
+  accentColor: '40 100% 67%',
+  backgroundColor: '223 70% 11%',
+  mainContentGap: 3,
+  scoreLabelGap: -2,
+};
+
+export const createDefaultFormatAndTimingsProfile = (): FormatAndTimingsProfile => ({
+  id: safeUUID(),
+  name: "Predeterminado (App)",
+  ...defaultSettings.formatAndTimings,
+  gameTimeMode: 'stopped',
+  autoActivatePuckPenalties: true,
+  enableStoppedTimeAlert: false,
+  stoppedTimeAlertGoalDiff: 1,
+  stoppedTimeAlertTimeRemaining: 2,
+  penaltyTypes: defaultSettings.penaltyTypes.map(p => ({
+    ...p,
+    reducesPlayerCount: p.reducesPlayerCount,
+    clearsOnGoal: p.clearsOnGoal,
+    isBenchPenalty: p.isBenchPenalty || false,
+  })) as PenaltyTypeDefinition[],
+  defaultPenaltyTypeId: defaultSettings.defaultPenaltyTypeId,
+});
+
+export const createDefaultScoreboardLayoutProfile = (): ScoreboardLayoutProfile => ({
+    id: safeUUID(),
+    name: "Diseño Predeterminado (App)",
+    ...INITIAL_LAYOUT_SETTINGS
+});
+
+
+// Función para crear un estado por defecto completo.
+export const getInitialState = (): GameState => {
+  const defaultFormatProfile = createDefaultFormatAndTimingsProfile();
+  const defaultLayoutProfile = createDefaultScoreboardLayoutProfile();
   
-export const commandEmitter =
-  globalForEmitters.commandEmitter ?? new EventEmitter();
+  return {
+    config: {
+      ...defaultSettings.formatAndTimings,
+      gameTimeMode: 'stopped',
+      autoActivatePuckPenalties: true,
+      enableStoppedTimeAlert: false,
+      stoppedTimeAlertGoalDiff: 1,
+      stoppedTimeAlertTimeRemaining: 2,
+      penaltyTypes: defaultSettings.penaltyTypes.map(p => ({...p, isBenchPenalty: p.isBenchPenalty || false })) as PenaltyTypeDefinition[],
+      defaultPenaltyTypeId: defaultSettings.defaultPenaltyTypeId,
+      formatAndTimingsProfiles: [defaultFormatProfile],
+      selectedFormatAndTimingsProfileId: defaultFormatProfile.id,
+      playSoundAtPeriodEnd: true,
+      customHornSoundDataUrl: null,
+      enableTeamSelectionInMiniScoreboard: true,
+      enablePlayerSelectionForPenalties: true,
+      showAliasInPenaltyPlayerSelector: true,
+      showAliasInControlsPenaltyList: true,
+      showAliasInScoreboardPenalties: true,
+      enablePenaltyCountdownSound: true,
+      penaltyCountdownStartTime: 10,
+      customPenaltyBeepSoundDataUrl: null,
+      enableDebugMode: false,
+      tickIntervalMs: 200,
+      scoreboardLayout: INITIAL_LAYOUT_SETTINGS,
+      scoreboardLayoutProfiles: [defaultLayoutProfile],
+      selectedScoreboardLayoutProfileId: defaultLayoutProfile.id,
+      selectedMatchCategory: '',
+      tournaments: [],
+      selectedTournamentId: null,
+      tunnel: {
+        subdomain: defaultSettings.tunnel.subdomainPrefix,
+        port: defaultSettings.tunnel.port,
+        status: 'disconnected',
+        url: null,
+        lastMessage: null,
+      },
+      replays: {
+        syncUrl: "https://hockeando-default-rtdb.firebaseio.com/Replays.json",
+        downloadUrlBase: "https://firebasestorage.googleapis.com/v0/b/hockeando.appspot.com/o/"
+      },
+    },
+    live: {
+      score: { home: 0, away: 0, homeShots: 0, awayShots: 0 },
+      penalties: { home: [], away: [] },
+      goals: { home: [], away: [] },
+      penaltiesLog: { home: [], away: [] },
+      shotsLog: { home: [], away: [] },
+      attendance: { home: [], away: [] },
+      clock: {
+        currentTime: defaultFormatProfile.defaultWarmUpDuration,
+        currentPeriod: 0,
+        isClockRunning: false,
+        periodDisplayOverride: 'Warm-up',
+        preTimeoutState: null,
+        clockStartTimeMs: null,
+        remainingTimeAtStartCs: null,
+        absoluteElapsedTimeCs: 0,
+        _liveAbsoluteElapsedTimeCs: 0,
+        isFlashingZero: false,
+      },
+      shootout: { isActive: false, rounds: 5, homeAttempts: [], awayAttempts: [], initiator: null },
+      homeTeamName: 'Local',
+      awayTeamName: 'Visitante',
+      playHornTrigger: 0,
+      playPenaltyBeepTrigger: 0,
+      pendingPowerPlayGoal: null,
+      overlayMessage: null,
+      goalCelebration: null,
+      replayLoadRequest: null,
+      replayOverlay: null,
+      matchId: null,
+      playedPeriods: [],
+    },
+    _initialConfigLoadComplete: false,
+  };
+};
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForEmitters.gameStateEmitter = gameStateEmitter;
-  globalForEmitters.commandEmitter = commandEmitter;
-}
-
+// La promesa de inicialización. El núcleo de la solución.
 const performInitialization = async () => {
     console.log("[Store] Initializing store... fetching data from provider.");
     const defaultState = getInitialState();
@@ -81,64 +235,61 @@ const performInitialization = async () => {
             readConfigFromProvider(),
             readLiveStateFromProvider()
         ]);
-
-        // Prioritize loaded data, but fallback to default if it's null/empty
-        storedConfig = (configResult && Object.keys(configResult).length > 0)
+        
+        appGlobal.storedConfig = (configResult && Object.keys(configResult).length > 0)
             ? configResult as ConfigState
             : defaultState.config;
             
-        storedGameState = (liveStateResult && Object.keys(liveStateResult).length > 0)
+        appGlobal.storedGameState = (liveStateResult && Object.keys(liveStateResult).length > 0)
             ? liveStateResult as LiveState
             : defaultState.live;
 
         console.log("[Store] Initialization complete. Config and Live State are loaded.");
 
     } catch (error) {
-        console.error("[Store] CRITICAL: Unhandled error during storage initialization. App will use default state.", error);
-        storedConfig = defaultState.config;
-        storedGameState = defaultState.live;
+        console.error("[Store] CRITICAL: Unhandled error during storage initialization.", error);
         throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
     }
 };
 
-// This is the core change. The promise is created once and its result (or failure) is awaited by all callers.
-globalForEmitters.initializationPromise = globalForEmitters.initializationPromise || performInitialization();
-
-
-export async function getConfig(): Promise<ConfigState> {
-  await globalForEmitters.initializationPromise;
-  // Guaranteed to be non-null after initialization because performInitialization throws on critical failure or uses defaults.
-  return storedConfig!;
+// Crear la promesa de inicialización UNA SOLA VEZ usando el objeto global.
+if (!appGlobal.initializationPromise) {
+    appGlobal.initializationPromise = performInitialization();
 }
 
-export function setConfig(newConfig: ConfigState): void {
-  storedConfig = newConfig;
-  // Asynchronous write to provider
+export async function getConfig(): Promise<ConfigState> {
+  await appGlobal.initializationPromise;
+  return appGlobal.storedConfig!;
+}
+
+export async function setConfig(newConfig: ConfigState): Promise<void> {
+  await appGlobal.initializationPromise;
+  appGlobal.storedConfig = newConfig;
   writeConfigToProvider(newConfig).catch(err => {
       console.error("[Store] Failed to write config to provider:", err);
   });
 }
 
-export function updateTunnelState(updates: Partial<TunnelState>) {
-  if (storedConfig) {
-    const newTunnelState = { ...storedConfig.tunnel, ...updates };
-    setConfig({ ...storedConfig, tunnel: newTunnelState });
-  }
-}
-
 export async function getGameState(): Promise<LiveState> {
-  await globalForEmitters.initializationPromise;
-  // Guaranteed to be non-null after initialization
-  return storedGameState!;
+  await appGlobal.initializationPromise;
+  return appGlobal.storedGameState!;
 }
 
-export function setGameState(newGameState: LiveState): void {
-  storedGameState = newGameState;
+export async function setGameState(newGameState: LiveState): Promise<void> {
+  await appGlobal.initializationPromise;
+  appGlobal.storedGameState = newGameState;
   gameStateEmitter.emit('update', newGameState);
-  // Asynchronous write to provider
   writeLiveStateToProvider(newGameState).catch(err => {
       console.error("[Store] Failed to write live state to provider:", err);
   });
+}
+
+// Las funciones restantes no necesitan esperar porque suponen que el estado ya está cargado por las funciones anteriores.
+export function updateTunnelState(updates: Partial<TunnelState>) {
+  if (appGlobal.storedConfig) {
+    const newTunnelState = { ...appGlobal.storedConfig.tunnel, ...updates };
+    setConfig({ ...appGlobal.storedConfig, tunnel: newTunnelState });
+  }
 }
 
 export function sendCommand(command: RemoteCommand): void {
@@ -146,27 +297,20 @@ export function sendCommand(command: RemoteCommand): void {
 }
 
 export function isClientLocal(request: Request): boolean {
-    const reqHeaders = headers();
-    const clientIp = (reqHeaders.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
-    
-    // Check if client is localhost. This is the most reliable check.
+    const clientIp = (request.headers.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
     if (clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1') {
         return true;
     }
-
-    // A more advanced subnet check is prone to errors in different network environments.
-    // For simplicity and robustness in this application's context, we'll consider any
-    // non-loopback IP as "remote", requiring a password. This is a safer default.
     return false;
 }
 
 // --- Auth Challenge Management ---
+let accessRequests: Map<string, AccessRequest> = new Map();
 
 export function createAccessRequest(ip: string, userAgent: string | undefined, verificationNumber: number): AccessRequest {
     const id = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const request: AccessRequest = { id, ip, timestamp: Date.now(), userAgent, verificationNumber, approved: false };
     accessRequests.set(id, request);
-    // Set a timeout to remove the request after 2 minutes if it's not approved.
     setTimeout(() => {
         const req = accessRequests.get(id);
         if (req && !req.approved) {
@@ -196,14 +340,12 @@ export function approveAccessRequest(id: string): boolean {
     request.approved = true;
     accessRequests.set(id, request);
     
-    // Remove the request after a short period to allow the client to fetch the password
     setTimeout(() => removeAccessRequest(id), 30 * 1000);
     
     return true;
 }
 
-
-// --- Tunnel Management with Reconnect ---
+// --- Tunnel Management ---
 let isManuallyClosing = false;
 
 const getDynamicSubdomain = () => {
@@ -221,7 +363,7 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
         const createAndHandleTunnel = async () => {
             try {
                 const tunnel = await localtunnel({ port, subdomain });
-                globalForEmitters.tunnelInstance = tunnel;
+                appGlobal.tunnelInstance = tunnel;
 
                 tunnel.on('url', (url: string) => {
                     console.log(`[Tunnel] Connected successfully at: ${url}`);
@@ -233,12 +375,11 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
                 tunnel.on('error', (err: any) => {
                     console.warn('[Tunnel] Error:', err?.message || err);
                     updateTunnelState({ status: 'error', lastMessage: err.message || 'Unknown tunnel error' });
-                    // No need to resolve here, the 'close' event will handle it.
                 });
 
                 tunnel.on('close', () => {
                     console.log('[Tunnel] Connection closed.');
-                    globalForEmitters.tunnelInstance = undefined;
+                    appGlobal.tunnelInstance = undefined;
                     updateTunnelState({ status: 'disconnected', url: null, subdomain: null });
                     if (!isManuallyClosing) {
                         console.log('[Tunnel] Unexpected close. Reconnecting in 3 seconds...');
@@ -256,18 +397,15 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
     });
 }
 
-
 export function disconnectTunnel(): void {
     isManuallyClosing = true;
-    if (globalForEmitters.tunnelInstance) {
-        globalForEmitters.tunnelInstance.close();
-        globalForEmitters.tunnelInstance = undefined;
+    if (appGlobal.tunnelInstance) {
+        appGlobal.tunnelInstance.close();
+        appGlobal.tunnelInstance = undefined;
         console.log('[Tunnel] Disconnected manually.');
     }
     updateTunnelState({ status: 'disconnected', url: null, subdomain: null });
 }
 
-
 // Ensure password file is checked/created on startup
 getRemoteAccessPassword();
-// The store is now initialized on-demand by the first getter that needs it.
