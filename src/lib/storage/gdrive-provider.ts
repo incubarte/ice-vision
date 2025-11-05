@@ -21,8 +21,6 @@ async function initializeDrive() {
         const credentialsPath = path.join(process.cwd(), 'env_drive_credentials.json');
         const credentialsFile = await fs.readFile(credentialsPath, 'utf-8');
         const credentials = JSON.parse(credentialsFile);
-        
-        console.log("[GDRIVE_PROVIDER_DEBUG] Credenciales leídas correctamente. client_email:", credentials.client_email);
 
         const auth = new google.auth.JWT(
             credentials.client_email,
@@ -33,11 +31,10 @@ async function initializeDrive() {
 
         drive = google.drive({ version: 'v3', auth });
         isInitialized = true;
-        console.log("[GDRIVE_PROVIDER_DEBUG] Cliente de Google Drive inicializado con JWT.");
 
     } catch (error) {
         authError = error instanceof Error ? error.message : "Error desconocido durante la inicialización de Google Drive.";
-        console.error("[GDRIVE_PROVIDER_DEBUG] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", authError);
+        console.error("[GDRIVE_PROVIDER] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", authError);
     }
 }
 
@@ -56,7 +53,6 @@ async function findFileOrFolder(name: string, parentId: string, mimeType?: strin
     if (mimeType) {
         query += ` and mimeType = '${mimeType}'`;
     }
-    console.log(`[GDRIVE_PROVIDER_DEBUG] Buscando con query: "${query}"`);
     try {
         const res = await drive.files.list({
             q: query,
@@ -65,14 +61,12 @@ async function findFileOrFolder(name: string, parentId: string, mimeType?: strin
         });
         
         if (res.data.files && res.data.files.length > 0) {
-            console.log(`[GDRIVE_PROVIDER_DEBUG] Encontrado: ${res.data.files[0].name} con ID: ${res.data.files[0].id}`);
             return res.data.files[0].id || null;
         } else {
-            console.log(`[GDRIVE_PROVIDER_DEBUG] No se encontró ningún archivo o carpeta con el nombre '${name}' en la carpeta padre '${parentId}'.`);
             return null;
         }
     } catch (error: any) {
-        console.error(`[GDRIVE_PROVIDER_DEBUG] Error en la API de Drive al buscar '${name}':`, error.message);
+        console.error(`[GDRIVE_PROVIDER] Error en la API de Drive al buscar '${name}':`, error.message);
         throw error;
     }
 }
@@ -157,17 +151,13 @@ async function createOrUpdateFile(fileName: string, parentId: string, data: any)
     }
 }
 
-export async function readConfig(): Promise<Partial<ConfigState>> {
+export async function readConfig(): Promise<Partial<ConfigState> | null> {
     await checkPrerequisites();
     const fileId = await findFileOrFolder('config.json', FOLDER_ID!);
     if (!fileId) {
-        throw new Error("El archivo 'config.json' no se encontró en la carpeta de Google Drive. Por favor, asegúrate de que exista o vuelve al modo local para crearlo.");
+        return null;
     }
-    const configData = await readFileContent<ConfigState>(fileId);
-    if (!configData) {
-        throw new Error("No se pudo leer o parsear el contenido de 'config.json' desde Google Drive.");
-    }
-    return configData;
+    return await readFileContent<ConfigState>(fileId);
 }
 
 export async function writeConfig(config: ConfigState): Promise<void> {
@@ -175,17 +165,13 @@ export async function writeConfig(config: ConfigState): Promise<void> {
     await createOrUpdateFile('config.json', FOLDER_ID!, config);
 }
 
-export async function readLiveState(): Promise<Partial<LiveState>> {
+export async function readLiveState(): Promise<Partial<LiveState> | null> {
     await checkPrerequisites();
     const fileId = await findFileOrFolder('live.json', FOLDER_ID!);
      if (!fileId) {
-        throw new Error("El archivo 'live.json' no se encontró en la carpeta de Google Drive. Por favor, asegúrate de que exista o vuelve al modo local para crearlo.");
+        return null;
     }
-    const liveData = await readFileContent<LiveState>(fileId);
-    if (!liveData) {
-        throw new Error("No se pudo leer o parsear el contenido de 'live.json' desde Google Drive.");
-    }
-    return liveData;
+    return await readFileContent<LiveState>(fileId);
 }
 
 export async function writeLiveState(liveState: LiveState): Promise<void> {
