@@ -7,9 +7,9 @@ import * as gdriveProvider from './gdrive-provider';
 import type { ConfigState, LiveState, Tournament } from '@/types';
 
 interface StorageProvider {
-    readConfig: () => Promise<Partial<ConfigState>>;
+    readConfig: () => Promise<Partial<ConfigState> | null>;
     writeConfig: (config: ConfigState) => Promise<void>;
-    readLiveState: () => Promise<Partial<LiveState>>;
+    readLiveState: () => Promise<Partial<LiveState> | null>;
     writeLiveState: (liveState: LiveState) => Promise<void>;
     readTournament: (tournamentId: string) => Promise<Partial<Tournament> | null>;
     writeTournament: (tournament: Tournament) => Promise<void>;
@@ -33,4 +33,3 @@ export const {
     readTournament,
     writeTournament,
 } = provider;
-

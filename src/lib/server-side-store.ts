@@ -88,7 +88,7 @@ export function getGameState(): LiveGameState | null {
   return storedGameState;
 }
 
-export function setGameState(newGameState: LiveGameState): void {
+export function setGameState(newGameState: LiveState): void {
   storedGameState = newGameState;
   gameStateEmitter.emit('update', newGameState);
 }
