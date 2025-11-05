@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { listFiles } from '@/lib/storage/gdrive-provider';
 
@@ -13,6 +14,6 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: true, files: files || [] });
     } catch (error: any) {
         console.error("[API/DRIVE-FILES] Error:", error);
-        return NextResponse.json({ success: false, message: error.message || "Error al listar archivos de Google Drive." }, { status: 500 });
+        return NextResponse.json({ success: false, message: error.message || "Error desconocido al listar archivos de Google Drive." }, { status: 500 });
     }
 }

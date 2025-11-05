@@ -33,7 +33,7 @@ export function DriveStatusCard() {
       const response = await fetch('/api/drive-files');
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Error en el servidor');
+        throw new Error(data.message || 'Error en el servidor al intentar obtener los archivos de Drive.');
       }
       setFiles(data.files);
     } catch (err: any) {
@@ -65,7 +65,7 @@ export function DriveStatusCard() {
         </CardTitle>
         <CardDescription>
           {isActive
-            ? "Muestra los archivos encontrados en la carpeta raíz de Google Drive configurada."
+            ? "Muestra los archivos encontrados en la carpeta raíz de Google Drive configurada. Si hay un error, indica un problema de permisos o de conexión."
             : "El proveedor de almacenamiento local está en uso. Esta sección está inactiva."
           }
         </CardDescription>
@@ -83,11 +83,11 @@ export function DriveStatusCard() {
             {isLoading ? (
               <div className="flex items-center justify-center p-4"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
             ) : error ? (
-              <div className="text-destructive p-4 border border-destructive/50 rounded-md flex items-start gap-2">
-                <AlertTriangle className="h-5 w-5 mt-0.5" />
+              <div className="text-destructive p-4 border border-destructive/50 rounded-md flex items-start gap-3 bg-destructive/10">
+                <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
                 <div>
-                    <p className="font-semibold">Error al obtener archivos</p>
-                    <p className="text-xs">{error}</p>
+                    <p className="font-semibold">Error al obtener archivos de Google Drive</p>
+                    <p className="text-xs mt-1">{error}</p>
                 </div>
               </div>
             ) : files.length > 0 ? (
@@ -110,4 +110,3 @@ export function DriveStatusCard() {
     </Card>
   );
 }
-
