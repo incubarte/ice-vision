@@ -1865,6 +1865,13 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
 
       } catch (error) {
         console.error("Failed to fetch initial state from server:", error);
+        toast({
+            title: "Error Crítico de Conexión",
+            description: "No se pudo cargar la configuración inicial desde el servidor. La aplicación podría no funcionar correctamente.",
+            variant: "destructive",
+            duration: 10000,
+        });
+        // Hydrate with defaults as a fallback so the app doesn't crash
         dispatch({ type: 'HYDRATE_FROM_SERVER', payload: getInitialState() });
       } finally {
         setIsLoading(false);
@@ -2096,6 +2103,7 @@ export { createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProf
     
 
     
+
 
 
 

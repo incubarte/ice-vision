@@ -1,29 +1,28 @@
 
+
 import { NextResponse } from 'next/server';
 import type { GameState, ConfigState, LiveState } from '@/types';
-import { setGameState, setConfig } from '@/lib/server-side-store';
-import { readConfig, writeConfig, readLiveState, writeLiveState } from '@/lib/storage';
+import { getGameState, setGameState, getConfig, setConfig } from '@/lib/server-side-store';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
     const [config, liveState] = await Promise.all([
-        readConfig(),
-        readLiveState()
+        getConfig(),
+        getGameState()
     ]);
     
-    // Si la lectura falla (ej. archivo no encontrado en Drive), el proveedor devolverá {} o null.
-    // Lo manejamos aquí para asegurar que siempre haya una estructura válida.
-    const validConfig = config || {};
-    const validLiveState = liveState || {};
-
-    // Store in-memory for other API routes to access
-    setConfig(validConfig as ConfigState);
-    setGameState(validLiveState as LiveState);
+    // If initialization failed, the provider will be null.
+    // The client-side will show an error.
+    if (!config || !liveState) {
+        return NextResponse.json({ message: "El servidor de datos no está listo o falló al iniciar. Revisa los logs del servidor." }, { status: 503 });
+    }
 
     const initialState: Partial<GameState> = {
-      config: validConfig,
-      live: validLiveState,
-      _initialConfigLoadComplete: false,
+      config,
+      live: liveState,
+      _initialConfigLoadComplete: false, // This will be set to true on the client
     }
 
     return NextResponse.json(initialState);
@@ -43,18 +42,14 @@ export async function POST(request: Request) {
   try {
     const { config, live } = await request.json() as { config?: ConfigState; live?: LiveState };
 
+    // The `setConfig` and `setGameState` functions now handle both
+    // updating the in-memory cache and asynchronously writing to the provider.
     if (config) {
-        const { tournaments, ...baseConfig } = config;
-        const tournamentMetas = (tournaments || []).map(t => ({ id: t.id, name: t.name, status: t.status }));
-        const configToSave = { ...baseConfig, tournaments: tournamentMetas };
-        
-        await writeConfig(configToSave as ConfigState);
-        setConfig(config); // Update in-memory store
+        setConfig(config);
     }
     
     if (live) {
-        await writeLiveState(live);
-        setGameState(live); // Update in-memory store and emit event
+        setGameState(live);
     }
 
     return NextResponse.json({ success: true, message: 'Data saved successfully.' });

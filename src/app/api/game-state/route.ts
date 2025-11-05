@@ -1,4 +1,5 @@
 
+
 import { NextResponse } from 'next/server';
 import { getGameState, getConfig } from '@/lib/server-side-store';
 import type { LiveGameState, PenaltyTypeDefinition, MobileData } from '@/types';
@@ -7,13 +8,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const liveState = getGameState();
-    const config = getConfig();
+    const [liveState, config] = await Promise.all([getGameState(), getConfig()]);
 
     if (!liveState || !config) {
-      // This can happen if the server just started and no state has been posted yet.
-      // We could try to read from the file as a fallback, but for a simple GET
-      // it's better to show that the game might not be active.
       return NextResponse.json({ message: 'Game state not initialized on the server yet.' }, { status: 404 });
     }
 

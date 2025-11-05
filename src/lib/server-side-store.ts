@@ -5,10 +5,11 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import localtunnel, { type Tunnel } from 'localtunnel';
+import { readConfig as readConfigFromProvider, readLiveState as readLiveStateFromProvider, writeConfig as writeConfigToProvider, writeLiveState as writeLiveStateToProvider } from './storage';
 
 
 let storedConfig: ConfigState | null = null;
-let storedGameState: LiveGameState | null = null;
+let storedGameState: LiveState | null = null;
 let accessRequests: Map<string, AccessRequest> = new Map();
 
 const PASSWORD_FILE_PATH = path.join(os.tmpdir(), '.remote_password');
@@ -51,11 +52,11 @@ export function getRemoteAccessPassword(): string {
 }
 // --- End Password Management ---
 
-
 const globalForEmitters = globalThis as unknown as {
   gameStateEmitter: EventEmitter | undefined;
   commandEmitter: EventEmitter | undefined;
   tunnelInstance: Tunnel | undefined;
+  initializationPromise: Promise<void> | null;
 };
 
 export const gameStateEmitter =
@@ -69,12 +70,46 @@ if (process.env.NODE_ENV !== 'production') {
   globalForEmitters.commandEmitter = commandEmitter;
 }
 
-export function getConfig(): ConfigState | null {
+async function initializeStore() {
+    if (globalForEmitters.initializationPromise) {
+        return globalForEmitters.initializationPromise;
+    }
+
+    const init = async () => {
+        try {
+            console.log("[Store] Initializing store... fetching data from provider.");
+            const [config, liveState] = await Promise.all([
+                readConfigFromProvider(),
+                readLiveStateFromProvider()
+            ]);
+            storedConfig = config as ConfigState | null;
+            storedGameState = liveState as LiveState | null;
+            console.log("[Store] Initialization complete.");
+        } catch (error) {
+            console.error("[Store] CRITICAL: Failed to initialize data store on startup.", error);
+            // In a real-world scenario, you might want to exit the process
+            // or have a more robust fallback mechanism. For now, we'll allow it to run with null state.
+            storedConfig = null;
+            storedGameState = null;
+        }
+    };
+
+    globalForEmitters.initializationPromise = init();
+    return globalForEmitters.initializationPromise;
+}
+
+
+export async function getConfig(): Promise<ConfigState | null> {
+  await initializeStore();
   return storedConfig;
 }
 
 export function setConfig(newConfig: ConfigState): void {
   storedConfig = newConfig;
+  // Asynchronous write to provider
+  writeConfigToProvider(newConfig).catch(err => {
+      console.error("[Store] Failed to write config to provider:", err);
+  });
 }
 
 export function updateTunnelState(updates: Partial<TunnelState>) {
@@ -84,13 +119,18 @@ export function updateTunnelState(updates: Partial<TunnelState>) {
   }
 }
 
-export function getGameState(): LiveGameState | null {
+export async function getGameState(): Promise<LiveState | null> {
+  await initializeStore();
   return storedGameState;
 }
 
 export function setGameState(newGameState: LiveState): void {
   storedGameState = newGameState;
   gameStateEmitter.emit('update', newGameState);
+  // Asynchronous write to provider
+  writeLiveStateToProvider(newGameState).catch(err => {
+      console.error("[Store] Failed to write live state to provider:", err);
+  });
 }
 
 export function sendCommand(command: RemoteCommand): void {
@@ -220,5 +260,6 @@ export function disconnectTunnel(): void {
 }
 
 
-// Ensure password file is checked/created on startup
+// Ensure password file is checked/created on startup and data is loaded
 getRemoteAccessPassword();
+initializeStore();
