@@ -1,7 +1,6 @@
 
-
 import { NextResponse } from 'next/server';
-import type { GameState, ConfigState, LiveState } from '@/types';
+import type { GameState } from '@/types';
 import { getGameState, getConfig, setGameState, setConfig } from '@/lib/server-side-store';
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { config, live } = await request.json() as { config?: ConfigState; live?: LiveState };
+    const { config, live } = await request.json() as { config?: GameState['config']; live?: GameState['live'] };
 
     // The `setConfig` and `setGameState` functions now handle both
     // updating the in-memory cache and asynchronously writing to the provider.

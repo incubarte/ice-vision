@@ -1,4 +1,4 @@
-import 'server-only';
+'use server';
 import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState, Tournament, GameState, FormatAndTimingsProfile, ScoreboardLayoutSettings, ScoreboardLayoutProfile, ReplaySettings, PenaltyTypeDefinition } from '@/types';
 import { EventEmitter } from 'events';
 import fs from 'fs';
@@ -6,13 +6,14 @@ import path from 'path';
 import os from 'os';
 import localtunnel, { type Tunnel } from 'localtunnel';
 import { readConfig as readConfigFromProvider, readLiveState as readLiveStateFromProvider, writeConfig as writeConfigToProvider, writeLiveState as writeLiveStateToProvider } from './storage';
+import { getInitialState } from '@/contexts/game-state-context';
 
 // --- Estado Global del Servidor y Emisores de Eventos ---
 
 // Definir una interfaz para nuestro objeto global personalizado
 interface AppGlobal {
-  gameStateEmitter: EventEmitter | undefined;
-  commandEmitter: EventEmitter | undefined;
+  gameStateEmitter: EventEmitter;
+  commandEmitter: EventEmitter;
   tunnelInstance: Tunnel | undefined;
   initializationPromise: Promise<void> | null;
   storedConfig: ConfigState | null;
@@ -24,24 +25,24 @@ const APP_GLOBAL_KEY = Symbol.for('icevision.app.global');
 
 // Función para obtener nuestro espacio de nombres global, creándolo si no existe
 const getAppGlobal = (): AppGlobal => {
-  if (!(globalThis as any)[APP_GLOBAL_KEY]) {
-    (globalThis as any)[APP_GLOBAL_KEY] = {
-      gameStateEmitter: undefined,
-      commandEmitter: undefined,
+  const globalNamespace = globalThis as any;
+  if (!globalNamespace[APP_GLOBAL_KEY]) {
+    globalNamespace[APP_GLOBAL_KEY] = {
+      gameStateEmitter: new EventEmitter(),
+      commandEmitter: new EventEmitter(),
       tunnelInstance: undefined,
       initializationPromise: null,
       storedConfig: null,
       storedGameState: null,
     };
   }
-  return (globalThis as any)[APP_GLOBAL_KEY];
+  return globalNamespace[APP_GLOBAL_KEY];
 };
-
 
 const appGlobal = getAppGlobal();
 
-export const gameStateEmitter = appGlobal.gameStateEmitter ?? (appGlobal.gameStateEmitter = new EventEmitter());
-export const commandEmitter = appGlobal.commandEmitter ?? (appGlobal.commandEmitter = new EventEmitter());
+export const gameStateEmitter = appGlobal.gameStateEmitter;
+export const commandEmitter = appGlobal.commandEmitter;
 
 // --- Gestión de Contraseña de Acceso Remoto ---
 
@@ -91,10 +92,11 @@ const performInitialization = async () => {
             readLiveStateFromProvider()
         ]);
         
-        // No creamos un estado por defecto aquí, simplemente asignamos lo que leemos.
-        // Si no existen, los proveedores devuelven {} o null.
-        appGlobal.storedConfig = (configResult as ConfigState) || null;
-        appGlobal.storedGameState = (liveStateResult as LiveState) || null;
+        const defaultState = getInitialState();
+
+        // Fusionar datos leídos con los defaults para asegurar que no haya valores nulos
+        appGlobal.storedConfig = { ...defaultState.config, ...(configResult || {}) };
+        appGlobal.storedGameState = { ...defaultState.live, ...(liveStateResult || {}) };
 
         console.log("[Store] Initialization complete. Config and Live State are loaded.");
 
@@ -109,28 +111,30 @@ if (!appGlobal.initializationPromise) {
     appGlobal.initializationPromise = performInitialization();
 }
 
-export async function getConfig(): Promise<ConfigState | null> {
+export async function getConfig(): Promise<ConfigState> {
   await appGlobal.initializationPromise;
-  return appGlobal.storedConfig;
+  // storedConfig no debería ser null después de la inicialización.
+  return appGlobal.storedConfig!;
 }
 
-export async function setConfig(newConfig: ConfigState): Promise<void> {
-  await appGlobal.initializationPromise;
+export function setConfig(newConfig: ConfigState): void {
   appGlobal.storedConfig = newConfig;
+  // No esperamos la escritura, la hacemos en segundo plano.
   writeConfigToProvider(newConfig).catch(err => {
       console.error("[Store] Failed to write config to provider:", err);
   });
 }
 
-export async function getGameState(): Promise<LiveState | null> {
+export async function getGameState(): Promise<LiveState> {
   await appGlobal.initializationPromise;
-  return appGlobal.storedGameState;
+  // storedGameState no debería ser null después de la inicialización.
+  return appGlobal.storedGameState!;
 }
 
-export async function setGameState(newGameState: LiveState): Promise<void> {
-  await appGlobal.initializationPromise;
+export function setGameState(newGameState: LiveState): void {
   appGlobal.storedGameState = newGameState;
   gameStateEmitter.emit('update', newGameState);
+  // No esperamos la escritura, la hacemos en segundo plano.
   writeLiveStateToProvider(newGameState).catch(err => {
       console.error("[Store] Failed to write live state to provider:", err);
   });
