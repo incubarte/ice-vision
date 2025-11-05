@@ -33,11 +33,13 @@ async function initializeDrive() {
 
         try {
             let credentialsFileContent = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
-            // Limpia el BOM (Byte Order Mark) si existe, común en archivos de Windows.
+            
+             // Limpia el BOM (Byte Order Mark) si existe.
             if (credentialsFileContent.charCodeAt(0) === 0xFEFF) {
                 credentialsFileContent = credentialsFileContent.slice(1);
             }
             credentialsFileContent = credentialsFileContent.trim();
+
 
             const credentials = JSON.parse(credentialsFileContent);
 
@@ -68,10 +70,12 @@ async function initializeDrive() {
 
 // Todas las funciones que interactúan con 'drive' deben esperar a que la inicialización se complete.
 async function checkPrerequisites() {
-    if (!initializationPromise) {
+    if (isInitializing && initializationPromise) {
+        return initializationPromise;
+    }
+    if (!drive) {
         await initializeDrive();
     }
-    return initializationPromise;
 }
 
 async function findFileId(name: string, parentId: string): Promise<string | null> {
@@ -87,8 +91,9 @@ async function findFileId(name: string, parentId: string): Promise<string | null
         if (error.code === 403) {
              throw new Error(`Error de Permiso (403) al buscar '${name}'. Asegúrate de que la API de Google Drive esté HABILITADA en tu proyecto de Google Cloud y que la cuenta de servicio tenga permisos de 'Lector' o 'Editor' en la carpeta de Drive.`);
         }
-        console.error(`[GDRIVE_PROVIDER] Error en la API de Drive al buscar '${name}':`, error.message);
-        throw new Error(`Fallo en la API de Google Drive al buscar el archivo: ${name}`);
+        console.error(`[GDRIVE_PROVIDER] Error en la API de Drive al buscar '${name}':`, error);
+        // Propaga el error original para un diagnóstico más preciso.
+        throw error;
     }
 }
 
@@ -265,9 +270,6 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
 }
 
 export async function listFiles(folderId: string): Promise<{ id: string; name: string }[] | null> {
-    if (!folderId) {
-        throw new Error("No se ha proporcionado un ID de carpeta para listar archivos.");
-    }
     await checkPrerequisites();
     try {
         const res = await drive.files.list({
@@ -285,4 +287,3 @@ export async function listFiles(folderId: string): Promise<{ id: string; name: s
         throw error;
     }
 }
-    

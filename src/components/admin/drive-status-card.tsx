@@ -30,12 +30,10 @@ export function DriveStatusCard() {
       const data = await response.json();
       
       if (!response.ok) {
-        // Si la API devuelve un error (ej. 400 porque el provider no es drive), lo manejamos como un error.
-        setIsActive(response.status !== 400); // Consider it active if it's not the specific 'provider not active' error
+        setIsActive(response.status !== 400); 
         throw new Error(data.message || 'Error en el servidor al intentar obtener los archivos de Drive.');
       }
       
-      // Si la respuesta es exitosa, el proveedor es Drive.
       setIsActive(true);
       setFiles(data.files);
 
