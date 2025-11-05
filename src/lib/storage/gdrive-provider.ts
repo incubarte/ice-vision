@@ -12,29 +12,26 @@ const SCOPES = ['https://www.googleapis.com/auth/drive'];
 const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
 
 let drive: any;
-let authClient: Auth.JWT;
 let isInitialized = false;
-let isInitializing = false; // Nueva bandera para controlar la inicialización
 
 // Una promesa que se resolverá cuando la inicialización esté completa.
 let initializationPromise: Promise<void> | null = null;
 
 async function initializeDrive() {
-    // Si ya está inicializado, no hagas nada.
-    if (isInitialized) return;
-
-    // Si ya se está inicializando, espera a que termine.
-    if (isInitializing) {
+    // Si ya se está inicializando o ya se completó, simplemente devuelve la promesa existente.
+    if (initializationPromise) {
         return initializationPromise;
     }
 
-    // Marcar que estamos inicializando para bloquear otras llamadas.
-    isInitializing = true;
+    // Crea la promesa de inicialización para que otras llamadas puedan esperar.
     initializationPromise = new Promise(async (resolve, reject) => {
+        if (isInitialized) {
+            return resolve();
+        }
+
         if (!FOLDER_ID) {
             const err = new Error("[GDRIVE_PROVIDER] FATAL: La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
             console.error(err.message);
-            isInitializing = false;
             return reject(err);
         }
 
@@ -42,26 +39,24 @@ async function initializeDrive() {
             const credentialsFileContent = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
             const credentials = JSON.parse(credentialsFileContent);
 
-            authClient = new google.auth.JWT(
+            const authClient = new google.auth.JWT(
                 credentials.client_email,
                 undefined,
                 credentials.private_key,
                 SCOPES
             );
 
-            await authClient.authorize(); // Forzar la autorización explícita.
+            await authClient.authorize(); 
 
             drive = google.drive({ version: 'v3', auth: authClient });
             isInitialized = true;
             console.log("[GDRIVE_PROVIDER] Cliente de Google Drive inicializado y autenticado correctamente.");
-            
-            isInitializing = false;
             resolve();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : "Error desconocido durante la inicialización de Google Drive.";
             console.error("[GDRIVE_PROVIDER] !! FALLO CRÍTICO EN LA INICIALIZACIÓN !!", errorMessage);
             isInitialized = false;
-            isInitializing = false;
+            // Rechaza la promesa para que las funciones que la esperan fallen claramente.
             reject(new Error(`Fallo al inicializar la autenticación con Google Drive: ${errorMessage}`));
         }
     });
@@ -69,10 +64,9 @@ async function initializeDrive() {
     return initializationPromise;
 }
 
+// Todas las funciones que interactúan con 'drive' deben esperar a que la inicialización se complete.
 async function checkPrerequisites() {
-    if (!isInitialized) {
-        await initializeDrive();
-    }
+    await initializeDrive();
 }
 
 async function findFileId(name: string, parentId: string): Promise<string | null> {
@@ -284,5 +278,4 @@ export async function listFiles(folderId?: string): Promise<{ id: string; name: 
         throw error;
     }
 }
-
     
