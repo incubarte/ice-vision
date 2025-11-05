@@ -78,40 +78,33 @@ async function initializeStore() {
     }
 
     const performInitialization = async () => {
-        console.log("[Store] Initializing store...");
+        console.log("[Store] Initializing store... fetching data from provider.");
         const defaultState = getInitialState();
-        
-        // Step 1: Set default state immediately to prevent nulls.
-        storedConfig = defaultState.config;
-        storedGameState = defaultState.live;
-        console.log("[Store] Default state loaded as fallback.");
-
-        // Step 2: Try to read from the provider.
         try {
-            console.log("[Store] Fetching data from provider...");
             const [configResult, liveStateResult] = await Promise.all([
                 readConfigFromProvider(),
                 readLiveStateFromProvider()
             ]);
-            
-            // Step 3: If data is valid, overwrite the defaults.
-            if (configResult && Object.keys(configResult).length > 0) {
-                storedConfig = configResult as ConfigState;
-                console.log("[Store] Config loaded successfully from provider.");
-            } else {
-                 console.warn("[Store] Could not read config from provider or it was empty. Using default config.");
-            }
 
-            if (liveStateResult && Object.keys(liveStateResult).length > 0) {
-                 storedGameState = liveStateResult as LiveState;
-                 console.log("[Store] Live State loaded successfully from provider.");
+            // If BOTH config and live state are read successfully, use them.
+            if (configResult && Object.keys(configResult).length > 0 && liveStateResult && Object.keys(liveStateResult).length > 0) {
+                storedConfig = configResult as ConfigState;
+                storedGameState = liveStateResult as LiveState;
+                console.log("[Store] Config and Live State loaded successfully from provider.");
             } else {
-                 console.warn("[Store] Could not read live state from provider or it was empty. Using default live state.");
+                 console.warn("[Store] Could not read from provider or data was empty. Using default state.");
+                 storedConfig = defaultState.config;
+                 storedGameState = defaultState.live;
             }
 
         } catch (error) {
-            console.error("[Store] CRITICAL: Unhandled error during storage initialization. Using default state as a fallback.", error);
+            console.error("[Store] CRITICAL: Unhandled error during storage initialization. Loading default state as a fallback.", error);
+            storedConfig = defaultState.config;
+            storedGameState = defaultState.live;
         } finally {
+             // Final guarantee that state is never null, just in case.
+            if (!storedConfig) storedConfig = defaultState.config;
+            if (!storedGameState) storedGameState = defaultState.live;
             console.log("[Store] Initialization complete.");
         }
     };

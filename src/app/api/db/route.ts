@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    // These functions now wait for initialization and are guaranteed to return a valid state (loaded or default).
+    // These functions now wait for initialization and are guaranteed to return a valid state.
     const [config, liveState] = await Promise.all([
         getConfig(),
         getGameState()
@@ -24,6 +24,7 @@ export async function GET(request: Request) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
     console.error(`[API/DB] CRITICAL ERROR fetching initial data:`, errorMessage);
+    // This provides a more specific error message to the client if initialization fails catastrophically.
     return NextResponse.json({ message: `El servidor de datos no está listo o falló al iniciar. Revisa los logs del servidor.`, error: errorMessage }, { status: 503 });
   }
 }
@@ -54,5 +55,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'An unknown server error occurred.'}, { status: 500 });
   }
 }
-
-    
