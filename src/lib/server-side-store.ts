@@ -6,6 +6,7 @@ import path from 'path';
 import os from 'os';
 import localtunnel, { type Tunnel } from 'localtunnel';
 import { readConfig as readConfigFromProvider, readLiveState as readLiveStateFromProvider, writeConfig as writeConfigToProvider, writeLiveState as writeLiveStateToProvider } from './storage';
+import { getInitialState } from '@/contexts/game-state-context';
 
 
 let storedConfig: ConfigState | null = null;
@@ -76,21 +77,26 @@ async function initializeStore() {
     }
 
     const init = async () => {
+        console.log("[Store] Initializing store... fetching data from provider.");
+        const defaultState = getInitialState();
         try {
-            console.log("[Store] Initializing store... fetching data from provider.");
             const [config, liveState] = await Promise.all([
                 readConfigFromProvider(),
                 readLiveStateFromProvider()
             ]);
-            storedConfig = config as ConfigState | null;
-            storedGameState = liveState as LiveState | null;
+            
+            storedConfig = (config as ConfigState) || defaultState.config;
+            storedGameState = (liveState as LiveState) || defaultState.live;
+            
+            if (!config) console.warn("[Store] Could not read config from provider. Using default config.");
+            if (!liveState) console.warn("[Store] Could not read live state from provider. Using default live state.");
+
             console.log("[Store] Initialization complete.");
         } catch (error) {
-            console.error("[Store] CRITICAL: Failed to initialize data store on startup.", error);
-            // In a real-world scenario, you might want to exit the process
-            // or have a more robust fallback mechanism. For now, we'll allow it to run with null state.
-            storedConfig = null;
-            storedGameState = null;
+            console.error("[Store] CRITICAL: Failed to initialize data store on startup. Loading default state as a fallback.", error);
+            // In case of any error, ensure the store is not null
+            storedConfig = defaultState.config;
+            storedGameState = defaultState.live;
         }
     };
 

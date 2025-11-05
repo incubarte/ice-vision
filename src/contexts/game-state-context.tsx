@@ -170,7 +170,7 @@ export const createDefaultScoreboardLayoutProfile = (id?: string, name?: string)
 const defaultInitialProfile = createDefaultFormatAndTimingsProfile();
 const defaultInitialLayoutProfile = createDefaultScoreboardLayoutProfile();
 
-const getInitialState = (): GameState => {
+export const getInitialState = (): GameState => {
   return {
     config: {
       ...defaultSettings.formatAndTimings,
@@ -1607,6 +1607,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             if (m.id === matchId) {
                 const homeScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
                 const awayScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
+                
                 return { ...m, summary, homeScore, awayScore, overTimeOrShootouts: summary.overTimeOrShootouts };
             }
             return m;
@@ -1833,6 +1834,7 @@ const GameStateObserver = () => {
 
 
 export const GameStateProvider = ({ children }: { children: ReactNode }) => {
+  const { toast } = showToast(); // Renamed to avoid conflict
   const [state, dispatch] = useReducer(gameReducer, getInitialState());
   const [isLoading, setIsLoading] = useState(true);
   const [isPageVisible, setIsPageVisible] = useState(true);
@@ -1858,7 +1860,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       try {
         const res = await fetch('/api/db');
-        if (!res.ok) throw new Error('Failed to fetch initial data');
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Error fetching initial data and failed to parse error response.'}));
+            throw new Error(errorData.message || 'Failed to fetch initial data');
+        }
         const data = await res.json();
         
         dispatch({ type: 'HYDRATE_FROM_SERVER', payload: data });
@@ -1867,16 +1872,16 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
         console.error("Failed to fetch initial state from server:", error);
         toast({
             title: "Error Crítico de Conexión",
-            description: "No se pudo cargar la configuración inicial desde el servidor. La aplicación podría no funcionar correctamente.",
+            description: `No se pudo cargar la configuración del servidor. ${error instanceof Error ? error.message : ''}`,
             variant: "destructive",
             duration: 10000,
         });
-        // Hydrate with defaults as a fallback so the app doesn't crash
+        // Fallback to default state so the app is still usable
         dispatch({ type: 'HYDRATE_FROM_SERVER', payload: getInitialState() });
       } finally {
         setIsLoading(false);
       }
-  }, []);
+  }, [toast]);
 
   const fetchTournamentDetails = useCallback(async (tournamentId: string) => {
     try {
@@ -2103,6 +2108,7 @@ export { createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProf
     
 
     
+
 
 
 

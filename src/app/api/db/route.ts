@@ -13,9 +13,10 @@ export async function GET(request: Request) {
         getGameState()
     ]);
     
-    // If initialization failed, the provider will be null.
-    // The client-side will show an error.
+    // After robust initialization in server-side-store, config and liveState should always be populated.
+    // However, we keep a check here as a final safeguard.
     if (!config || !liveState) {
+        console.error("[API/DB] CRITICAL: getConfig() or getGameState() returned null. This should not happen after initialization.");
         return NextResponse.json({ message: "El servidor de datos no está listo o falló al iniciar. Revisa los logs del servidor." }, { status: 503 });
     }
 
