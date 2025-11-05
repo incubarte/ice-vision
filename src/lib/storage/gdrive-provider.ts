@@ -8,6 +8,7 @@ import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 // --- Configuración y Autenticación con Google Drive ---
 
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
+const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
 
 let drive: any;
 let initializationPromise: Promise<void> | null = null;
@@ -33,14 +34,17 @@ async function initializeDrive(logs: LogEntry[]) {
         
         let credentials;
         try {
-            const credentialsJson = JSON.parse(Buffer.from(process.env.GOOGLE_DRIVE_CREDENTIALS_BASE64 || '', 'base64').toString('utf8'));
-            if (!credentialsJson.client_email || !credentialsJson.private_key) {
-                throw new Error("Credenciales decodificadas de Base64 son inválidas o incompletas.");
+            const credentialsContent = await fs.readFile(CREDENTIALS_PATH, 'utf8');
+            credentials = JSON.parse(credentialsContent);
+            if (!credentials.client_email || !credentials.private_key) {
+                throw new Error("El archivo de credenciales es inválido o está incompleto.");
             }
-            credentials = credentialsJson;
-            logs.push({ step: "Leer Credenciales", status: "success", message: "Credenciales decodificadas desde la variable de entorno." });
+            logs.push({ step: "Leer Credenciales", status: "success", message: `Credenciales leídas exitosamente de ${path.basename(CREDENTIALS_PATH)}.` });
         } catch (error: any) {
-            throw new Error(`Error al parsear GOOGLE_DRIVE_CREDENTIALS_BASE64: ${error.message}`);
+             if (error.code === 'ENOENT') {
+                throw new Error(`El archivo de credenciales '${path.basename(CREDENTIALS_PATH)}' no se encontró en la raíz del proyecto.`);
+            }
+            throw new Error(`Error al leer o parsear el archivo de credenciales: ${error.message}`);
         }
 
         try {
@@ -60,16 +64,14 @@ async function initializeDrive(logs: LogEntry[]) {
     
     initializationPromise = performInitialization().catch(err => {
         initializationPromise = null;
-        drive = null; // Ensure drive is null on failure
+        drive = null; 
         throw err;
     });
 
     return initializationPromise;
 }
 
-
 async function getDriveClient(logs?: LogEntry[]) {
-    // Pass an empty array if logs are not provided to avoid breaking the function
     const internalLogs = logs || [];
     await initializeDrive(internalLogs);
     return drive;
@@ -310,5 +312,3 @@ export async function listFiles(logs: LogEntry[]): Promise<{ id: string; name: s
         throw new Error(errorMessage);
     }
 }
-
-    

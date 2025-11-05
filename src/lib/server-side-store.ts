@@ -86,20 +86,26 @@ async function initializeStore() {
                 readLiveStateFromProvider()
             ]);
 
-            // If a provider returns null (critical error), this will throw.
-            // If it returns {} (file not found), we use defaults.
-            if (!configResult || !liveStateResult) {
-                throw new Error("One or both storage providers returned a critical error (null).");
+            if (configResult && Object.keys(configResult).length > 0) {
+                storedConfig = configResult as ConfigState;
+            } else {
+                console.warn("[Store] Config not found or is empty. Using default config.");
+                storedConfig = defaultState.config;
             }
-            
-            storedConfig = Object.keys(configResult).length > 0 ? configResult as ConfigState : defaultState.config;
-            storedGameState = Object.keys(liveStateResult).length > 0 ? liveStateResult as LiveState : defaultState.live;
+
+            if (liveStateResult && Object.keys(liveStateResult).length > 0) {
+                storedGameState = liveStateResult as LiveState;
+            } else {
+                console.warn("[Store] Live state not found or is empty. Using default live state.");
+                storedGameState = defaultState.live;
+            }
             
             console.log("[Store] Initialization complete. Config and Live State are loaded.");
 
         } catch (error) {
-            console.error("[Store] CRITICAL: Unhandled error during storage initialization.", error);
-            // This reject will be caught by any function calling getConfig() or getGameState()
+            console.error("[Store] CRITICAL: Unhandled error during storage initialization. App will use default state.", error);
+            storedConfig = defaultState.config;
+            storedGameState = defaultState.live;
             throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
         }
     };
@@ -275,5 +281,3 @@ export function disconnectTunnel(): void {
 // Ensure password file is checked/created on startup
 getRemoteAccessPassword();
 // The store is now initialized on-demand by the first getter that needs it.
-
-    
