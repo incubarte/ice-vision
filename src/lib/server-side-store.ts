@@ -1,5 +1,4 @@
 import 'server-only';
-
 import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState, Tournament, GameState, FormatAndTimingsProfile, ScoreboardLayoutSettings, ScoreboardLayoutProfile, ReplaySettings, PenaltyTypeDefinition } from '@/types';
 import { EventEmitter } from 'events';
 import fs from 'fs';
@@ -7,7 +6,6 @@ import path from 'path';
 import os from 'os';
 import localtunnel, { type Tunnel } from 'localtunnel';
 import { readConfig as readConfigFromProvider, readLiveState as readLiveStateFromProvider, writeConfig as writeConfigToProvider, writeLiveState as writeLiveStateToProvider } from './storage';
-import { getInitialState } from './initial-state';
 
 // --- Estado Global del Servidor y Emisores de Eventos ---
 
@@ -87,20 +85,16 @@ export function getRemoteAccessPassword(): string {
 // La promesa de inicialización. El núcleo de la solución.
 const performInitialization = async () => {
     console.log("[Store] Initializing store... fetching data from provider.");
-    const defaultState = getInitialState();
     try {
         const [configResult, liveStateResult] = await Promise.all([
             readConfigFromProvider(),
             readLiveStateFromProvider()
         ]);
         
-        appGlobal.storedConfig = (configResult && Object.keys(configResult).length > 0)
-            ? configResult as ConfigState
-            : defaultState.config;
-            
-        appGlobal.storedGameState = (liveStateResult && Object.keys(liveStateResult).length > 0)
-            ? liveStateResult as LiveState
-            : defaultState.live;
+        // No creamos un estado por defecto aquí, simplemente asignamos lo que leemos.
+        // Si no existen, los proveedores devuelven {} o null.
+        appGlobal.storedConfig = (configResult as ConfigState) || null;
+        appGlobal.storedGameState = (liveStateResult as LiveState) || null;
 
         console.log("[Store] Initialization complete. Config and Live State are loaded.");
 
@@ -115,9 +109,9 @@ if (!appGlobal.initializationPromise) {
     appGlobal.initializationPromise = performInitialization();
 }
 
-export async function getConfig(): Promise<ConfigState> {
+export async function getConfig(): Promise<ConfigState | null> {
   await appGlobal.initializationPromise;
-  return appGlobal.storedConfig!;
+  return appGlobal.storedConfig;
 }
 
 export async function setConfig(newConfig: ConfigState): Promise<void> {
@@ -128,9 +122,9 @@ export async function setConfig(newConfig: ConfigState): Promise<void> {
   });
 }
 
-export async function getGameState(): Promise<LiveState> {
+export async function getGameState(): Promise<LiveState | null> {
   await appGlobal.initializationPromise;
-  return appGlobal.storedGameState!;
+  return appGlobal.storedGameState;
 }
 
 export async function setGameState(newGameState: LiveState): Promise<void> {
