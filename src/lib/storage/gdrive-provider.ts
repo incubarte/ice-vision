@@ -139,10 +139,17 @@ async function createOrUpdateFile(fileName: string, parentId: string, data: any)
     }
 }
 
-export async function readConfig(): Promise<Partial<ConfigState> | null> {
+export async function readConfig(): Promise<Partial<ConfigState>> {
     checkPrerequisites();
     const fileId = await findFileOrFolder('config.json', FOLDER_ID!);
-    return fileId ? (await readFileContent<ConfigState>(fileId)) : null;
+    if (!fileId) {
+        throw new Error("El archivo 'config.json' no se encontró en la carpeta de Google Drive. Por favor, asegúrate de que exista o vuelve al modo local para crearlo.");
+    }
+    const configData = await readFileContent<ConfigState>(fileId);
+    if (!configData) {
+        throw new Error("No se pudo leer o parsear el contenido de 'config.json' desde Google Drive.");
+    }
+    return configData;
 }
 
 export async function writeConfig(config: ConfigState): Promise<void> {
@@ -150,10 +157,17 @@ export async function writeConfig(config: ConfigState): Promise<void> {
     await createOrUpdateFile('config.json', FOLDER_ID!, config);
 }
 
-export async function readLiveState(): Promise<Partial<LiveState> | null> {
+export async function readLiveState(): Promise<Partial<LiveState>> {
     checkPrerequisites();
     const fileId = await findFileOrFolder('live.json', FOLDER_ID!);
-    return fileId ? (await readFileContent<LiveState>(fileId)) : null;
+    if (!fileId) {
+        throw new Error("El archivo 'live.json' no se encontró en la carpeta de Google Drive. Por favor, asegúrate de que exista o vuelve al modo local para crearlo.");
+    }
+    const liveData = await readFileContent<LiveState>(fileId);
+    if (!liveData) {
+        throw new Error("No se pudo leer o parsear el contenido de 'live.json' desde Google Drive.");
+    }
+    return liveData;
 }
 
 export async function writeLiveState(liveState: LiveState): Promise<void> {
