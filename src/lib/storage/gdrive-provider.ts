@@ -1,9 +1,9 @@
 
-import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 import { google } from 'googleapis';
 import stream from 'stream';
 import fs from 'fs/promises';
 import path from 'path';
+import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 
 // --- Configuración y Autenticación con Google Drive ---
 
@@ -20,16 +20,16 @@ try {
     
     console.log("[GDRIVE_PROVIDER_DEBUG] Credenciales leídas correctamente. client_email:", credentials.client_email);
 
-    const auth = new google.auth.GoogleAuth({
-        credentials: {
-            client_email: credentials.client_email,
-            private_key: credentials.private_key,
-        },
-        scopes: SCOPES,
-    });
+    // Usar JWT auth client, que es más explícito para cuentas de servicio
+    const auth = new google.auth.JWT(
+        credentials.client_email,
+        undefined,
+        credentials.private_key,
+        SCOPES
+    );
 
     drive = google.drive({ version: 'v3', auth });
-    console.log("[GDRIVE_PROVIDER_DEBUG] Cliente de Google Drive inicializado.");
+    console.log("[GDRIVE_PROVIDER_DEBUG] Cliente de Google Drive inicializado con JWT.");
 
 } catch (error) {
     authError = error instanceof Error ? error.message : "Error desconocido durante la autenticación de Google Drive.";
