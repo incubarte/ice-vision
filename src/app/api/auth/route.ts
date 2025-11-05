@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { getRemoteAccessPassword, isClientLocal } from '@/lib/server-side-store';
 

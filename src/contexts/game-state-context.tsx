@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import type { ReactNode } from 'react';
@@ -9,7 +7,7 @@ import { useToast as showToast } from '@/hooks/use-toast';
 import isEqual from 'lodash.isequal';
 import { updateConfigOnServer, updateGameStateOnServer, saveTournamentOnServer } from '@/app/actions';
 import { generateSummaryData } from '@/lib/summary-generator';
-import { getInitialState } from '@/lib/server-side-store';
+import { getInitialState, createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProfile } from '@/lib/initial-state';
 
 // --- Constantes para la sincronización local ---
 export const BROADCAST_CHANNEL_NAME = 'icevision-game-state-channel';
@@ -39,40 +37,6 @@ const INITIAL_SHOOTOUT_STATE: ShootoutState = {
   awayAttempts: [],
   initiator: null,
 };
-
-const INITIAL_LIVE_DATA: LiveState = {
-  score: { home: 0, away: 0, homeShots: 0, awayShots: 0 },
-  penalties: { home: [], away: [] },
-  goals: { home: [], away: [] },
-  penaltiesLog: { home: [], away: [] },
-  shotsLog: { home: [], away: [] },
-  attendance: { home: [], away: [] },
-  clock: {
-    currentTime: 30000,
-    currentPeriod: 0,
-    isClockRunning: false,
-    periodDisplayOverride: 'Warm-up',
-    preTimeoutState: null,
-    clockStartTimeMs: null,
-    remainingTimeAtStartCs: null,
-    absoluteElapsedTimeCs: 0,
-    _liveAbsoluteElapsedTimeCs: 0,
-    isFlashingZero: false,
-  },
-  shootout: INITIAL_SHOOTOUT_STATE,
-  homeTeamName: 'Local',
-  awayTeamName: 'Visitante',
-  playHornTrigger: 0,
-  playPenaltyBeepTrigger: 0,
-  pendingPowerPlayGoal: null,
-  overlayMessage: null,
-  goalCelebration: null,
-  replayLoadRequest: null,
-  replayOverlay: null,
-  matchId: null,
-  playedPeriods: [],
-};
-
 
 type GameStateContextType = {
   state: GameState;
@@ -297,7 +261,7 @@ const applyFormatAndTimingsProfileToState = (state: GameState, profileId: string
 };
 
 const applyScoreboardLayoutProfileToState = (state: GameState, profileId: string | null): GameState => {
-    const { getInitialState } = require('@/lib/server-side-store');
+    
     const defaultState = getInitialState();
     
     const profiles = state.config.scoreboardLayoutProfiles || [];
@@ -323,7 +287,7 @@ const applyScoreboardLayoutProfileToState = (state: GameState, profileId: string
 
 
 
-const gameReducer = (state: GameState, action: GameAction): GameState => {
+export const gameReducer = (state: GameState, action: GameAction): GameState => {
   let newState: GameState = { ...state };
   let newTimestamp = Date.now();
   let toastMessage: GameState['_lastToastMessage'] = null;
@@ -1177,7 +1141,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       newState = { ...state, live: { ...state.live, 
         playedPeriods,
         shootout: {
-          ...INITIAL_LIVE_DATA.shootout,
+          ...INITIAL_SHOOTOUT_STATE,
           isActive: true,
         },
         clock: {
@@ -1307,8 +1271,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         break;
     }
     case 'ADD_FORMAT_AND_TIMINGS_PROFILE': {
-      const { getInitialState } = require('@/lib/server-side-store');
-      newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: [...state.config.formatAndTimingsProfiles, getInitialState().config.formatAndTimingsProfiles[0]] } }; 
+      newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: [...state.config.formatAndTimingsProfiles, createDefaultFormatAndTimingsProfile()] } }; 
       toastMessage = { title: "Perfil Creado", description: `Perfil "${action.payload.name.trim()}" añadido.` };
       break;
     }
@@ -1317,9 +1280,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       toastMessage = { title: "Nombre de Perfil Actualizado" };
       break;
     case 'DELETE_FORMAT_AND_TIMINGS_PROFILE': {
-        const { getInitialState } = require('@/lib/server-side-store');
         let newProfiles = state.config.formatAndTimingsProfiles.filter(p => p.id !== action.payload.profileId);
-        if (newProfiles.length === 0) newProfiles = [getInitialState().config.formatAndTimingsProfiles[0]];
+        if (newProfiles.length === 0) newProfiles = [createDefaultFormatAndTimingsProfile()];
         const newSelectedId = action.payload.profileId === state.config.selectedFormatAndTimingsProfileId ? newProfiles[0].id : state.config.selectedScoreboardLayoutProfileId;
         newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: newProfiles, selectedFormatAndTimingsProfileId: newSelectedId }};
         newState = applyFormatAndTimingsProfileToState(newState, newSelectedId);
@@ -1331,8 +1293,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'LOAD_FORMAT_AND_TIMINGS_PROFILES': {
-        const { getInitialState } = require('@/lib/server-side-store');
-        const newProfiles = action.payload.length > 0 ? action.payload : [getInitialState().config.formatAndTimingsProfiles[0]];
+        const newProfiles = action.payload.length > 0 ? action.payload : [createDefaultFormatAndTimingsProfile()];
         newState = { ...state, config: { ...state.config, formatAndTimingsProfiles: newProfiles, selectedFormatAndTimingsProfileId: newProfiles[0].id } };
         newState = applyFormatAndTimingsProfileToState(newState, newProfiles[0].id);
         break;
@@ -1362,8 +1323,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         break;
     }
     case 'ADD_SCOREBOARD_LAYOUT_PROFILE': {
-        const { getInitialState } = require('@/lib/server-side-store');
-        newState = { ...state, config: { ...state.config, scoreboardLayoutProfiles: [...state.config.scoreboardLayoutProfiles, getInitialState().config.scoreboardLayoutProfiles[0]] }}; 
+        newState = { ...state, config: { ...state.config, scoreboardLayoutProfiles: [...state.config.scoreboardLayoutProfiles, createDefaultScoreboardLayoutProfile()] }}; 
         toastMessage = { title: "Perfil de Diseño Creado", description: `Perfil "${action.payload.name.trim()}" añadido.` };
         break;
     }
@@ -1372,9 +1332,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       toastMessage = { title: "Nombre de Perfil de Diseño Actualizado" };
       break;
     case 'DELETE_SCOREBOARD_LAYOUT_PROFILE': {
-        const { getInitialState } = require('@/lib/server-side-store');
         let newProfiles = state.config.scoreboardLayoutProfiles.filter(p => p.id !== action.payload.profileId);
-        if (newProfiles.length === 0) newProfiles = [getInitialState().config.scoreboardLayoutProfiles[0]];
+        if (newProfiles.length === 0) newProfiles = [createDefaultScoreboardLayoutProfile()];
         const newSelectedId = action.payload.profileId === state.config.selectedScoreboardLayoutProfileId ? newProfiles[0].id : state.config.selectedScoreboardLayoutProfileId;
         newState = { ...state, config: { ...state.config, scoreboardLayoutProfiles: newProfiles, selectedScoreboardLayoutProfileId: newSelectedId }};
         newState = applyScoreboardLayoutProfileToState(newState, newSelectedId);
@@ -1387,8 +1346,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'LOAD_SOUND_AND_DISPLAY_CONFIG': {
         const { scoreboardLayoutProfiles, ...otherSettings } = action.payload;
-        const { getInitialState } = require('@/lib/server-side-store');
-        const newProfiles = scoreboardLayoutProfiles && scoreboardLayoutProfiles.length > 0 ? scoreboardLayoutProfiles : [getInitialState().config.scoreboardLayoutProfiles[0]];
+        const newProfiles = scoreboardLayoutProfiles && scoreboardLayoutProfiles.length > 0 ? scoreboardLayoutProfiles : [createDefaultScoreboardLayoutProfile()];
         newState = { ...state, config: { ...state.config, ...otherSettings, scoreboardLayoutProfiles: newProfiles, selectedScoreboardLayoutProfileId: newProfiles[0].id }};
         newState = applyScoreboardLayoutProfileToState(newState, newProfiles[0].id);
         break;
@@ -1404,7 +1362,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'SET_SELECTED_MATCH_CATEGORY': newState = { ...state, config: { ...state.config, selectedMatchCategory: action.payload } }; toastMessage = { title: "Categoría del Partido Actualizada" }; break;
     case 'UPDATE_TUNNEL_STATE': newState = { ...state, config: { ...state.config, tunnel: { ...state.config.tunnel, ...action.payload } }}; break;
     case 'ADD_TOURNAMENT': {
-        const { safeUUID } = require('@/lib/utils');
         const newTournament: Tournament = {
             id: safeUUID(),
             name: action.payload.name,
@@ -1651,9 +1608,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const { defaultWarmUpDuration, autoStartWarmUp } = state.config;
       
       const resetLiveState: LiveState = {
-        ...INITIAL_LIVE_DATA,
+        ...getInitialState().live,
         clock: {
-          ...INITIAL_LIVE_DATA.clock,
+          ...getInitialState().live.clock,
           currentTime: defaultWarmUpDuration,
           isClockRunning: autoStartWarmUp && defaultWarmUpDuration > 0,
           clockStartTimeMs: (autoStartWarmUp && defaultWarmUpDuration > 0) ? Date.now() : null,
@@ -1955,9 +1912,6 @@ export const getCategoryNameById = (categoryId: string, availableCategories: Cat
   const category = availableCategories.find(cat => cat && typeof cat === 'object' && cat.id === categoryId);
   return category ? category.name : undefined;
 };
-
-// Re-exporting these as they were moved to server-side-store
-export { createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProfile } from '@/lib/server-side-store';
 
 const safeUUID = () => {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
