@@ -1,3 +1,4 @@
+
 import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState } from '@/types';
 import { EventEmitter } from 'events';
 import { headers } from 'next/headers';
@@ -76,38 +77,47 @@ async function initializeStore() {
         return globalForEmitters.initializationPromise;
     }
 
-    const init = async () => {
+    const performInitialization = async () => {
         console.log("[Store] Initializing store... fetching data from provider.");
         const defaultState = getInitialState();
         try {
-            const [config, liveState] = await Promise.all([
+            const [configResult, liveStateResult] = await Promise.all([
                 readConfigFromProvider(),
                 readLiveStateFromProvider()
             ]);
             
-            storedConfig = (config as ConfigState) || defaultState.config;
-            storedGameState = (liveState as LiveState) || defaultState.live;
-            
-            if (!config) console.warn("[Store] Could not read config from provider. Using default config.");
-            if (!liveState) console.warn("[Store] Could not read live state from provider. Using default live state.");
+            // Si cualquiera de las lecturas falla, usamos los valores por defecto para AMBOS.
+            if (!configResult || !liveStateResult) {
+                console.warn("[Store] Could not read config or live state from provider. Using default state for both.");
+                storedConfig = defaultState.config;
+                storedGameState = defaultState.live;
+            } else {
+                storedConfig = configResult as ConfigState;
+                storedGameState = liveStateResult as LiveState;
+                console.log("[Store] Config and Live State loaded successfully from provider.");
+            }
 
-            console.log("[Store] Initialization complete.");
         } catch (error) {
-            console.error("[Store] CRITICAL: Failed to initialize data store on startup. Loading default state as a fallback.", error);
-            // In case of any error, ensure the store is not null
+            console.error("[Store] CRITICAL: Unhandled error during storage initialization. Loading default state as a fallback.", error);
             storedConfig = defaultState.config;
             storedGameState = defaultState.live;
+        } finally {
+             // Aseguramos que las variables nunca sean null después de la inicialización.
+            if (!storedConfig) storedConfig = defaultState.config;
+            if (!storedGameState) storedGameState = defaultState.live;
+            console.log("[Store] Initialization complete.");
         }
     };
 
-    globalForEmitters.initializationPromise = init();
+    globalForEmitters.initializationPromise = performInitialization();
     return globalForEmitters.initializationPromise;
 }
 
 
-export async function getConfig(): Promise<ConfigState | null> {
+export async function getConfig(): Promise<ConfigState> {
   await initializeStore();
-  return storedConfig;
+  // Guaranteed to be non-null after initialization
+  return storedConfig!;
 }
 
 export function setConfig(newConfig: ConfigState): void {
@@ -125,9 +135,10 @@ export function updateTunnelState(updates: Partial<TunnelState>) {
   }
 }
 
-export async function getGameState(): Promise<LiveState | null> {
+export async function getGameState(): Promise<LiveState> {
   await initializeStore();
-  return storedGameState;
+  // Guaranteed to be non-null after initialization
+  return storedGameState!;
 }
 
 export function setGameState(newGameState: LiveState): void {

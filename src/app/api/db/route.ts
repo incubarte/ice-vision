@@ -8,17 +8,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
+    // These functions now wait for initialization and are guaranteed to return a valid state (loaded or default).
     const [config, liveState] = await Promise.all([
         getConfig(),
         getGameState()
     ]);
-    
-    // After robust initialization in server-side-store, config and liveState should always be populated.
-    // However, we keep a check here as a final safeguard.
-    if (!config || !liveState) {
-        console.error("[API/DB] CRITICAL: getConfig() or getGameState() returned null. This should not happen after initialization.");
-        return NextResponse.json({ message: "El servidor de datos no está listo o falló al iniciar. Revisa los logs del servidor." }, { status: 503 });
-    }
 
     const initialState: Partial<GameState> = {
       config,
@@ -30,8 +24,7 @@ export async function GET(request: Request) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
     console.error(`[API/DB] CRITICAL ERROR fetching initial data:`, errorMessage);
-    // Devolvemos un error 500 con el mensaje específico para que el cliente pueda mostrarlo.
-    return NextResponse.json({ message: errorMessage }, { status: 500 });
+    return NextResponse.json({ message: `Error crítico del servidor: ${errorMessage}` }, { status: 500 });
   }
 }
 
