@@ -81,26 +81,19 @@ const performInitialization = async () => {
             readLiveStateFromProvider()
         ]);
 
-        if (configResult && Object.keys(configResult).length > 0) {
-            storedConfig = configResult as ConfigState;
-        } else {
-            console.warn("[Store] Config not found or is empty. Using default config.");
-            storedConfig = defaultState.config;
-        }
+        // Prioritize loaded data, but fallback to default if it's null/empty
+        storedConfig = (configResult && Object.keys(configResult).length > 0)
+            ? configResult as ConfigState
+            : defaultState.config;
+            
+        storedGameState = (liveStateResult && Object.keys(liveStateResult).length > 0)
+            ? liveStateResult as LiveState
+            : defaultState.live;
 
-        if (liveStateResult && Object.keys(liveStateResult).length > 0) {
-            storedGameState = liveStateResult as LiveState;
-        } else {
-            console.warn("[Store] Live state not found or is empty. Using default live state.");
-            storedGameState = defaultState.live;
-        }
-        
         console.log("[Store] Initialization complete. Config and Live State are loaded.");
 
     } catch (error) {
         console.error("[Store] CRITICAL: Unhandled error during storage initialization. App will use default state.", error);
-        // As a last resort, ensure we have a valid state to prevent total crash.
-        // The error will still be thrown to indicate a critical failure.
         storedConfig = defaultState.config;
         storedGameState = defaultState.live;
         throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
@@ -113,7 +106,7 @@ globalForEmitters.initializationPromise = globalForEmitters.initializationPromis
 
 export async function getConfig(): Promise<ConfigState> {
   await globalForEmitters.initializationPromise;
-  // Guaranteed to be non-null after initialization because performInitialization throws on critical failure.
+  // Guaranteed to be non-null after initialization because performInitialization throws on critical failure or uses defaults.
   return storedConfig!;
 }
 
@@ -277,5 +270,3 @@ export function disconnectTunnel(): void {
 // Ensure password file is checked/created on startup
 getRemoteAccessPassword();
 // The store is now initialized on-demand by the first getter that needs it.
-
-    

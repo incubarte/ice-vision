@@ -19,7 +19,8 @@ interface LogEntry {
   message: string;
 }
 
-async function initializeDrive(logs: LogEntry[]) {
+// Unica fuente de verdad para la inicialización
+async function initializeDrive(logs?: LogEntry[]) {
     if (drive) return;
     
     if (initializationPromise) {
@@ -39,7 +40,7 @@ async function initializeDrive(logs: LogEntry[]) {
             if (!credentials.client_email || !credentials.private_key) {
                 throw new Error("El archivo de credenciales es inválido o está incompleto.");
             }
-            logs.push({ step: "Leer Credenciales", status: "success", message: `Credenciales leídas exitosamente de ${path.basename(CREDENTIALS_PATH)}.` });
+            logs?.push({ step: "Leer Credenciales", status: "success", message: `Credenciales leídas exitosamente de ${path.basename(CREDENTIALS_PATH)}.` });
         } catch (error: any) {
              if (error.code === 'ENOENT') {
                 throw new Error(`El archivo de credenciales '${path.basename(CREDENTIALS_PATH)}' no se encontró en la raíz del proyecto.`);
@@ -56,7 +57,7 @@ async function initializeDrive(logs: LogEntry[]) {
             );
             await authClient.authorize();
             drive = google.drive({ version: 'v3', auth: authClient });
-            logs.push({ step: "Autenticación con Google", status: "success", message: "Autenticación JWT exitosa." });
+            logs?.push({ step: "Autenticación con Google", status: "success", message: "Autenticación JWT exitosa." });
         } catch (error: any) {
             throw new Error(`Fallo en la autenticación con Google: ${error.message}`);
         }
@@ -71,16 +72,11 @@ async function initializeDrive(logs: LogEntry[]) {
     return initializationPromise;
 }
 
-async function getDriveClient(logs?: LogEntry[]) {
-    const internalLogs = logs || [];
-    await initializeDrive(internalLogs);
-    return drive;
-}
 
 async function findFileId(name: string, parentId: string): Promise<string | null> {
     try {
-        const driveClient = await getDriveClient([]);
-        const res = await driveClient.files.list({
+        await initializeDrive();
+        const res = await drive.files.list({
             q: `name = '${name}' and '${parentId}' in parents and trashed = false`,
             fields: 'files(id)',
             spaces: 'drive',
@@ -94,10 +90,9 @@ async function findFileId(name: string, parentId: string): Promise<string | null
 
 async function readFileContent<T>(fileId: string): Promise<T | null> {
     try {
-        const driveClient = await getDriveClient([]);
-        const res = await driveClient.files.get({ fileId: fileId, alt: 'media' }, { responseType: 'json' });
+        await initializeDrive();
+        const res = await drive.files.get({ fileId: fileId, alt: 'media' }, { responseType: 'json' });
         
-        // La respuesta ya es el objeto JSON, no un stream.
         if (res.data) {
             return res.data as T;
         } else {
@@ -123,7 +118,6 @@ export async function readFileContentById(fileId: string): Promise<any> {
 
 export async function readConfig(): Promise<Partial<ConfigState> | null> {
     try {
-        await getDriveClient([]);
         const fileId = await findFileId('config.json', process.env.GOOGLE_DRIVE_FOLDER_ID!);
         if (!fileId) {
             console.warn("ADVERTENCIA: El archivo 'config.json' no se encontró en Google Drive. Se usará una configuración vacía.");
@@ -138,7 +132,6 @@ export async function readConfig(): Promise<Partial<ConfigState> | null> {
 
 export async function readLiveState(): Promise<Partial<LiveState> | null> {
      try {
-        await getDriveClient([]);
         const fileId = await findFileId('live.json', process.env.GOOGLE_DRIVE_FOLDER_ID!);
         if (!fileId) {
             console.warn("ADVERTENCIA: El archivo 'live.json' no se encontró en Google Drive. Se usará un estado en vivo vacío.");
@@ -153,7 +146,7 @@ export async function readLiveState(): Promise<Partial<LiveState> | null> {
 
 
 async function createOrUpdateFile(fileName: string, parentId: string, data: any): Promise<void> {
-    await getDriveClient([]);
+    await initializeDrive();
     const fileId = await findFileId(fileName, parentId);
     const media = {
         mimeType: 'application/json',
@@ -181,7 +174,7 @@ async function createOrUpdateFile(fileName: string, parentId: string, data: any)
 }
 
 async function getOrCreateFolder(name: string, parentId: string): Promise<string> {
-    await getDriveClient([]);
+    await initializeDrive();
     let folderId = await findFileId(name, parentId);
     if (!folderId) {
         const fileMetadata = {
@@ -279,12 +272,12 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
 }
 
 export async function listFiles(logs: LogEntry[]): Promise<{ id: string; name: string }[] | null> {
-    const driveClient = await getDriveClient(logs);
+    await initializeDrive(logs);
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
 
     try {
         logs.push({ step: "Verificar Acceso a Carpeta", status: "success", message: `Intentando acceder a la carpeta ID: ...${folderId!.slice(-6)}` });
-        const folderRes = await driveClient.files.get({
+        const folderRes = await drive.files.get({
             fileId: folderId,
             fields: 'id, name',
         });
@@ -298,7 +291,7 @@ export async function listFiles(logs: LogEntry[]): Promise<{ id: string; name: s
     
     try {
         logs.push({ step: "Listar Contenido de Carpeta", status: "success", message: "Buscando archivos..." });
-        const res = await driveClient.files.list({
+        const res = await drive.files.list({
             q: `'${folderId}' in parents and trashed = false`,
             fields: 'files(id, name)',
             spaces: 'drive',
