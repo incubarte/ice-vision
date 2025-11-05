@@ -79,33 +79,26 @@ async function initializeStore() {
 
     const performInitialization = async () => {
         console.log("[Store] Initializing store... fetching data from provider.");
-        const defaultState = getInitialState();
         try {
             const [configResult, liveStateResult] = await Promise.all([
                 readConfigFromProvider(),
                 readLiveStateFromProvider()
             ]);
 
-            // If BOTH config and live state are read successfully, use them.
-            if (configResult && Object.keys(configResult).length > 0 && liveStateResult && Object.keys(liveStateResult).length > 0) {
-                storedConfig = configResult as ConfigState;
-                storedGameState = liveStateResult as LiveState;
-                console.log("[Store] Config and Live State loaded successfully from provider.");
-            } else {
-                 console.warn("[Store] Could not read from provider or data was empty. Using default state.");
-                 storedConfig = defaultState.config;
-                 storedGameState = defaultState.live;
+            if (!configResult || !liveStateResult) {
+                throw new Error("One or both storage providers returned null.");
             }
+            
+            // If data is empty, use defaults, but don't treat it as a catastrophic error.
+            storedConfig = (Object.keys(configResult).length > 0 ? configResult : getInitialState().config) as ConfigState;
+            storedGameState = (Object.keys(liveStateResult).length > 0 ? liveStateResult : getInitialState().live) as LiveState;
+            
+            console.log("[Store] Initialization complete. Config and Live State are loaded.");
 
         } catch (error) {
-            console.error("[Store] CRITICAL: Unhandled error during storage initialization. Loading default state as a fallback.", error);
-            storedConfig = defaultState.config;
-            storedGameState = defaultState.live;
-        } finally {
-             // Final guarantee that state is never null, just in case.
-            if (!storedConfig) storedConfig = defaultState.config;
-            if (!storedGameState) storedGameState = defaultState.live;
-            console.log("[Store] Initialization complete.");
+            console.error("[Store] CRITICAL: Unhandled error during storage initialization.", error);
+            // This reject will be caught by any function calling getConfig() or getGameState()
+            throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
         }
     };
 
@@ -116,7 +109,7 @@ async function initializeStore() {
 
 export async function getConfig(): Promise<ConfigState> {
   await initializeStore();
-  // Guaranteed to be non-null after initialization
+  // Guaranteed to be non-null after initialization because initializeStore throws on failure
   return storedConfig!;
 }
 
@@ -277,6 +270,6 @@ export function disconnectTunnel(): void {
 }
 
 
-// Ensure password file is checked/created on startup and data is loaded
+// Ensure password file is checked/created on startup
 getRemoteAccessPassword();
-initializeStore();
+// The store is now initialized on-demand by the first getter that needs it.
