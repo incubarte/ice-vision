@@ -25,6 +25,7 @@ import { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { sendRemoteCommand } from '@/app/actions';
 import { cn } from "@/lib/utils";
+import { DriveStatusCard } from "@/components/admin/drive-status-card";
 
 
 function PerformanceSettingsCard() {
@@ -216,6 +217,8 @@ export default function AdminPage() {
             <h1 className="text-3xl font-bold">Panel de Administración</h1>
             <p className="text-muted-foreground mt-2">Herramientas para la gestión avanzada de la aplicación.</p>
         </div>
+        
+        <DriveStatusCard />
         
         <Card>
             <CardHeader>

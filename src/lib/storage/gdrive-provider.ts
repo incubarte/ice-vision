@@ -12,7 +12,6 @@ const SCOPES = ['https://www.googleapis.com/auth/drive'];
 const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
 
 let drive: any;
-let authError: string | null = null;
 let isInitialized = false;
 
 async function initializeDrive() {
@@ -31,22 +30,16 @@ async function initializeDrive() {
 
         drive = google.drive({ version: 'v3', auth });
         isInitialized = true;
-        authError = null; // Clear any previous auth error on successful init
     } catch (error) {
-        authError = error instanceof Error ? `Error al leer o parsear las credenciales: ${error.message}` : "Error desconocido durante la inicialización de Google Drive.";
-        console.error("[GDRIVE_PROVIDER] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", authError);
-        isInitialized = false; // Ensure we can retry if it fails
+        const errorMessage = error instanceof Error ? `Error al leer o parsear las credenciales: ${error.message}` : "Error desconocido durante la inicialización de Google Drive.";
+        console.error("[GDRIVE_PROVIDER] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", errorMessage);
+        throw new Error(errorMessage);
     }
 }
 
 const checkPrerequisites = async () => {
-    // Always try to initialize if not already done.
     if (!isInitialized) {
         await initializeDrive();
-    }
-    // After attempting initialization, check for errors.
-    if (authError) {
-        throw new Error(`Fallo en la inicialización de Google Drive: ${authError}`);
     }
     if (!FOLDER_ID) {
         throw new Error("La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
@@ -54,6 +47,7 @@ const checkPrerequisites = async () => {
 };
 
 async function findFileOrFolder(name: string, parentId: string, mimeType?: string): Promise<string | null> {
+    await checkPrerequisites();
     let query = `name = '${name}' and '${parentId}' in parents and trashed = false`;
     if (mimeType) {
         query += ` and mimeType = '${mimeType}'`;
@@ -65,19 +59,36 @@ async function findFileOrFolder(name: string, parentId: string, mimeType?: strin
             spaces: 'drive',
         });
         
-        if (res.data.files && res.data.files.length > 0) {
-            return res.data.files[0].id || null;
-        } else {
-            return null;
-        }
+        return res.data.files?.[0]?.id || null;
     } catch (error: any) {
         console.error(`[GDRIVE_PROVIDER] Error en la API de Drive al buscar '${name}':`, error.message);
         throw error;
     }
 }
 
+export async function listFiles(folderId?: string): Promise<{ id: string; name: string }[] | null> {
+    await checkPrerequisites();
+    const targetFolderId = folderId || FOLDER_ID;
+    if (!targetFolderId) {
+        throw new Error("No se ha proporcionado un ID de carpeta para listar archivos.");
+    }
+    try {
+        const res = await drive.files.list({
+            q: `'${targetFolderId}' in parents and trashed = false`,
+            fields: 'files(id, name)',
+            spaces: 'drive',
+            pageSize: 100,
+        });
+        return res.data.files || [];
+    } catch (error: any) {
+        console.error(`[GDRIVE_PROVIDER] Error listando archivos en la carpeta ${targetFolderId}:`, error.message);
+        throw error;
+    }
+}
+
 
 async function createFolder(name: string, parentId: string): Promise<string> {
+    await checkPrerequisites();
     try {
         const fileMetadata = {
             name: name,
@@ -102,6 +113,7 @@ async function getOrCreateFolder(name: string, parentId: string): Promise<string
 }
 
 async function readFileContent<T>(fileId: string): Promise<T | null> {
+    await checkPrerequisites();
     try {
         const res = await drive.files.get({ fileId: fileId, alt: 'media' });
         const chunks: any[] = [];
@@ -125,6 +137,7 @@ async function readFileContent<T>(fileId: string): Promise<T | null> {
 }
 
 async function createOrUpdateFile(fileName: string, parentId: string, data: any): Promise<void> {
+    await checkPrerequisites();
     const content = JSON.stringify(data, null, 2);
     const fileId = await findFileOrFolder(fileName, parentId);
 
@@ -159,9 +172,7 @@ async function createOrUpdateFile(fileName: string, parentId: string, data: any)
 export async function readConfig(): Promise<Partial<ConfigState> | null> {
     await checkPrerequisites();
     const fileId = await findFileOrFolder('config.json', FOLDER_ID!);
-    if (!fileId) {
-         throw new Error("config.json no encontrado en la carpeta de Google Drive. Asegúrate de que el archivo exista.");
-    }
+    if (!fileId) return null;
     return await readFileContent<ConfigState>(fileId);
 }
 
@@ -173,9 +184,7 @@ export async function writeConfig(config: ConfigState): Promise<void> {
 export async function readLiveState(): Promise<Partial<LiveState> | null> {
     await checkPrerequisites();
     const fileId = await findFileOrFolder('live.json', FOLDER_ID!);
-     if (!fileId) {
-        throw new Error("live.json no encontrado en la carpeta de Google Drive. Asegúrate de que el archivo exista.");
-    }
+    if (!fileId) return null;
     return await readFileContent<LiveState>(fileId);
 }
 
@@ -241,8 +250,8 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
             const homeGoals = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
             const awayGoals = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
             
-            matchWithoutSummary.homeScore = homeGoals + (homeGoals > awayGoals && summary.overTimeOrShootouts ? 1 : 0);
-            matchWithoutSummary.awayScore = awayGoals + (awayGoals > homeGoals && summary.overTimeOrShootouts ? 1 : 0);
+            matchWithoutSummary.homeScore = homeGoals;
+            matchWithoutSummary.awayScore = awayGoals;
             matchWithoutSummary.overTimeOrShootouts = summary.overTimeOrShootouts;
         }
         fixtureMatches.push(matchWithoutSummary);
