@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -5,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { RefreshCw, HardDrive, List, File, AlertTriangle, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 interface DriveFile {
   id: string;
@@ -102,7 +104,7 @@ export function DriveStatusCard() {
             )}
           </>
         ) : (
-            <p className="text-sm text-muted-foreground">Para usar Google Drive, configura la variable de entorno `STORAGE_PROVIDER` a `googledrive` y reinicia la aplicación.</p>
+            <p className="text-sm text-muted-foreground">Para usar Google Drive, configura la variable de entorno `NEXT_PUBLIC_STORAGE_PROVIDER` a `googledrive` y reinicia la aplicación.</p>
         )}
       </CardContent>
     </Card>

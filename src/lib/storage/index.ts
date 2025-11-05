@@ -17,7 +17,7 @@ interface StorageProvider {
 
 let provider: StorageProvider;
 
-if (process.env.STORAGE_PROVIDER === 'googledrive') {
+if (process.env.NEXT_PUBLIC_STORAGE_PROVIDER === 'googledrive') {
     console.log("Using 'googledrive' storage provider.");
     provider = gdriveProvider;
 } else {
