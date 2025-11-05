@@ -7,65 +7,73 @@ import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 
 // --- Configuración y Autenticación con Google Drive ---
 
-const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
 let drive: any;
 let initializationPromise: Promise<void> | null = null;
 
-async function initializeDrive(logs: { step: string; status: 'success' | 'error'; message: string }[]) {
-    if (drive) return;
-
-    if (!FOLDER_ID) {
-        throw new Error("[GDRIVE_PROVIDER] FATAL: La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
-    }
-    
-    const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
-
-    let credentials;
-    try {
-        const credentialsFileContent = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
-        credentials = JSON.parse(credentialsFileContent);
-        logs.push({ step: "Leer Credenciales", status: "success", message: "Archivo env_drive_credentials.json encontrado y parseado." });
-    } catch (error: any) {
-        if (error.code === 'ENOENT') {
-             throw new Error(`Credenciales no encontradas en: ${CREDENTIALS_PATH}`);
-        }
-        throw new Error(`Error al parsear env_drive_credentials.json: ${error.message}`);
-    }
-
-    try {
-        const authClient = new google.auth.JWT(
-            credentials.client_email,
-            undefined,
-            credentials.private_key,
-            SCOPES
-        );
-
-        await authClient.authorize();
-        drive = google.drive({ version: 'v3', auth: authClient });
-        logs.push({ step: "Autenticación con Google", status: "success", message: "Autenticación JWT exitosa." });
-    } catch (error: any) {
-        throw new Error(`Fallo en la autenticación con Google: ${error.message}`);
-    }
+interface LogEntry {
+  step: string;
+  status: 'success' | 'error';
+  message: string;
 }
 
-
-async function getDriveClient(logs: { step: string; status: 'success' | 'error'; message: string }[]) {
-    if (!initializationPromise) {
-        initializationPromise = initializeDrive(logs).catch(err => {
-            // Asegurarse que el error de inicialización se propague y se registre
-            initializationPromise = null; // Permitir reintentos
-            throw err;
-        });
+async function initializeDrive(logs: LogEntry[]) {
+    // Si ya estamos inicializados o en proceso, no hacer nada.
+    if (drive || initializationPromise) {
+        return initializationPromise;
     }
-    await initializationPromise;
+
+    const performInitialization = async () => {
+        const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (!FOLDER_ID) {
+            throw new Error("[GDRIVE_PROVIDER] FATAL: La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
+        }
+        
+        const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
+        let credentials;
+        try {
+            const credentialsFileContent = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
+            // Limpia cualquier BOM o caracter extraño al principio del archivo
+            const cleanedContent = credentialsFileContent.trim().replace(/^\uFEFF/, '');
+            credentials = JSON.parse(cleanedContent);
+            logs.push({ step: "Leer Credenciales", status: "success", message: "Archivo env_drive_credentials.json encontrado y parseado." });
+        } catch (error: any) {
+            if (error.code === 'ENOENT') {
+                throw new Error(`Credenciales no encontradas en: ${CREDENTIALS_PATH}`);
+            }
+            throw new Error(`Error al parsear env_drive_credentials.json: ${error.message}`);
+        }
+
+        try {
+            const authClient = new google.auth.JWT(
+                credentials.client_email,
+                undefined,
+                credentials.private_key,
+                SCOPES
+            );
+            await authClient.authorize();
+            drive = google.drive({ version: 'v3', auth: authClient });
+            logs.push({ step: "Autenticación con Google", status: "success", message: "Autenticación JWT exitosa." });
+        } catch (error: any) {
+            throw new Error(`Fallo en la autenticación con Google: ${error.message}`);
+        }
+    };
+    
+    initializationPromise = performInitialization().catch(err => {
+        initializationPromise = null;
+        throw err;
+    });
+
+    return initializationPromise;
+}
+
+async function getDriveClient(logs: LogEntry[]) {
+    await initializeDrive(logs);
     return drive;
 }
 
-
 async function findFileId(name: string, parentId: string): Promise<string | null> {
-    // Esta función ahora es interna y asume que el cliente de drive ya está inicializado.
     try {
         const res = await drive.files.list({
             q: `name = '${name}' and '${parentId}' in parents and trashed = false`,
@@ -75,13 +83,11 @@ async function findFileId(name: string, parentId: string): Promise<string | null
         return res.data.files?.[0]?.id || null;
     } catch (error: any) {
         console.error(`[GDRIVE_PROVIDER] Error en la API de Drive al buscar '${name}':`, error.message);
-        // Lanzamos el error original para que la capa superior lo capture.
         throw error;
     }
 }
 
 async function readFileContent<T>(fileId: string): Promise<T | null> {
-    // Asume que el cliente de drive está listo.
     try {
         const res = await drive.files.get({ fileId: fileId, alt: 'media' });
         const chunks: any[] = [];
@@ -109,25 +115,35 @@ async function readFileContent<T>(fileId: string): Promise<T | null> {
 
 
 export async function readConfig(): Promise<Partial<ConfigState>> {
-    const logs: any[] = []; // No usamos los logs aquí, pero getDriveClient los necesita
-    await getDriveClient(logs);
-    const fileId = await findFileId('config.json', FOLDER_ID!);
-    if (!fileId) {
-        console.warn("ADVERTENCIA: El archivo 'config.json' no se encontró en Google Drive. Se usará una configuración vacía.");
-        return {};
+    const logs: any[] = []; 
+    try {
+        await getDriveClient(logs);
+        const fileId = await findFileId('config.json', process.env.GOOGLE_DRIVE_FOLDER_ID!);
+        if (!fileId) {
+            console.warn("ADVERTENCIA: El archivo 'config.json' no se encontró en Google Drive. Se usará una configuración vacía.");
+            return {};
+        }
+        return (await readFileContent<ConfigState>(fileId)) || {};
+    } catch (error) {
+        console.error("Error crítico en readConfig:", error);
+        throw error; // Re-lanza el error para que la API lo maneje
     }
-    return (await readFileContent<ConfigState>(fileId)) || {};
 }
 
 export async function readLiveState(): Promise<Partial<LiveState>> {
     const logs: any[] = [];
-    await getDriveClient(logs);
-    const fileId = await findFileId('live.json', FOLDER_ID!);
-    if (!fileId) {
-        console.warn("ADVERTENCIA: El archivo 'live.json' no se encontró en Google Drive. Se usará un estado en vivo vacío.");
-        return {};
+     try {
+        await getDriveClient(logs);
+        const fileId = await findFileId('live.json', process.env.GOOGLE_DRIVE_FOLDER_ID!);
+        if (!fileId) {
+            console.warn("ADVERTENCIA: El archivo 'live.json' no se encontró en Google Drive. Se usará un estado en vivo vacío.");
+            return {};
+        }
+        return (await readFileContent<LiveState>(fileId)) || {};
+    } catch (error) {
+        console.error("Error crítico en readLiveState:", error);
+        throw error; // Re-lanza el error
     }
-    return (await readFileContent<LiveState>(fileId)) || {};
 }
 
 
@@ -179,15 +195,15 @@ async function getOrCreateFolder(name: string, parentId: string): Promise<string
 }
 
 export async function writeConfig(config: ConfigState): Promise<void> {
-    await createOrUpdateFile('config.json', FOLDER_ID!, config);
+    await createOrUpdateFile('config.json', process.env.GOOGLE_DRIVE_FOLDER_ID!, config);
 }
 
 export async function writeLiveState(liveState: LiveState): Promise<void> {
-    await createOrUpdateFile('live.json', FOLDER_ID!, liveState);
+    await createOrUpdateFile('live.json', process.env.GOOGLE_DRIVE_FOLDER_ID!, liveState);
 }
 
 export async function readTournament(tournamentId: string): Promise<Partial<Tournament> | null> {
-    const tournamentsFolderId = await getOrCreateFolder('tournaments', FOLDER_ID!);
+    const tournamentsFolderId = await getOrCreateFolder('tournaments', process.env.GOOGLE_DRIVE_FOLDER_ID!);
     const tournamentFolderId = await findFileId(tournamentId, tournamentsFolderId);
     if (!tournamentFolderId) return null;
 
@@ -223,7 +239,7 @@ export async function readTournament(tournamentId: string): Promise<Partial<Tour
 }
 
 export async function writeTournament(tournament: Tournament): Promise<void> {
-    const tournamentsFolderId = await getOrCreateFolder('tournaments', FOLDER_ID!);
+    const tournamentsFolderId = await getOrCreateFolder('tournaments', process.env.GOOGLE_DRIVE_FOLDER_ID!);
     const tournamentFolderId = await getOrCreateFolder(tournament.id, tournamentsFolderId);
 
     const teamsData = { categories: tournament.categories || [], teams: tournament.teams || [] };
@@ -257,23 +273,40 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
     ]);
 }
 
-export async function listFiles(logs: { step: string; status: 'success' | 'error'; message: string }[]): Promise<{ id: string; name: string }[] | null> {
+export async function listFiles(logs: LogEntry[]): Promise<{ id: string; name: string }[] | null> {
     const driveClient = await getDriveClient(logs);
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-    if (!folderId) {
-        throw new Error("La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
-    }
+
+    // Paso 1: Verificar el acceso a la carpeta
     try {
-        logs.push({ step: "Listar Archivos de Drive", status: "success", message: `Buscando en carpeta ID: ...${folderId.slice(-6)}` });
+        logs.push({ step: "Verificar Acceso a Carpeta", status: "success", message: `Intentando acceder a la carpeta ID: ...${folderId!.slice(-6)}` });
+        const folderRes = await driveClient.files.get({
+            fileId: folderId,
+            fields: 'id, name',
+        });
+        logs.at(-1)!.message += ` - ¡Éxito! Nombre: "${folderRes.data.name}".`;
+    } catch (error: any) {
+        const errorMessage = `No se pudo encontrar o acceder a la carpeta de Drive. Verifica que el ID es correcto y que la cuenta de servicio tiene permisos de 'Lector'. Error original: ${error.message}`;
+        logs.at(-1)!.status = 'error';
+        logs.at(-1)!.message = errorMessage;
+        throw new Error(errorMessage);
+    }
+    
+    // Paso 2: Listar los archivos dentro de la carpeta
+    try {
+        logs.push({ step: "Listar Contenido de Carpeta", status: "success", message: "Buscando archivos..." });
         const res = await driveClient.files.list({
             q: `'${folderId}' in parents and trashed = false`,
             fields: 'files(id, name)',
             spaces: 'drive',
             pageSize: 100,
         });
-        logs.at(-1)!.message += ` - Encontrados ${res.data.files?.length || 0} archivos.`;
+        logs.at(-1)!.message += ` - Encontrados ${res.data.files?.length || 0} archivos/subcarpetas.`;
         return res.data.files || [];
     } catch (error: any) {
-        throw new Error(`Error en API de Drive al listar archivos: ${error.message}`);
+        const errorMessage = `Error en API de Drive al listar archivos: ${error.message}`;
+        logs.at(-1)!.status = 'error';
+        logs.at(-1)!.message = errorMessage;
+        throw new Error(errorMessage);
     }
 }
