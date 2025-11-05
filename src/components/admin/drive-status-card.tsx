@@ -20,7 +20,7 @@ export function DriveStatusCard() {
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
-    // Determine active status on client side
+    // Determine active status on client side. Use NEXT_PUBLIC_ for client-side access.
     const provider = process.env.NEXT_PUBLIC_STORAGE_PROVIDER;
     setIsActive(provider === 'googledrive');
   }, []);
@@ -104,9 +104,10 @@ export function DriveStatusCard() {
             )}
           </>
         ) : (
-            <p className="text-sm text-muted-foreground">Para usar Google Drive, configura la variable de entorno `NEXT_PUBLIC_STORAGE_PROVIDER` a `googledrive` y reinicia la aplicación.</p>
+            <p className="text-sm text-muted-foreground">Para usar Google Drive, configura la variable de entorno `STORAGE_PROVIDER` a `googledrive` en tu archivo `.env` y reinicia la aplicación.</p>
         )}
       </CardContent>
     </Card>
   );
 }
+

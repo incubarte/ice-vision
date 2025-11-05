@@ -1,4 +1,3 @@
-
 // Este archivo actúa como un punto de entrada para el sistema de almacenamiento.
 // Lee la variable de entorno para decidir qué proveedor de almacenamiento usar.
 
@@ -17,7 +16,8 @@ interface StorageProvider {
 
 let provider: StorageProvider;
 
-if (process.env.NEXT_PUBLIC_STORAGE_PROVIDER === 'googledrive') {
+// Usamos la variable de entorno del lado del servidor, sin el prefijo NEXT_PUBLIC_
+if (process.env.STORAGE_PROVIDER === 'googledrive') {
     console.log("Using 'googledrive' storage provider.");
     provider = gdriveProvider;
 } else {
