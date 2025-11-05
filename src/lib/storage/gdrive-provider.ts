@@ -2,7 +2,7 @@
 import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 import { google } from 'googleapis';
 import stream from 'stream';
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 
 // --- Configuración y Autenticación con Google Drive ---
@@ -10,12 +10,11 @@ import path from 'path';
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
-// Helper para cargar las credenciales de forma segura
 const getCredentials = () => {
     try {
         const credentialsPath = path.join(process.cwd(), 'env_drive_credentials.json');
-        const credentialsFile = fs.readFileSync(credentialsPath, 'utf-8');
-        return JSON.parse(credentialsFile);
+        const credentialsFile = fs.readFile(credentialsPath, 'utf-8');
+        return JSON.parse(credentialsFile.toString());
     } catch (error) {
         console.error("Error al leer 'env_drive_credentials.json':", error);
         return null;
@@ -24,7 +23,6 @@ const getCredentials = () => {
 
 const credentials = getCredentials();
 
-// Autentica y crea un cliente de la API de Drive
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: credentials?.client_email,
@@ -35,7 +33,6 @@ const auth = new google.auth.GoogleAuth({
 
 const drive = google.drive({ version: 'v3', auth });
 
-// Helper para verificar que la carpeta y la autenticación están listas.
 const checkPrerequisites = () => {
     if (!FOLDER_ID) {
         throw new Error("La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
@@ -44,8 +41,6 @@ const checkPrerequisites = () => {
         throw new Error("El archivo de credenciales 'env_drive_credentials.json' es inválido, está incompleto o no se pudo leer.");
     }
 };
-
-// --- Helpers para la API de Google Drive ---
 
 async function findFileOrFolder(name: string, parentId: string, mimeType?: string): Promise<string | null> {
     let query = `name = '${name}' and '${parentId}' in parents and trashed = false`;
@@ -92,11 +87,17 @@ async function getOrCreateFolder(name: string, parentId: string): Promise<string
 async function readFileContent<T>(fileId: string): Promise<T | null> {
     try {
         const res = await drive.files.get({ fileId: fileId, alt: 'media' });
-        // googleapis returns a stream, we need to read it
         const chunks: any[] = [];
         return new Promise((resolve, reject) => {
             (res.data as any).on('data', (chunk: any) => chunks.push(chunk));
-            (res.data as any).on('end', () => resolve(JSON.parse(Buffer.concat(chunks).toString())));
+            (res.data as any).on('end', () => {
+                try {
+                    const content = Buffer.concat(chunks).toString();
+                    resolve(JSON.parse(content));
+                } catch (e) {
+                    reject(new Error(`Failed to parse JSON content for file ID ${fileId}`));
+                }
+            });
             (res.data as any).on('error', (err: any) => reject(err));
         });
     } catch (error: any) {
@@ -138,12 +139,10 @@ async function createOrUpdateFile(fileName: string, parentId: string, data: any)
     }
 }
 
-// --- Implementación de las funciones del proveedor ---
-
-export async function readConfig(): Promise<Partial<ConfigState>> {
+export async function readConfig(): Promise<Partial<ConfigState> | null> {
     checkPrerequisites();
     const fileId = await findFileOrFolder('config.json', FOLDER_ID!);
-    return fileId ? (await readFileContent<ConfigState>(fileId)) || {} : {};
+    return fileId ? (await readFileContent<ConfigState>(fileId)) : null;
 }
 
 export async function writeConfig(config: ConfigState): Promise<void> {
@@ -151,10 +150,10 @@ export async function writeConfig(config: ConfigState): Promise<void> {
     await createOrUpdateFile('config.json', FOLDER_ID!, config);
 }
 
-export async function readLiveState(): Promise<Partial<LiveState>> {
+export async function readLiveState(): Promise<Partial<LiveState> | null> {
     checkPrerequisites();
     const fileId = await findFileOrFolder('live.json', FOLDER_ID!);
-    return fileId ? (await readFileContent<LiveState>(fileId)) || {} : {};
+    return fileId ? (await readFileContent<LiveState>(fileId)) : null;
 }
 
 export async function writeLiveState(liveState: LiveState): Promise<void> {
@@ -172,8 +171,8 @@ export async function readTournament(tournamentId: string): Promise<Partial<Tour
     const fixtureFileId = await findFileOrFolder('fixture.json', tournamentFolderId);
     
     const [teamsData, fixtureData] = await Promise.all([
-        teamsFileId ? readFileContent(teamsFileId) : null,
-        fixtureFileId ? readFileContent(fixtureFileId) : null
+        teamsFileId ? readFileContent(teamsFileId) : Promise.resolve(null),
+        fixtureFileId ? readFileContent(fixtureFileId) : Promise.resolve(null)
     ]);
 
     const partialTournament: Partial<Tournament> = {
@@ -213,11 +212,13 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
         if (summary) {
             summaryWritePromises.push(createOrUpdateFile(`${match.id}.json`, summariesFolderId, summary));
             
-            const homeScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
-            const awayScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
-
-            matchWithoutSummary.homeScore = homeScore;
-            matchWithoutSummary.awayScore = awayScore;
+            const homeGoals = summary.statsByPeriod?.reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) ?? 0;
+            const awayGoals = summary.statsByPeriod?.reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) ?? 0;
+            const homeShootoutGoals = summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0;
+            const awayShootoutGoals = summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0;
+            
+            matchWithoutSummary.homeScore = homeGoals + homeShootoutGoals;
+            matchWithoutSummary.awayScore = awayGoals + awayShootoutGoals;
             matchWithoutSummary.overTimeOrShootouts = summary.overTimeOrShootouts;
         }
         fixtureMatches.push(matchWithoutSummary);
