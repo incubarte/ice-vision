@@ -27,11 +27,14 @@ async function initializeDrive() {
             credentials.private_key,
             SCOPES
         );
+        
+        // Forzar la autorización explícita antes de continuar.
+        await auth.authorize();
 
         drive = google.drive({ version: 'v3', auth });
         isInitialized = true;
     } catch (error) {
-        const errorMessage = error instanceof Error ? `Error al leer o parsear las credenciales: ${error.message}` : "Error desconocido durante la inicialización de Google Drive.";
+        const errorMessage = error instanceof Error ? `Error al leer, parsear o autorizar las credenciales: ${error.message}` : "Error desconocido durante la inicialización de Google Drive.";
         console.error("[GDRIVE_PROVIDER] ¡¡ERROR CRÍTICO EN LA INICIALIZACIÓN!!", errorMessage);
         throw new Error(errorMessage);
     }
