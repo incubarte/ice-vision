@@ -11,22 +11,27 @@ export async function GET(request: Request) {
         readLiveState()
     ]);
     
+    // Si la lectura falla (ej. archivo no encontrado en Drive), el proveedor devolverá {} o null.
+    // Lo manejamos aquí para asegurar que siempre haya una estructura válida.
+    const validConfig = config || {};
+    const validLiveState = liveState || {};
+
     // Store in-memory for other API routes to access
-    if (config) setConfig(config as ConfigState);
-    if (liveState) setGameState(liveState as LiveState);
+    setConfig(validConfig as ConfigState);
+    setGameState(validLiveState as LiveState);
 
     const initialState: Partial<GameState> = {
-      config: config || {},
-      live: liveState || {}, 
+      config: validConfig,
+      live: validLiveState,
       _initialConfigLoadComplete: false,
     }
 
     return NextResponse.json(initialState);
   } catch (error) {
-    if (error instanceof Error) {
-        return NextResponse.json({ message: error.message }, { status: 500 });
-    }
-    return NextResponse.json({ message: 'An unknown server error occurred on the server.'}, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
+    console.error(`[API/DB] CRITICAL ERROR fetching initial data:`, errorMessage);
+    // Devolvemos un error 500 con el mensaje específico para que el cliente pueda mostrarlo.
+    return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
 }
 

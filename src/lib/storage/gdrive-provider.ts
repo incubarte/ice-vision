@@ -1,6 +1,8 @@
 
 import { google } from 'googleapis';
 import stream from 'stream';
+import path from 'path';
+import { promises as fs } from 'fs';
 import type { ConfigState, LiveState, Tournament, MatchData } from '@/types';
 
 // --- Configuración y Autenticación con Google Drive ---
@@ -11,49 +13,56 @@ const SCOPES = ['https://www.googleapis.com/auth/drive'];
 let drive: any;
 let initializationPromise: Promise<void> | null = null;
 
+async function initializeDrive() {
+    if (drive) return;
+
+    if (!FOLDER_ID) {
+        throw new Error("[GDRIVE_PROVIDER] FATAL: La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada.");
+    }
+    
+    // --- LEYENDO EL ARCHIVO JSON DIRECTAMENTE ---
+    const CREDENTIALS_PATH = path.join(process.cwd(), 'env_drive_credentials.json');
+
+    try {
+        let credentialsFileContent = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
+        // Limpiamos el contenido para evitar problemas de BOM o espacios extra
+        credentialsFileContent = credentialsFileContent.trim();
+        if (credentialsFileContent.charCodeAt(0) === 0xFEFF) {
+            credentialsFileContent = credentialsFileContent.substring(1);
+        }
+
+        const credentials = JSON.parse(credentialsFileContent);
+
+        const authClient = new google.auth.JWT(
+            credentials.client_email,
+            undefined,
+            credentials.private_key,
+            SCOPES
+        );
+
+        await authClient.authorize();
+
+        drive = google.drive({ version: 'v3', auth: authClient });
+        console.log("[GDRIVE_PROVIDER] Cliente de Google Drive inicializado y autenticado correctamente desde archivo JSON.");
+
+    } catch (error: any) {
+        if (error.code === 'ENOENT') {
+             throw new Error(`[GDRIVE_PROVIDER] FATAL: No se encuentra el archivo de credenciales en la ruta: ${CREDENTIALS_PATH}`);
+        }
+        console.error("[GDRIVE_PROVIDER] !! FALLO CRÍTICO EN LA INICIALIZACIÓN !!", error.message);
+        throw new Error(`Fallo al inicializar la autenticación con Google Drive: ${error.message}`);
+    }
+}
+
+
 async function getDriveClient() {
-    if (drive) {
-        return drive;
-    }
-
     if (!initializationPromise) {
-        initializationPromise = new Promise(async (resolve, reject) => {
-            if (!FOLDER_ID) {
-                return reject(new Error("[GDRIVE_PROVIDER] FATAL: La variable de entorno GOOGLE_DRIVE_FOLDER_ID no está configurada."));
-            }
-            if (!process.env.GOOGLE_DRIVE_CREDENTIALS_BASE64) {
-                return reject(new Error("[GDRIVE_PROVIDER] FATAL: La variable de entorno GOOGLE_DRIVE_CREDENTIALS_BASE64 no está configurada."));
-            }
-
-            try {
-                const credentialsBase64 = process.env.GOOGLE_DRIVE_CREDENTIALS_BASE64;
-                const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
-                const credentials = JSON.parse(credentialsJson);
-
-                const authClient = new google.auth.JWT(
-                    credentials.client_email,
-                    undefined,
-                    credentials.private_key,
-                    SCOPES
-                );
-
-                await authClient.authorize();
-
-                drive = google.drive({ version: 'v3', auth: authClient });
-                console.log("[GDRIVE_PROVIDER] Cliente de Google Drive inicializado y autenticado correctamente.");
-                resolve();
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : "Error desconocido durante la inicialización de Google Drive.";
-                console.error("[GDRIVE_PROVIDER] !! FALLO CRÍTICO EN LA INICIALIZACIÓN !!", errorMessage);
-                initializationPromise = null; // Reset promise on failure
-                reject(new Error(`Fallo al inicializar la autenticación con Google Drive: ${errorMessage}`));
-            }
-        });
+        initializationPromise = initializeDrive();
     }
-
     await initializationPromise;
     return drive;
 }
+
 
 async function findFileId(name: string, parentId: string): Promise<string | null> {
     const driveClient = await getDriveClient();
@@ -66,7 +75,7 @@ async function findFileId(name: string, parentId: string): Promise<string | null
         return res.data.files?.[0]?.id || null;
     } catch (error: any) {
         console.error(`[GDRIVE_PROVIDER] Error en la API de Drive al buscar '${name}':`, error);
-        throw error; // Re-throw the original error for better diagnosis
+        throw error;
     }
 }
 
@@ -88,6 +97,10 @@ async function readFileContent<T>(fileId: string): Promise<T | null> {
             (res.data as any).on('error', (err: any) => reject(err));
         });
     } catch (error: any) {
+        if (error.code === 404) {
+            console.warn(`[GDRIVE_PROVIDER] Archivo con ID '${fileId}' no encontrado.`);
+            return null;
+        }
         console.error(`[GDRIVE_PROVIDER] Error leyendo el contenido del archivo ID '${fileId}':`, error);
         throw error;
     }
@@ -251,8 +264,7 @@ export async function listFiles(folderId: string): Promise<{ id: string; name: s
         return res.data.files || [];
     } catch (error: any) {
         console.error(`[GDRIVE_PROVIDER] Error listando archivos en la carpeta ${folderId}:`, error);
+        // Re-lanzamos el error original para que la API lo capture y lo muestre.
         throw error;
     }
 }
-
-    
