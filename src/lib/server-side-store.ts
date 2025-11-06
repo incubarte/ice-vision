@@ -43,7 +43,6 @@ const getAppGlobal = (): AppGlobal => {
 
 const appGlobal = getAppGlobal();
 
-// NO EXPORTAR ESTOS EMISORES DIRECTAMENTE
 const gameStateEmitter = appGlobal.gameStateEmitter;
 const commandEmitter = appGlobal.commandEmitter;
 
@@ -87,7 +86,6 @@ export async function getRemoteAccessPassword(): Promise<string> {
     return password;
 }
 
-// La promesa de inicialización. El núcleo de la solución.
 const performInitialization = async () => {
     console.log("[Store] Initializing store... fetching data from provider.");
     try {
@@ -98,7 +96,6 @@ const performInitialization = async () => {
         
         const defaultState = getInitialState();
 
-        // Fusionar datos leídos con los defaults para asegurar que no haya valores nulos
         appGlobal.storedConfig = { ...defaultState.config, ...(configResult || {}) };
         appGlobal.storedGameState = { ...defaultState.live, ...(liveStateResult || {}) };
 
@@ -106,27 +103,23 @@ const performInitialization = async () => {
 
     } catch (error) {
         console.error("[Store] CRITICAL: Unhandled error during storage initialization.", error);
-        // Si la inicialización falla, nos aseguramos de que el estado no sea nulo para evitar errores en cascada.
         appGlobal.storedConfig = getInitialState().config;
         appGlobal.storedGameState = getInitialState().live;
         throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
     }
 };
 
-// Crear la promesa de inicialización UNA SOLA VEZ usando el objeto global.
 if (!appGlobal.initializationPromise) {
     appGlobal.initializationPromise = performInitialization();
 }
 
 export async function getConfig(): Promise<ConfigState> {
   await appGlobal.initializationPromise;
-  // storedConfig no debería ser null después de la inicialización.
   return appGlobal.storedConfig!;
 }
 
 export async function setConfig(newConfig: ConfigState): Promise<void> {
   appGlobal.storedConfig = newConfig;
-  // No esperamos la escritura, la hacemos en segundo plano.
   writeConfigToProvider(newConfig).catch(err => {
       console.error("[Store] Failed to write config to provider:", err);
   });
@@ -134,28 +127,28 @@ export async function setConfig(newConfig: ConfigState): Promise<void> {
 
 export async function getGameState(): Promise<LiveState> {
   await appGlobal.initializationPromise;
-  // storedGameState no debería ser null después de la inicialización.
   return appGlobal.storedGameState!;
 }
 
 export async function setGameState(newGameState: LiveState): Promise<void> {
   appGlobal.storedGameState = newGameState;
   gameStateEmitter.emit('update', newGameState);
-  // No esperamos la escritura, la hacemos en segundo plano.
   writeLiveStateToProvider(newGameState).catch(err => {
       console.error("[Store] Failed to write live state to provider:", err);
   });
 }
 
 export async function getGameStateEmitter() {
+  await appGlobal.initializationPromise;
   return gameStateEmitter;
 }
 
 export async function getCommandEmitter() {
-  return commandEmitter;
+    await appGlobal.initializationPromise;
+    return commandEmitter;
 }
 
-// Las funciones restantes no necesitan esperar porque suponen que el estado ya está cargado por las funciones anteriores.
+
 export async function updateTunnelState(updates: Partial<TunnelState>): Promise<void> {
   if (appGlobal.storedConfig) {
     const newTunnelState = { ...appGlobal.storedConfig.tunnel, ...updates };
@@ -230,44 +223,42 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
     isManuallyClosing = false;
     console.log(`[Tunnel] Attempting to connect on port ${port} with subdomain ${subdomain}...`);
 
-    try {
-        const tunnel = await localtunnel({ port, subdomain });
-        appGlobal.tunnelInstance = tunnel;
+    return new Promise(async (resolve) => {
+        try {
+            const tunnel = await localtunnel({ port, subdomain });
+            appGlobal.tunnelInstance = tunnel;
 
-        tunnel.on('url', (url: string) => {
-            console.log(`[Tunnel] Connected successfully at: ${url}`);
-            const successState: Partial<TunnelState> = { status: 'connected', url, subdomain };
-            updateTunnelState(successState);
-        });
-
-        tunnel.on('error', (err: any) => {
-            console.warn('[Tunnel] Error:', err?.message || err);
-            updateTunnelState({ status: 'error', lastMessage: err.message || 'Unknown tunnel error' });
-        });
-
-        tunnel.on('close', () => {
-            console.log('[Tunnel] Connection closed.');
-            appGlobal.tunnelInstance = undefined;
-            if (!isManuallyClosing) {
-                updateTunnelState({ status: 'disconnected', url: null, subdomain: null, lastMessage: 'Tunnel closed unexpectedly.' });
-            } else {
-                 updateTunnelState({ status: 'disconnected', url: null, subdomain: null, lastMessage: 'Disconnected manually.' });
-            }
-        });
-        
-        // Return a promise that resolves when the URL is received.
-        return new Promise((resolve) => {
             tunnel.on('url', (url: string) => {
-                resolve({ status: 'connected', url, subdomain });
+                console.log(`[Tunnel] Connected successfully at: ${url}`);
+                const successState: Partial<TunnelState> = { status: 'connected', url, subdomain };
+                updateTunnelState(successState);
+                resolve(successState);
             });
-        });
 
-    } catch (error: any) {
-        console.error('[Tunnel] Failed to create tunnel:', error);
-        const errorState: Partial<TunnelState> = { status: 'error', lastMessage: error.message || 'Failed to start tunnel' };
-        await updateTunnelState(errorState);
-        return errorState;
-    }
+            tunnel.on('error', (err: any) => {
+                console.warn('[Tunnel] Error:', err?.message || err);
+                const errorState: Partial<TunnelState> = { status: 'error', lastMessage: err.message || 'Unknown tunnel error' };
+                updateTunnelState(errorState);
+                resolve(errorState); // Resolve with error state
+            });
+
+            tunnel.on('close', () => {
+                console.log('[Tunnel] Connection closed.');
+                appGlobal.tunnelInstance = undefined;
+                if (!isManuallyClosing) {
+                    updateTunnelState({ status: 'disconnected', url: null, subdomain: null, lastMessage: 'Tunnel closed unexpectedly.' });
+                } else {
+                    updateTunnelState({ status: 'disconnected', url: null, subdomain: null, lastMessage: 'Disconnected manually.' });
+                }
+            });
+
+        } catch (error: any) {
+            console.error('[Tunnel] Failed to create tunnel:', error);
+            const errorState: Partial<TunnelState> = { status: 'error', lastMessage: error.message || 'Failed to start tunnel' };
+            await updateTunnelState(errorState);
+            resolve(errorState);
+        }
+    });
 }
 
 export async function disconnectTunnel(): Promise<void> {
