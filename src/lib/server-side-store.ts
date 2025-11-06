@@ -1,5 +1,4 @@
 
-'use server';
 import 'server-only';
 import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState, Tournament, GameState, FormatAndTimingsProfile, ScoreboardLayoutSettings, ScoreboardLayoutProfile, ReplaySettings, PenaltyTypeDefinition } from '@/types';
 import { EventEmitter } from 'events';
@@ -12,7 +11,6 @@ import { getInitialState } from '@/contexts/game-state-context';
 
 // --- Estado Global del Servidor y Emisores de Eventos ---
 
-// Definir una interfaz para nuestro objeto global personalizado
 interface AppGlobal {
   gameStateEmitter: EventEmitter;
   commandEmitter: EventEmitter;
@@ -22,10 +20,8 @@ interface AppGlobal {
   storedGameState: LiveState | null;
 }
 
-// Usar un símbolo único para evitar colisiones de nombres
 const APP_GLOBAL_KEY = Symbol.for('icevision.app.global');
 
-// Función para obtener nuestro espacio de nombres global, creándolo si no existe
 const getAppGlobal = (): AppGlobal => {
   const globalNamespace = globalThis as any;
   if (!globalNamespace[APP_GLOBAL_KEY]) {
@@ -43,8 +39,32 @@ const getAppGlobal = (): AppGlobal => {
 
 const appGlobal = getAppGlobal();
 
-const gameStateEmitter = appGlobal.gameStateEmitter;
-const commandEmitter = appGlobal.commandEmitter;
+const performInitialization = async () => {
+    console.log("[Store] Initializing store... fetching data from provider.");
+    try {
+        const [configResult, liveStateResult] = await Promise.all([
+            readConfigFromProvider(),
+            readLiveStateFromProvider()
+        ]);
+        
+        const defaultState = getInitialState();
+
+        appGlobal.storedConfig = { ...defaultState.config, ...(configResult || {}) };
+        appGlobal.storedGameState = { ...defaultState.live, ...(liveStateResult || {}) };
+
+        console.log("[Store] Initialization complete. Config and Live State are loaded.");
+
+    } catch (error) {
+        console.error("[Store] CRITICAL: Unhandled error during storage initialization.", error);
+        appGlobal.storedConfig = getInitialState().config;
+        appGlobal.storedGameState = getInitialState().live;
+        throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
+    }
+};
+
+if (!appGlobal.initializationPromise) {
+    appGlobal.initializationPromise = performInitialization();
+}
 
 
 // --- Gestión de Contraseña de Acceso Remoto ---
@@ -86,33 +106,6 @@ export async function getRemoteAccessPassword(): Promise<string> {
     return password;
 }
 
-const performInitialization = async () => {
-    console.log("[Store] Initializing store... fetching data from provider.");
-    try {
-        const [configResult, liveStateResult] = await Promise.all([
-            readConfigFromProvider(),
-            readLiveStateFromProvider()
-        ]);
-        
-        const defaultState = getInitialState();
-
-        appGlobal.storedConfig = { ...defaultState.config, ...(configResult || {}) };
-        appGlobal.storedGameState = { ...defaultState.live, ...(liveStateResult || {}) };
-
-        console.log("[Store] Initialization complete. Config and Live State are loaded.");
-
-    } catch (error) {
-        console.error("[Store] CRITICAL: Unhandled error during storage initialization.", error);
-        appGlobal.storedConfig = getInitialState().config;
-        appGlobal.storedGameState = getInitialState().live;
-        throw new Error(`Server data store failed to initialize. Check server logs. Original error: ${error instanceof Error ? error.message : String(error)}`);
-    }
-};
-
-if (!appGlobal.initializationPromise) {
-    appGlobal.initializationPromise = performInitialization();
-}
-
 export async function getConfig(): Promise<ConfigState> {
   await appGlobal.initializationPromise;
   return appGlobal.storedConfig!;
@@ -132,7 +125,7 @@ export async function getGameState(): Promise<LiveState> {
 
 export async function setGameState(newGameState: LiveState): Promise<void> {
   appGlobal.storedGameState = newGameState;
-  gameStateEmitter.emit('update', newGameState);
+  appGlobal.gameStateEmitter.emit('update', newGameState);
   writeLiveStateToProvider(newGameState).catch(err => {
       console.error("[Store] Failed to write live state to provider:", err);
   });
@@ -140,12 +133,12 @@ export async function setGameState(newGameState: LiveState): Promise<void> {
 
 export async function getGameStateEmitter() {
   await appGlobal.initializationPromise;
-  return gameStateEmitter;
+  return appGlobal.gameStateEmitter;
 }
 
 export async function getCommandEmitter() {
     await appGlobal.initializationPromise;
-    return commandEmitter;
+    return appGlobal.commandEmitter;
 }
 
 
@@ -157,7 +150,7 @@ export async function updateTunnelState(updates: Partial<TunnelState>): Promise<
 }
 
 export async function sendCommand(command: RemoteCommand): Promise<void> {
-  commandEmitter.emit('command', command);
+  appGlobal.commandEmitter.emit('command', command);
 }
 
 export async function isClientLocal(request: Request): Promise<boolean> {
@@ -223,12 +216,16 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
     isManuallyClosing = false;
     console.log(`[Tunnel] Attempting to connect on port ${port} with subdomain ${subdomain}...`);
 
-    return new Promise(async (resolve) => {
-        try {
-            const tunnel = await localtunnel({ port, subdomain });
-            appGlobal.tunnelInstance = tunnel;
+    try {
+        const tunnel = await localtunnel({ port, subdomain });
+        appGlobal.tunnelInstance = tunnel;
 
+        let resolved = false;
+
+        return new Promise(resolve => {
             tunnel.on('url', (url: string) => {
+                if(resolved) return;
+                resolved = true;
                 console.log(`[Tunnel] Connected successfully at: ${url}`);
                 const successState: Partial<TunnelState> = { status: 'connected', url, subdomain };
                 updateTunnelState(successState);
@@ -236,11 +233,23 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
             });
 
             tunnel.on('error', (err: any) => {
+                if(resolved) return;
+                resolved = true;
                 console.warn('[Tunnel] Error:', err?.message || err);
                 const errorState: Partial<TunnelState> = { status: 'error', lastMessage: err.message || 'Unknown tunnel error' };
                 updateTunnelState(errorState);
-                resolve(errorState); // Resolve with error state
+                resolve(errorState);
             });
+            
+             setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    const errorState: Partial<TunnelState> = { status: 'error', lastMessage: 'Tunnel connection timed out.' };
+                    updateTunnelState(errorState);
+                    resolve(errorState);
+                }
+            }, 15000); // 15 second timeout for connection
+
 
             tunnel.on('close', () => {
                 console.log('[Tunnel] Connection closed.');
@@ -251,15 +260,15 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
                     updateTunnelState({ status: 'disconnected', url: null, subdomain: null, lastMessage: 'Disconnected manually.' });
                 }
             });
-
-        } catch (error: any) {
-            console.error('[Tunnel] Failed to create tunnel:', error);
-            const errorState: Partial<TunnelState> = { status: 'error', lastMessage: error.message || 'Failed to start tunnel' };
-            await updateTunnelState(errorState);
-            resolve(errorState);
-        }
-    });
+        });
+    } catch (error: any) {
+        console.error('[Tunnel] Failed to create tunnel:', error);
+        const errorState: Partial<TunnelState> = { status: 'error', lastMessage: error.message || 'Failed to start tunnel' };
+        await updateTunnelState(errorState);
+        return errorState;
+    }
 }
+
 
 export async function disconnectTunnel(): Promise<void> {
     isManuallyClosing = true;
