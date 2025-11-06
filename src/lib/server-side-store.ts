@@ -43,8 +43,10 @@ const getAppGlobal = (): AppGlobal => {
 
 const appGlobal = getAppGlobal();
 
-export const gameStateEmitter = appGlobal.gameStateEmitter;
-export const commandEmitter = appGlobal.commandEmitter;
+// NO EXPORTAR ESTOS EMISORES DIRECTAMENTE
+const gameStateEmitter = appGlobal.gameStateEmitter;
+const commandEmitter = appGlobal.commandEmitter;
+
 
 // --- Gestión de Contraseña de Acceso Remoto ---
 
@@ -143,6 +145,14 @@ export async function setGameState(newGameState: LiveState): Promise<void> {
   writeLiveStateToProvider(newGameState).catch(err => {
       console.error("[Store] Failed to write live state to provider:", err);
   });
+}
+
+export async function getGameStateEmitter() {
+  return gameStateEmitter;
+}
+
+export async function getCommandEmitter() {
+  return commandEmitter;
 }
 
 // Las funciones restantes no necesitan esperar porque suponen que el estado ya está cargado por las funciones anteriores.
@@ -269,6 +279,3 @@ export async function disconnectTunnel(): Promise<void> {
     }
     await updateTunnelState({ status: 'disconnected', url: null, subdomain: null });
 }
-
-// Ensure password file is checked/created on startup
-getRemoteAccessPassword();

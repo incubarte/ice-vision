@@ -1,11 +1,12 @@
 
 import { NextResponse } from 'next/server';
-import { gameStateEmitter } from '@/lib/server-side-store';
+import { getGameStateEmitter } from '@/lib/server-side-store';
 import type { LiveGameState } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  const gameStateEmitter = await getGameStateEmitter();
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
@@ -53,3 +54,4 @@ export async function GET(request: Request) {
     },
   });
 }
+

@@ -1,11 +1,12 @@
 
 import { NextResponse } from 'next/server';
-import { commandEmitter } from '@/lib/server-side-store';
+import { getCommandEmitter } from '@/lib/server-side-store';
 import type { RemoteCommand } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  const commandEmitter = await getCommandEmitter();
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
@@ -56,3 +57,4 @@ export async function GET(request: Request) {
     },
   });
 }
+
