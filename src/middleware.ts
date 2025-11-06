@@ -7,21 +7,36 @@ export function middleware(request: NextRequest) {
   if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') {
     const { pathname } = request.nextUrl;
 
-    // Define the list of protected admin/editing paths, now including the root
+    // Define the list of protected admin/editing paths.
     const protectedPaths = [
-      '/',
       '/controls',
       '/config',
       '/setup',
       '/admin',
       '/replays',
     ];
+    
+    const isEditingTeams = pathname.startsWith('/tournaments/') && pathname.endsWith('/teams');
+    const isEditingFixture = pathname.startsWith('/tournaments/') && pathname.endsWith('/fixture');
 
-    // Redirect if it's the root path exactly or if it starts with other protected paths
-    if (pathname === '/' || protectedPaths.some(path => path !== '/' && pathname.startsWith(path))) {
+    // Redirect if it's a protected path
+    if (protectedPaths.some(path => pathname.startsWith(path)) || isEditingTeams || isEditingFixture) {
       const url = request.nextUrl.clone();
-      url.pathname = '/tournaments'; // Redirect to a safe, read-only page
+      
+      // If trying to access a specific tournament's editable section, redirect to its standings.
+      if (pathname.startsWith('/tournaments/')) {
+        const tournamentId = pathname.split('/')[2];
+        url.pathname = `/tournaments/${tournamentId}`;
+        url.searchParams.set('tab', 'standings');
+      } else {
+         url.pathname = '/tournaments'; // General fallback to a safe, read-only page
+      }
       return NextResponse.redirect(url);
+    }
+    
+    // The root path ('/') is a special case, we allow it to be the scoreboard.
+    if (pathname === '/') {
+       return NextResponse.next();
     }
   }
 
@@ -32,11 +47,13 @@ export function middleware(request: NextRequest) {
 // See "Matching Paths" below to learn more
 export const config = {
   matcher: [
-    '/',
+    // We no longer match the root '/' here, as it's allowed.
     '/controls/:path*',
     '/config/:path*',
     '/setup/:path*',
     '/admin/:path*',
     '/replays/:path*',
+    '/tournaments/:tournamentId/teams',
+    '/tournaments/:tournamentId/fixture'
   ],
 };

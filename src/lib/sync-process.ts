@@ -4,7 +4,8 @@ import * as gdriveProvider from './storage/gdrive-provider';
 import * as localProvider from './storage/local-provider';
 import type { ConfigState, LiveState, Tournament } from '@/types';
 
-const SYNC_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const syncIntervalMinutes = parseInt(process.env.GOOGLE_DRIVE_SYNC_INTERVAL_MINUTES || '10', 10);
+const SYNC_INTERVAL_MS = syncIntervalMinutes * 60 * 1000;
 
 let isSyncing = false;
 let syncInterval: NodeJS.Timeout | null = null;
@@ -60,7 +61,7 @@ async function runSync() {
 }
 
 export function startBackgroundSync() {
-    console.log(`[SYNC] Background sync process will start and run every ${SYNC_INTERVAL_MS / 60000} minutes.`);
+    console.log(`[SYNC] Background sync process will start and run every ${syncIntervalMinutes} minutes.`);
     
     // Run once immediately
     runSync();
