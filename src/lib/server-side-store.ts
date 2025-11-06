@@ -77,7 +77,7 @@ function readPassword(): string | null {
     }
 }
 
-export function getRemoteAccessPassword(): string {
+export async function getRemoteAccessPassword(): Promise<string> {
     let password = readPassword();
     if (!password) {
         password = generatePassword();
@@ -122,7 +122,7 @@ export async function getConfig(): Promise<ConfigState> {
   return appGlobal.storedConfig!;
 }
 
-export function setConfig(newConfig: ConfigState): void {
+export async function setConfig(newConfig: ConfigState): Promise<void> {
   appGlobal.storedConfig = newConfig;
   // No esperamos la escritura, la hacemos en segundo plano.
   writeConfigToProvider(newConfig).catch(err => {
@@ -136,7 +136,7 @@ export async function getGameState(): Promise<LiveState> {
   return appGlobal.storedGameState!;
 }
 
-export function setGameState(newGameState: LiveState): void {
+export async function setGameState(newGameState: LiveState): Promise<void> {
   appGlobal.storedGameState = newGameState;
   gameStateEmitter.emit('update', newGameState);
   // No esperamos la escritura, la hacemos en segundo plano.
@@ -146,18 +146,18 @@ export function setGameState(newGameState: LiveState): void {
 }
 
 // Las funciones restantes no necesitan esperar porque suponen que el estado ya está cargado por las funciones anteriores.
-export function updateTunnelState(updates: Partial<TunnelState>) {
+export async function updateTunnelState(updates: Partial<TunnelState>): Promise<void> {
   if (appGlobal.storedConfig) {
     const newTunnelState = { ...appGlobal.storedConfig.tunnel, ...updates };
-    setConfig({ ...appGlobal.storedConfig, tunnel: newTunnelState });
+    await setConfig({ ...appGlobal.storedConfig, tunnel: newTunnelState });
   }
 }
 
-export function sendCommand(command: RemoteCommand): void {
+export async function sendCommand(command: RemoteCommand): Promise<void> {
   commandEmitter.emit('command', command);
 }
 
-export function isClientLocal(request: Request): boolean {
+export async function isClientLocal(request: Request): Promise<boolean> {
     const clientIp = (request.headers.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
     if (clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1') {
         return true;
@@ -168,33 +168,33 @@ export function isClientLocal(request: Request): boolean {
 // --- Auth Challenge Management ---
 let accessRequests: Map<string, AccessRequest> = new Map();
 
-export function createAccessRequest(ip: string, userAgent: string | undefined, verificationNumber: number): AccessRequest {
+export async function createAccessRequest(ip: string, userAgent: string | undefined, verificationNumber: number): Promise<AccessRequest> {
     const id = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const request: AccessRequest = { id, ip, timestamp: Date.now(), userAgent, verificationNumber, approved: false };
     accessRequests.set(id, request);
-    setTimeout(() => {
-        const req = accessRequests.get(id);
+    setTimeout(async () => {
+        const req = await getAccessRequest(id);
         if (req && !req.approved) {
-             removeAccessRequest(id);
+             await removeAccessRequest(id);
         }
     }, 2 * 60 * 1000);
     return request;
 }
 
-export function getAccessRequest(id: string): AccessRequest | undefined {
+export async function getAccessRequest(id: string): Promise<AccessRequest | undefined> {
     return accessRequests.get(id);
 }
 
-export function getAllAccessRequests(): AccessRequest[] {
+export async function getAllAccessRequests(): Promise<AccessRequest[]> {
     return Array.from(accessRequests.values()).filter(req => !req.approved);
 }
 
-export function removeAccessRequest(id: string): void {
+export async function removeAccessRequest(id: string): Promise<void> {
     accessRequests.delete(id);
 }
 
-export function approveAccessRequest(id: string): boolean {
-    const request = accessRequests.get(id);
+export async function approveAccessRequest(id: string): Promise<boolean> {
+    const request = await getAccessRequest(id);
     if (!request) {
         return false;
     }
@@ -238,12 +238,10 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
         tunnel.on('close', () => {
             console.log('[Tunnel] Connection closed.');
             appGlobal.tunnelInstance = undefined;
-            updateTunnelState({ status: 'disconnected', url: null, subdomain: null });
             if (!isManuallyClosing) {
-                console.log('[Tunnel] Unexpected close. Reconnecting in 3 seconds...');
-                // The API route will need to be called again to reconnect.
-                // This self-reconnection logic might not work as expected in a serverless environment.
-                // It's better to rely on the client to re-trigger the connection.
+                updateTunnelState({ status: 'disconnected', url: null, subdomain: null, lastMessage: 'Tunnel closed unexpectedly.' });
+            } else {
+                 updateTunnelState({ status: 'disconnected', url: null, subdomain: null, lastMessage: 'Disconnected manually.' });
             }
         });
         
@@ -257,21 +255,20 @@ export async function connectTunnel(port: number): Promise<Partial<TunnelState>>
     } catch (error: any) {
         console.error('[Tunnel] Failed to create tunnel:', error);
         const errorState: Partial<TunnelState> = { status: 'error', lastMessage: error.message || 'Failed to start tunnel' };
-        updateTunnelState(errorState);
+        await updateTunnelState(errorState);
         return errorState;
     }
 }
 
-export function disconnectTunnel(): void {
+export async function disconnectTunnel(): Promise<void> {
     isManuallyClosing = true;
     if (appGlobal.tunnelInstance) {
         appGlobal.tunnelInstance.close();
         appGlobal.tunnelInstance = undefined;
         console.log('[Tunnel] Disconnected manually.');
     }
-    updateTunnelState({ status: 'disconnected', url: null, subdomain: null });
+    await updateTunnelState({ status: 'disconnected', url: null, subdomain: null });
 }
 
 // Ensure password file is checked/created on startup
 getRemoteAccessPassword();
-

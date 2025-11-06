@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     // Also return the password
-    const password = getRemoteAccessPassword();
+    const password = await getRemoteAccessPassword();
 
     return NextResponse.json({ ip: publicIp, password: password });
   } catch (error) {

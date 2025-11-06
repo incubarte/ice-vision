@@ -11,7 +11,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Request ID is required.' }, { status: 400 });
     }
 
-    const requestData = getAccessRequest(requestId);
+    const requestData = await getAccessRequest(requestId);
     
     if (!requestData) {
       // If the request doesn't exist, it was either rejected, expired, or never existed.
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
     
     if (requestData.approved) {
-      const password = getRemoteAccessPassword();
+      const password = await getRemoteAccessPassword();
       return NextResponse.json({ approved: true, password: password });
     } else {
       // The request exists but is not yet approved.

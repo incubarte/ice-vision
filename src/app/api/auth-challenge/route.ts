@@ -19,14 +19,14 @@ export async function POST(request: Request) {
         if (verificationNumber === undefined) {
             return NextResponse.json({ success: false, message: 'Verification number is required.' }, { status: 400 });
         }
-        const newRequest = createAccessRequest(clientIp, userAgent, verificationNumber);
+        const newRequest = await createAccessRequest(clientIp, userAgent, verificationNumber);
         return NextResponse.json({ success: true, request: newRequest });
       }
 
       case 'approve': {
         if (!requestId) return NextResponse.json({ success: false, message: 'Request ID is required.' }, { status: 400 });
         
-        const approved = approveAccessRequest(requestId);
+        const approved = await approveAccessRequest(requestId);
         if (!approved) {
           return NextResponse.json({ success: false, message: 'Request not found or already approved.' }, { status: 404 });
         }
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       
       case 'reject': {
          if (!requestId) return NextResponse.json({ success: false, message: 'Request ID is required.' }, { status: 400 });
-         removeAccessRequest(requestId);
+         await removeAccessRequest(requestId);
          return NextResponse.json({ success: true, message: 'Request rejected.' });
       }
 
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
     try {
-        const requests = getAllAccessRequests();
+        const requests = await getAllAccessRequests();
         return NextResponse.json({ success: true, requests });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown server error.';

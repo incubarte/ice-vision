@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { getRemoteAccessPassword, isClientLocal } from '@/lib/server-side-store';
 
@@ -5,7 +6,7 @@ import { getRemoteAccessPassword, isClientLocal } from '@/lib/server-side-store'
 // The primary remote auth flow is handled by /api/auth-challenge
 export async function POST(request: Request) {
   try {
-    const clientIsLocal = isClientLocal(request);
+    const clientIsLocal = await isClientLocal(request);
     
     // Local clients are always authenticated
     if (clientIsLocal) {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
 
     // Remote clients with a stored password (from a previous successful challenge)
     const { password } = await request.json();
-    const serverPassword = getRemoteAccessPassword();
+    const serverPassword = await getRemoteAccessPassword();
     
     if (password && password === serverPassword) {
         return NextResponse.json({ authenticated: true });
