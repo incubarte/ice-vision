@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import localtunnel, { type Tunnel } from 'localtunnel';
-import { readConfig, readLiveState } from './storage';
+import { readConfig, readLiveState } from './data-access';
 
 let accessRequests: Map<string, AccessRequest> = new Map();
 
@@ -135,8 +135,7 @@ export function sendCommand(command: RemoteCommand): void {
 }
 
 export function isClientLocal(request: Request): boolean {
-    const reqHeaders = headers();
-    const clientIp = (reqHeaders.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
+    const clientIp = (request.headers.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
     
     // Check if client is localhost. This is the most reliable check.
     if (clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1') {

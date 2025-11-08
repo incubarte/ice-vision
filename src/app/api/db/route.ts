@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { GameState, ConfigState, LiveState } from '@/types';
 import { setGameState, setConfig, getGameState, getConfig } from '@/lib/server-side-store';
-import { readConfig, writeConfig, readLiveState, writeLiveState } from '@/lib/storage';
+import { readConfig, writeConfig, readLiveState, writeLiveState } from '@/lib/data-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +14,8 @@ export async function GET(request: Request) {
     ]);
     
     const initialState: Partial<GameState> = {
-      config: config || {},
-      live: liveState || {}, 
+      config: config || undefined,
+      live: liveState || undefined,
       _initialConfigLoadComplete: false,
     }
 

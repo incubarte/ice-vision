@@ -47,8 +47,8 @@ firestore-debug.log
 
 env_drive_credentials.json
 src/data
-storage
+/storage
 tmp
 sync.log
 CLAUDE.md
-resumenes/
+/resumenes
