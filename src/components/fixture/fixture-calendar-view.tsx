@@ -9,6 +9,7 @@ import { addMonths, subMonths, format, startOfMonth, endOfMonth, startOfWeek, en
 import { es } from 'date-fns/locale';
 import { AddEditMatchDialog } from './add-edit-match-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import type { MatchData } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -30,6 +31,7 @@ export function FixtureCalendarView() {
   const [matchToDelete, setMatchToDelete] = useState<MatchData | null>(null);
   const [dialogSelectedDate, setDialogSelectedDate] = useState<Date | undefined>(undefined);
   const [matchToShowSummary, setMatchToShowSummary] = useState<MatchData | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<MatchData | null>(null);
 
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
@@ -197,28 +199,17 @@ export function FixtureCalendarView() {
                     return (
                       <div
                         key={match.id}
+                        onClick={() => setSelectedMatch(match)}
                         className={cn(
-                          "text-xs p-1 rounded-md bg-background/50 border border-border/50 transition-all duration-300",
-                          !isHighlighted && "opacity-30"
+                          "text-xs p-1.5 rounded-md bg-background/50 border border-border/50 transition-all duration-300 cursor-pointer hover:bg-accent/50 hover:border-accent",
+                          !isHighlighted && "opacity-30",
+                          hasSummary && "border-l-2 border-l-blue-400"
                         )}
                       >
-                        <div className="font-semibold truncate">{format(new Date(match.date), 'HH:mm')} - {homeTeam?.name || '?'} vs {awayTeam?.name || '?'}</div>
-                        <div className="flex justify-between items-center text-muted-foreground">
-                            <span className="truncate">Cat: {getCategoryNameById(match.categoryId, selectedTournament?.categories) || 'N/A'}</span>
-                             <div className="flex gap-0">
-                                {hasSummary && (
-                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setMatchToShowSummary(match)}>
-                                        <FileText className="h-3 w-3 text-blue-400" />
-                                    </Button>
-                                )}
-                                {!isReadOnly && (
-                                  <>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleEditMatch(match)}><Edit className="h-3 w-3"/></Button>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => setMatchToDelete(match)}><Trash2 className="h-3 w-3"/></Button>
-                                  </>
-                                )}
-                           </div>
-                        </div>
+                        <div className="font-semibold text-[10px] leading-tight mb-0.5">{format(new Date(match.date), 'HH:mm')}</div>
+                        <div className="font-medium text-[11px] leading-tight">{homeTeam?.name || '?'}</div>
+                        <div className="text-muted-foreground text-[10px] leading-tight">vs</div>
+                        <div className="font-medium text-[11px] leading-tight">{awayTeam?.name || '?'}</div>
                       </div>
                     );
                   })}
@@ -246,6 +237,90 @@ export function FixtureCalendarView() {
           match={matchToShowSummary}
           tournament={selectedTournament}
         />
+      )}
+
+      {selectedMatch && (
+        <Dialog open={!!selectedMatch} onOpenChange={() => setSelectedMatch(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Detalles del Partido</DialogTitle>
+              <DialogDescription>
+                {format(new Date(selectedMatch.date), "PPP 'a las' HH:mm", { locale: es })}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Equipos</div>
+                <div className="text-lg font-semibold">
+                  {selectedTournament?.teams.find(t => t.id === selectedMatch.homeTeamId)?.name || 'Equipo Local'}
+                </div>
+                <div className="text-center text-muted-foreground">vs</div>
+                <div className="text-lg font-semibold">
+                  {selectedTournament?.teams.find(t => t.id === selectedMatch.awayTeamId)?.name || 'Equipo Visitante'}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Categoría</div>
+                <div className="font-medium">{getCategoryNameById(selectedMatch.categoryId, selectedTournament?.categories) || 'N/A'}</div>
+              </div>
+
+              {selectedMatch.summary && (
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Resultado</div>
+                  <div className="font-medium text-lg">
+                    {selectedMatch.homeScore} - {selectedMatch.awayScore}
+                    {selectedMatch.overTimeOrShootouts && (
+                      <span className="text-sm text-muted-foreground ml-2">({selectedMatch.overTimeOrShootouts})</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-4">
+                {selectedMatch.summary && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setMatchToShowSummary(selectedMatch);
+                      setSelectedMatch(null);
+                    }}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Ver Resumen Completo
+                  </Button>
+                )}
+                {!isReadOnly && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        handleEditMatch(selectedMatch);
+                        setSelectedMatch(null);
+                      }}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar Partido
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => {
+                        setMatchToDelete(selectedMatch);
+                        setSelectedMatch(null);
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Eliminar Partido
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {!isReadOnly && matchToDelete && (

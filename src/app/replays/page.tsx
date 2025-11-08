@@ -282,8 +282,9 @@ export default function ReplaysPage() {
         // IMPORTANT: The URL sent to the scoreboard must be a publicly accessible one.
         // We'll proxy it through a new API endpoint.
         const scoreboardUrl = `/api/replays/${selectedReplay}`;
-        await sendRemoteCommand({ type: 'START_LOADING_REPLAY', payload: { url: scoreboardUrl, startTimeSeconds } });
-        toast({ title: "Comando Enviado", description: `El scoreboard mostrará la repetición desde el segundo ${startTimeSeconds}.` });
+        const startTime = startTimeSeconds ?? 0;
+        await sendRemoteCommand({ type: 'START_LOADING_REPLAY', payload: { url: scoreboardUrl, startTimeSeconds: startTime } });
+        toast({ title: "Comando Enviado", description: `El scoreboard mostrará la repetición desde el segundo ${startTime}.` });
     };
 
     const handleCopyToClipboard = (text: string, label: string) => {
