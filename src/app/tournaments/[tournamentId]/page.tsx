@@ -86,11 +86,11 @@ export default function TournamentDetailPage() {
       <Separator />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isReadOnly ? 'grid-cols-3' : 'grid-cols-4'}`}>
-          {!isReadOnly && <TabsTrigger value="teamsAndCategories">Equipos y Categorías</TabsTrigger>}
-          <TabsTrigger value="fixture">Fixture</TabsTrigger>
-          <TabsTrigger value="standings">Tabla de Posiciones</TabsTrigger>
-          <TabsTrigger value="playerStats">Estadísticas Jugadores</TabsTrigger>
+        <TabsList className={`grid w-full ${isReadOnly ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'} gap-1`}>
+          {!isReadOnly && <TabsTrigger value="teamsAndCategories" className="text-xs sm:text-sm">Equipos y Categorías</TabsTrigger>}
+          <TabsTrigger value="fixture" className="text-xs sm:text-sm">Fixture</TabsTrigger>
+          <TabsTrigger value="standings" className="text-xs sm:text-sm">Tabla de Posiciones</TabsTrigger>
+          <TabsTrigger value="playerStats" className="text-xs sm:text-sm">Estadísticas</TabsTrigger>
         </TabsList>
 
         {!isReadOnly && (

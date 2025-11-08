@@ -316,27 +316,28 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
         </div>
 
         <Tabs defaultValue="general" className="w-full flex-grow flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="general">Resumen General</TabsTrigger>
-            <TabsTrigger value="goalsByPeriod">Goles por Período</TabsTrigger>
-            <TabsTrigger value="penaltiesByPeriod">Faltas por Período</TabsTrigger>
-            <TabsTrigger value="statsByPeriod">Estadísticas por Período</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+            <TabsTrigger value="general" className="text-xs sm:text-sm">General</TabsTrigger>
+            <TabsTrigger value="goalsByPeriod" className="text-xs sm:text-sm">Goles</TabsTrigger>
+            <TabsTrigger value="penaltiesByPeriod" className="text-xs sm:text-sm">Faltas</TabsTrigger>
+            <TabsTrigger value="statsByPeriod" className="text-xs sm:text-sm">Estadísticas</TabsTrigger>
           </TabsList>
           
           <TabsContent value="general" className="flex-grow overflow-hidden mt-4">
              <ScrollArea className="h-full pr-6 -mr-6">
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Desktop: lado a lado */}
+                <div className="hidden md:block space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
                       <GoalsSection teamName={homeTeam?.name || ''} goals={aggregatedGoals.home} editable={false} />
                       <GoalsSection teamName={awayTeam?.name || ''} goals={aggregatedGoals.away} editable={false} />
                     </div>
                     <Separator />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-6">
                       <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={aggregatedPenalties.home} />
                       <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={aggregatedPenalties.away} />
                     </div>
                     <Separator />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-6">
                         <PlayerStatsSection 
                           team="home"
                           teamName={homeTeam?.name || ''} 
@@ -369,25 +370,88 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                     {localSummary.shootout && (localSummary.shootout.homeAttempts.length > 0 || localSummary.shootout.awayAttempts.length > 0) && (
                         <>
                           <Separator />
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="grid grid-cols-2 gap-6">
                               <ShootoutSection teamName={homeTeam?.name || ''} attempts={localSummary.shootout.homeAttempts} />
                               <ShootoutSection teamName={awayTeam?.name || ''} attempts={localSummary.shootout.awayAttempts} />
                           </div>
                         </>
                     )}
                  </div>
+
+                 {/* Mobile: tabs por equipo */}
+                 <div className="md:hidden">
+                   <Tabs defaultValue="home" className="w-full">
+                     <TabsList className="grid w-full grid-cols-2">
+                       <TabsTrigger value="home">{homeTeam?.name || 'Local'}</TabsTrigger>
+                       <TabsTrigger value="away">{awayTeam?.name || 'Visitante'}</TabsTrigger>
+                     </TabsList>
+                     <TabsContent value="home" className="space-y-6 mt-4">
+                       <GoalsSection teamName={homeTeam?.name || ''} goals={aggregatedGoals.home} editable={false} />
+                       <Separator />
+                       <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={aggregatedPenalties.home} />
+                       <Separator />
+                       <PlayerStatsSection
+                         team="home"
+                         teamName={homeTeam?.name || ''}
+                         allPlayers={homeTeam?.players}
+                         playerStats={aggregatedStats.home}
+                         attendance={localSummary.attendance.home}
+                         editingAttendanceSet={localAttendance.home}
+                         editable={false}
+                         showAttendanceControls={!isReadOnly}
+                         isAttendanceEditing={isAttendanceEditing}
+                         onToggleAttendance={handleToggleAttendance}
+                         onEditToggle={setIsAttendanceEditing}
+                         onSave={handleSaveAttendance}
+                       />
+                       {localSummary.shootout && localSummary.shootout.homeAttempts.length > 0 && (
+                         <>
+                           <Separator />
+                           <ShootoutSection teamName={homeTeam?.name || ''} attempts={localSummary.shootout.homeAttempts} />
+                         </>
+                       )}
+                     </TabsContent>
+                     <TabsContent value="away" className="space-y-6 mt-4">
+                       <GoalsSection teamName={awayTeam?.name || ''} goals={aggregatedGoals.away} editable={false} />
+                       <Separator />
+                       <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={aggregatedPenalties.away} />
+                       <Separator />
+                       <PlayerStatsSection
+                         team="away"
+                         teamName={awayTeam?.name || ''}
+                         allPlayers={awayTeam?.players}
+                         playerStats={aggregatedStats.away}
+                         attendance={localSummary.attendance.away}
+                         editingAttendanceSet={localAttendance.away}
+                         editable={false}
+                         showAttendanceControls={!isReadOnly}
+                         isAttendanceEditing={isAttendanceEditing}
+                         onToggleAttendance={handleToggleAttendance}
+                         onEditToggle={setIsAttendanceEditing}
+                         onSave={handleSaveAttendance}
+                       />
+                       {localSummary.shootout && localSummary.shootout.awayAttempts.length > 0 && (
+                         <>
+                           <Separator />
+                           <ShootoutSection teamName={awayTeam?.name || ''} attempts={localSummary.shootout.awayAttempts} />
+                         </>
+                       )}
+                     </TabsContent>
+                   </Tabs>
+                 </div>
              </ScrollArea>
           </TabsContent>
           
           <TabsContent value="goalsByPeriod" className="flex-grow overflow-hidden mt-4">
             <ScrollArea className="h-full pr-6 -mr-6">
-              <div className="space-y-8">
+              {/* Desktop */}
+              <div className="hidden md:block space-y-8">
                   {(playedPeriods || []).map(periodText => {
                     const periodData = statsByPeriod?.find(p => p.period === periodText);
                     return (
                       <div key={`goals-${periodText}`} className="space-y-4">
                         <h3 className="text-xl font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-6">
                           <GoalsSection teamName={homeTeam?.name || ''} goals={periodData?.stats.goals.home} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homeTeam?.players} />
                           <GoalsSection teamName={awayTeam?.name || ''} goals={periodData?.stats.goals.away} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayTeam?.players} />
                         </div>
@@ -395,24 +459,87 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                     );
                   })}
               </div>
+              {/* Mobile */}
+              <div className="md:hidden">
+                <Tabs defaultValue="home" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="home">{homeTeam?.name || 'Local'}</TabsTrigger>
+                    <TabsTrigger value="away">{awayTeam?.name || 'Visitante'}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="home" className="space-y-8 mt-4">
+                    {(playedPeriods || []).map(periodText => {
+                      const periodData = statsByPeriod?.find(p => p.period === periodText);
+                      return (
+                        <div key={`goals-home-${periodText}`}>
+                          <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
+                          <GoalsSection teamName={homeTeam?.name || ''} goals={periodData?.stats.goals.home} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homeTeam?.players} />
+                        </div>
+                      );
+                    })}
+                  </TabsContent>
+                  <TabsContent value="away" className="space-y-8 mt-4">
+                    {(playedPeriods || []).map(periodText => {
+                      const periodData = statsByPeriod?.find(p => p.period === periodText);
+                      return (
+                        <div key={`goals-away-${periodText}`}>
+                          <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
+                          <GoalsSection teamName={awayTeam?.name || ''} goals={periodData?.stats.goals.away} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayTeam?.players} />
+                        </div>
+                      );
+                    })}
+                  </TabsContent>
+                </Tabs>
+              </div>
             </ScrollArea>
           </TabsContent>
 
           <TabsContent value="penaltiesByPeriod" className="flex-grow overflow-hidden mt-4">
              <ScrollArea className="h-full pr-6 -mr-6">
-                 <div className="space-y-8">
+                 {/* Desktop */}
+                 <div className="hidden md:block space-y-8">
                   {(playedPeriods || []).map(periodText => {
                     const periodData = statsByPeriod?.find(p => p.period === periodText);
                     return (
                       <div key={`penalties-${periodText}`} className="space-y-4">
                         <h3 className="text-xl font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-6">
                            <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={periodData?.stats.penalties.home} onDelete={(id) => handleDeletePenalty('home', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} />
                            <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={periodData?.stats.penalties.away} onDelete={(id) => handleDeletePenalty('away', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} />
                         </div>
                       </div>
                     );
                   })}
+                 </div>
+                 {/* Mobile */}
+                 <div className="md:hidden">
+                   <Tabs defaultValue="home" className="w-full">
+                     <TabsList className="grid w-full grid-cols-2">
+                       <TabsTrigger value="home">{homeTeam?.name || 'Local'}</TabsTrigger>
+                       <TabsTrigger value="away">{awayTeam?.name || 'Visitante'}</TabsTrigger>
+                     </TabsList>
+                     <TabsContent value="home" className="space-y-8 mt-4">
+                       {(playedPeriods || []).map(periodText => {
+                         const periodData = statsByPeriod?.find(p => p.period === periodText);
+                         return (
+                           <div key={`penalties-home-${periodText}`}>
+                             <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
+                             <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={periodData?.stats.penalties.home} onDelete={(id) => handleDeletePenalty('home', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} />
+                           </div>
+                         );
+                       })}
+                     </TabsContent>
+                     <TabsContent value="away" className="space-y-8 mt-4">
+                       {(playedPeriods || []).map(periodText => {
+                         const periodData = statsByPeriod?.find(p => p.period === periodText);
+                         return (
+                           <div key={`penalties-away-${periodText}`}>
+                             <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
+                             <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={periodData?.stats.penalties.away} onDelete={(id) => handleDeletePenalty('away', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} />
+                           </div>
+                         );
+                       })}
+                     </TabsContent>
+                   </Tabs>
                  </div>
               </ScrollArea>
           </TabsContent>
@@ -433,19 +560,51 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                         )}
                     </div>
                 )}
-                 <div className="space-y-8">
+                 {/* Desktop */}
+                 <div className="hidden md:block space-y-8">
                   {(playedPeriods || []).map(periodText => {
                     const periodData = statsByPeriod?.find(p => p.period === periodText);
                     return (
                       <div key={`stats-${periodText}`} className="space-y-4">
                         <h3 className="text-xl font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-6">
                             <PlayerStatsSection team="home" teamName={homeTeam?.name || ''} allPlayers={homeTeam?.players} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
                             <PlayerStatsSection team="away" teamName={awayTeam?.name || ''} allPlayers={awayTeam?.players} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
                         </div>
                       </div>
                     );
                   })}
+                 </div>
+                 {/* Mobile */}
+                 <div className="md:hidden">
+                   <Tabs defaultValue="home" className="w-full">
+                     <TabsList className="grid w-full grid-cols-2">
+                       <TabsTrigger value="home">{homeTeam?.name || 'Local'}</TabsTrigger>
+                       <TabsTrigger value="away">{awayTeam?.name || 'Visitante'}</TabsTrigger>
+                     </TabsList>
+                     <TabsContent value="home" className="space-y-8 mt-4">
+                       {(playedPeriods || []).map(periodText => {
+                         const periodData = statsByPeriod?.find(p => p.period === periodText);
+                         return (
+                           <div key={`stats-home-${periodText}`}>
+                             <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
+                             <PlayerStatsSection team="home" teamName={homeTeam?.name || ''} allPlayers={homeTeam?.players} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
+                           </div>
+                         );
+                       })}
+                     </TabsContent>
+                     <TabsContent value="away" className="space-y-8 mt-4">
+                       {(playedPeriods || []).map(periodText => {
+                         const periodData = statsByPeriod?.find(p => p.period === periodText);
+                         return (
+                           <div key={`stats-away-${periodText}`}>
+                             <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
+                             <PlayerStatsSection team="away" teamName={awayTeam?.name || ''} allPlayers={awayTeam?.players} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
+                           </div>
+                         );
+                       })}
+                     </TabsContent>
+                   </Tabs>
                  </div>
               </ScrollArea>
           </TabsContent>
