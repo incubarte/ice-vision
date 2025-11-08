@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import type { Tournament } from '@/types';
-import { readTournament, writeTournament, readConfig } from '@/lib/storage';
+import { readTournament, writeTournament, readConfig } from '@/lib/data-access';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     const tournamentId = params.id;
