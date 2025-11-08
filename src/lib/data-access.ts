@@ -4,15 +4,18 @@ import { storageProvider } from './storage';
 // --- High-Level Data Access Functions ---
 
 async function readJsonFile<T>(filePath: string): Promise<T | null> {
+    console.log(`[data-access] Attempting to read '${filePath}'...`);
     try {
         const data = await storageProvider.readFile(filePath);
+        console.log(`[data-access] Successfully read '${filePath}'. Content length: ${data.length}`);
         return JSON.parse(data) as T;
     } catch (error) {
-        // Assuming provider throws an error with a 'name' or 'code' property for not found
         if (error instanceof Error && (('code' in error && error.code === 'ENOENT') || error.name === 'NoSuchKey')) {
+            console.warn(`[data-access] File not found: '${filePath}'. This may be normal.`);
             return null; // File doesn't exist, a valid case.
         }
-        console.error(`Error reading ${filePath} using provider:`, error);
+        // Log the full error for better diagnostics
+        console.error(`[data-access] Critical error reading '${filePath}':`, JSON.stringify(error, null, 2));
         throw new Error(`Failed to read data file: ${filePath}`);
     }
 }
