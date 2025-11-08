@@ -60,7 +60,8 @@ export default function ReplaysPage() {
     const [newReplays, setNewReplays] = useState<FirebaseReplay[]>([]);
     const [isMassDownloading, setIsMassDownloading] = useState(false);
     const [firebaseError, setFirebaseError] = useState<string | null>(null);
-    
+    const [startTimeSeconds, setStartTimeSeconds] = useState<number | null>(4);
+
     const replaySettings = state.config.replays;
 
     useEffect(() => {
@@ -281,8 +282,8 @@ export default function ReplaysPage() {
         // IMPORTANT: The URL sent to the scoreboard must be a publicly accessible one.
         // We'll proxy it through a new API endpoint.
         const scoreboardUrl = `/api/replays/${selectedReplay}`;
-        await sendRemoteCommand({ type: 'START_LOADING_REPLAY', payload: { url: scoreboardUrl } });
-        toast({ title: "Comando Enviado", description: "El scoreboard ha recibido la orden de mostrar la repetición." });
+        await sendRemoteCommand({ type: 'START_LOADING_REPLAY', payload: { url: scoreboardUrl, startTimeSeconds } });
+        toast({ title: "Comando Enviado", description: `El scoreboard mostrará la repetición desde el segundo ${startTimeSeconds}.` });
     };
 
     const handleCopyToClipboard = (text: string, label: string) => {
@@ -455,7 +456,7 @@ export default function ReplaysPage() {
                                 className="w-full h-full object-contain"
                                 controls
                                 autoPlay
-                                onLoadedMetadata={(e) => { e.currentTarget.currentTime = 4; }}
+                                onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0; }}
                             >
                                 <source src={`/api/replays/${selectedReplay}`} type="video/mp4" />
                                 Tu navegador no soporta el tag de video.
@@ -467,10 +468,36 @@ export default function ReplaysPage() {
                             </div>
                         )}
                      </div>
-                     <div className="p-4 border-t border-border/20">
+                     <div className="p-4 border-t border-border/20 flex items-center gap-4">
                         <Button onClick={handleShowOnScoreboard} disabled={!selectedReplay}>
                             <Play className="mr-2 h-4 w-4" /> Mostrar en Scoreboard
                         </Button>
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="startTime" className="whitespace-nowrap">desde el segundo:</Label>
+                            <Input
+                                id="startTime"
+                                type="text"
+                                value={startTimeSeconds === null || startTimeSeconds === undefined ? '' : startTimeSeconds.toString()}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === '') {
+                                        setStartTimeSeconds(null as any); // Allow empty temporarily
+                                        return;
+                                    }
+                                    const num = parseInt(value, 10);
+                                    if (!isNaN(num) && num >= 0) {
+                                        setStartTimeSeconds(num);
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    if (e.target.value === '') {
+                                        setStartTimeSeconds(0); // Default to 0 if empty
+                                    }
+                                }}
+                                placeholder="0"
+                                className="w-16 text-center"
+                            />
+                        </div>
                     </div>
                 </Card>
             </div>

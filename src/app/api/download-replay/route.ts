@@ -11,11 +11,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'URL del video es requerida.' }, { status: 400 });
         }
 
+        console.log('[API/DOWNLOAD-REPLAY] Attempting to fetch URL:', url);
         const videoResponse = await fetch(url);
 
         if (!videoResponse.ok) {
+            console.error('[API/DOWNLOAD-REPLAY] Fetch failed:', videoResponse.status, videoResponse.statusText);
             throw new Error(`Failed to fetch video: ${videoResponse.status} ${videoResponse.statusText}`);
         }
+        console.log('[API/DOWNLOAD-REPLAY] Fetch successful, content-type:', videoResponse.headers.get('content-type'));
 
         const videoBuffer = await videoResponse.arrayBuffer();
         

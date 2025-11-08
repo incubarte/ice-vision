@@ -5,10 +5,11 @@ import { motion } from 'framer-motion';
 
 interface ReplayOverlayProps {
   url: string;
+  startTimeSeconds?: number;
   onFinish: () => void;
 }
 
-export function ReplayOverlay({ url, onFinish }: ReplayOverlayProps) {
+export function ReplayOverlay({ url, startTimeSeconds = 4, onFinish }: ReplayOverlayProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   return (
@@ -23,7 +24,7 @@ export function ReplayOverlay({ url, onFinish }: ReplayOverlayProps) {
         key={url}
         onEnded={onFinish}
         onLoadedMetadata={(e) => {
-          e.currentTarget.currentTime = 4;
+          e.currentTarget.currentTime = startTimeSeconds;
         }}
         className="w-full h-full object-contain"
         autoPlay

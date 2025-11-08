@@ -12,19 +12,65 @@ import { safeUUID } from '@/lib/utils';
 import defaultSettings from '@/config/defaults.json';
 import { generateSummaryData } from '@/lib/summary-generator';
 
+// Import constants and helpers
+import {
+  BROADCAST_CHANNEL_NAME,
+  SUMMARY_DATA_STORAGE_KEY,
+  CENTISECONDS_PER_SECOND,
+  FLASHING_ZERO_DURATION_MS,
+  DEFAULT_HORN_SOUND_PATH,
+  DEFAULT_PENALTY_BEEP_PATH,
+  IN_CODE_INITIAL_PROFILE_NAME,
+  IN_CODE_INITIAL_LAYOUT_PROFILE_NAME,
+  IN_CODE_INITIAL_PLAY_SOUND_AT_PERIOD_END,
+  IN_CODE_INITIAL_CUSTOM_HORN_SOUND_DATA_URL,
+  IN_CODE_INITIAL_ENABLE_TEAM_SELECTION_IN_MINI_SCOREBOARD,
+  IN_CODE_INITIAL_ENABLE_PLAYER_SELECTION_FOR_PENALTIES,
+  IN_CODE_INITIAL_SHOW_ALIAS_IN_PENALTY_PLAYER_SELECTOR,
+  IN_CODE_INITIAL_SHOW_ALIAS_IN_CONTROLS_PENALTY_LIST,
+  IN_CODE_INITIAL_SHOW_ALIAS_IN_SCOREBOARD_PENALTIES,
+  IN_CODE_INITIAL_ENABLE_PENALTY_COUNTDOWN_SOUND,
+  IN_CODE_INITIAL_PENALTY_COUNTDOWN_START_TIME,
+  IN_CODE_INITIAL_CUSTOM_PENALTY_BEEP_SOUND_DATA_URL,
+  IN_CODE_INITIAL_ENABLE_DEBUG_MODE,
+  IN_CODE_INITIAL_TUNNEL_STATE,
+  INITIAL_LAYOUT_SETTINGS,
+  IN_CODE_INITIAL_REPLAYS_SETTINGS,
+  createDefaultFormatAndTimingsProfile,
+  createDefaultScoreboardLayoutProfile,
+} from '@/lib/game-constants';
 
-// --- Constantes para la sincronización local ---
-export const BROADCAST_CHANNEL_NAME = 'icevision-game-state-channel';
-export const SUMMARY_DATA_STORAGE_KEY = 'icevision-summary-data';
+import {
+  formatTime,
+  getPeriodText,
+  getActualPeriodText,
+  getPeriodContextFromAbsoluteTime,
+  centisecondsToDisplaySeconds,
+  centisecondsToDisplayMinutes,
+  getEndReasonText,
+  getCategoryNameById,
+} from '@/lib/game-helpers';
 
-const CENTISECONDS_PER_SECOND = 100;
-const FLASHING_ZERO_DURATION_MS = 5000;
-export const DEFAULT_HORN_SOUND_PATH = '/audio/default-horn.wav';
-export const DEFAULT_PENALTY_BEEP_PATH = '/audio/penalty_beep.wav';
+// Import reducer helper functions
+import {
+  applyFormatAndTimingsProfileToState,
+  applyScoreboardLayoutProfileToState,
+  calculateAbsoluteTimeForPeriod,
+  finalizeMatch,
+  handleAutoTransition,
+  sortPenaltiesByStatus,
+  setGameReducerRef,
+} from '@/lib/game-state-reducer';
+
+// Re-export for backward compatibility
+export { BROADCAST_CHANNEL_NAME, SUMMARY_DATA_STORAGE_KEY, DEFAULT_HORN_SOUND_PATH, DEFAULT_PENALTY_BEEP_PATH };
+export { INITIAL_LAYOUT_SETTINGS, createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProfile };
+export { formatTime, getPeriodText, getActualPeriodText, getPeriodContextFromAbsoluteTime, centisecondsToDisplaySeconds, centisecondsToDisplayMinutes, getEndReasonText, getCategoryNameById };
 
 
 
 
+// TAB_ID for cross-tab synchronization
 let TAB_ID: string;
 if (typeof window !== 'undefined') {
   if (window.crypto && window.crypto.randomUUID) {
@@ -35,73 +81,6 @@ if (typeof window !== 'undefined') {
 } else {
   TAB_ID = 'server-tab-id-' + Math.random().toString(36).substring(2);
 }
-
-// Initial values (used as fallback if files are not found or are invalid)
-const IN_CODE_INITIAL_PROFILE_NAME = "Predeterminado (App)";
-const IN_CODE_INITIAL_LAYOUT_PROFILE_NAME = "Diseño Predeterminado (App)";
-
-// Sound and Display Defaults
-const IN_CODE_INITIAL_PLAY_SOUND_AT_PERIOD_END = true;
-const IN_CODE_INITIAL_CUSTOM_HORN_SOUND_DATA_URL = null;
-const IN_CODE_INITIAL_ENABLE_TEAM_SELECTION_IN_MINI_SCOREBOARD = true;
-const IN_CODE_INITIAL_ENABLE_PLAYER_SELECTION_FOR_PENALTIES = true;
-const IN_CODE_INITIAL_SHOW_ALIAS_IN_PENALTY_PLAYER_SELECTOR = true;
-const IN_CODE_INITIAL_SHOW_ALIAS_IN_CONTROLS_PENALTY_LIST = true;
-const IN_CODE_INITIAL_SHOW_ALIAS_IN_SCOREBOARD_PENALTIES = true;
-const IN_CODE_INITIAL_ENABLE_PENALTY_COUNTDOWN_SOUND = true;
-const IN_CODE_INITIAL_PENALTY_COUNTDOWN_START_TIME = 10;
-const IN_CODE_INITIAL_CUSTOM_PENALTY_BEEP_SOUND_DATA_URL = null;
-const IN_CODE_INITIAL_ENABLE_DEBUG_MODE = false;
-const IN_CODE_INITIAL_CHROME_BINARY_PATH = "/opt/google/chrome/google-chrome";
-
-const IN_CODE_INITIAL_TUNNEL_STATE: TunnelState = {
-  subdomain: defaultSettings.tunnel.subdomainPrefix,
-  port: defaultSettings.tunnel.port,
-  status: 'disconnected',
-  url: null,
-  lastMessage: null,
-};
-
-
-export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
-  scoreboardVerticalPosition: -4,
-  scoreboardHorizontalPosition: 0,
-  clockSize: 12,
-  teamNameSize: 3,
-  teamNameWidth: 16,
-  scoreSize: 8,
-  periodSize: 4.5,
-  playersOnIceIconSize: 1.75,
-  categorySize: 1.25,
-  teamLabelSize: 1,
-  penaltiesTitleSize: 2,
-  penaltyPlayerNumberSize: 3.5,
-  penaltyTimeSize: 3.5,
-  penaltyPlayerIconSize: 2.5,
-  standingsTableFontSize: 1.8,
-  standingsTableRowHeight: 4.25,
-  teamLogoOpacity: 10,
-  primaryColor: '223 65% 33%',
-  accentColor: '40 100% 67%',
-  backgroundColor: '223 70% 11%',
-  mainContentGap: 3,
-  scoreLabelGap: -2,
-};
-
-const IN_CODE_INITIAL_REPLAYS_SETTINGS: ReplaySettings = {
-    syncUrl: "https://hockeando-default-rtdb.firebaseio.com/Replays.json",
-    downloadUrlBase: "https://firebasestorage.googleapis.com/v0/b/hockeando.appspot.com/o/"
-};
-
-const IN_CODE_INITIAL_TOURNAMENT_NAME = "torneito";
-const IN_CODE_INITIAL_TOURNAMENT: Tournament = {
-  id: safeUUID(),
-  name: IN_CODE_INITIAL_TOURNAMENT_NAME,
-  status: 'active',
-  teams: [],
-  categories: [],
-  matches: [],
-};
 
 
 const INITIAL_LIVE_DATA: LiveState = {
@@ -143,30 +122,7 @@ const INITIAL_LIVE_DATA: LiveState = {
   playedPeriods: [],
 };
 
-export const createDefaultFormatAndTimingsProfile = (id?: string, name?: string): FormatAndTimingsProfile => ({
-  id: id || safeUUID(),
-  name: name || IN_CODE_INITIAL_PROFILE_NAME,
-  ...defaultSettings.formatAndTimings,
-  gameTimeMode: 'stopped',
-  autoActivatePuckPenalties: true, // Default changed as per user request
-  enableStoppedTimeAlert: false, // Default for new profiles
-  stoppedTimeAlertGoalDiff: 1,
-  stoppedTimeAlertTimeRemaining: 2,
-  penaltyTypes: defaultSettings.penaltyTypes.map(p => ({
-    ...p,
-    reducesPlayerCount: p.reducesPlayerCount,
-    clearsOnGoal: p.clearsOnGoal,
-    isBenchPenalty: p.isBenchPenalty || false,
-  })) as PenaltyTypeDefinition[],
-  defaultPenaltyTypeId: defaultSettings.defaultPenaltyTypeId,
-});
-
-export const createDefaultScoreboardLayoutProfile = (id?: string, name?: string): ScoreboardLayoutProfile => ({
-    id: id || safeUUID(),
-    name: name || IN_CODE_INITIAL_LAYOUT_PROFILE_NAME,
-    ...INITIAL_LAYOUT_SETTINGS
-});
-
+// Create default profiles using imported factory functions
 const defaultInitialProfile = createDefaultFormatAndTimingsProfile();
 const defaultInitialLayoutProfile = createDefaultScoreboardLayoutProfile();
 
@@ -220,243 +176,9 @@ type GameStateContextType = {
 
 const GameStateContext = createContext<GameStateContextType | undefined>(undefined);
 
-
-// --- Helper Function for Absolute Time Calculation ---
-const calculateAbsoluteTimeForPeriod = (targetPeriod: number, remainingTimeInPeriodCs: number, state: GameState): number => {
-    if (targetPeriod <= 0) {
-        return 0;
-    }
-
-    let totalElapsedCs = 0;
-    const { numberOfRegularPeriods, defaultPeriodDuration, defaultOTPeriodDuration } = state.config;
-
-    for (let i = 1; i < targetPeriod; i++) {
-        totalElapsedCs += (i <= numberOfRegularPeriods) ? defaultPeriodDuration : defaultOTPeriodDuration;
-    }
-
-    const currentPeriodDuration = (targetPeriod <= numberOfRegularPeriods) ? defaultPeriodDuration : defaultOTPeriodDuration;
-    totalElapsedCs += currentPeriodDuration - remainingTimeInPeriodCs;
-
-    return Math.max(0, totalElapsedCs);
-};
-
-const finalizeMatch = (state: GameState): GameState => {
-    const newAbsoluteTime = calculateAbsoluteTimeForPeriod(state.live.clock.currentPeriod, 0, state);
-    
-    const finishedPeriodText = getPeriodText(state.live.clock.currentPeriod, state.config.numberOfRegularPeriods);
-    let playedPeriods = [...(state.live.playedPeriods || [])];
-    if (!playedPeriods.includes(finishedPeriodText)) {
-        playedPeriods.push(finishedPeriodText);
-    }
-    
-    // Recalculate final score including any last-minute goals
-    const finalScore: ScoreState = {
-        ...state.live.score,
-        home: state.live.goals.home.length,
-        away: state.live.goals.away.length,
-    };
-
-    const finalLiveState: LiveState = {
-        ...state.live,
-        score: finalScore,
-        playedPeriods,
-        clock: {
-            ...state.live.clock,
-            currentTime: 0,
-            isClockRunning: false,
-            periodDisplayOverride: 'End of Game' as PeriodDisplayOverrideType,
-            absoluteElapsedTimeCs: newAbsoluteTime,
-            _liveAbsoluteElapsedTimeCs: newAbsoluteTime,
-            clockStartTimeMs: null,
-            remainingTimeAtStartCs: null,
-            preTimeoutState: null,
-        },
-        playHornTrigger: state.live.playHornTrigger + 1
-    };
-
-    let newState = gameReducer(state, { type: 'UPDATE_LIVE_STATE', payload: finalLiveState });
-    
-    if (newState.live.matchId) {
-        const summary = generateSummaryData(newState);
-        if (summary) {
-            // Return a new state that includes the summary to be saved
-            return gameReducer(newState, { type: 'SAVE_MATCH_SUMMARY', payload: { matchId: newState.live.matchId, summary } });
-        }
-    }
-
-    return newState;
-};
-
-
-const handleAutoTransition = (currentState: GameState): GameState => {
-  let newGameStateAfterTransition: GameState = JSON.parse(JSON.stringify(currentState));
-  const { 
-    numberOfRegularPeriods, 
-    numberOfOvertimePeriods, 
-    defaultBreakDuration, 
-    defaultPreOTBreakDuration, 
-    autoStartBreaks, 
-    autoStartPreOTBreaks,
-    defaultPeriodDuration,
-    defaultOTPeriodDuration,
-  } = currentState.config;
-  const { currentPeriod, periodDisplayOverride, preTimeoutState } = currentState.live.clock;
-  const { score } = currentState.live;
-  const totalGamePeriods = numberOfRegularPeriods + numberOfOvertimePeriods;
-  
-  switch(periodDisplayOverride) {
-    case 'Warm-up':
-      // Warm-up ends, start Period 1 (paused)
-      newGameStateAfterTransition.live.clock.currentPeriod = 1;
-      newGameStateAfterTransition.live.clock.currentTime = defaultPeriodDuration;
-      newGameStateAfterTransition.live.clock.periodDisplayOverride = null;
-      newGameStateAfterTransition.live.clock.isClockRunning = false;
-      break;
-
-    case 'Break':
-    case 'Pre-OT Break':
-      // A break ends, start the next period (paused)
-      const nextPeriod = currentPeriod + 1;
-      newGameStateAfterTransition.live.clock.currentPeriod = nextPeriod;
-      newGameStateAfterTransition.live.clock.currentTime = (nextPeriod > numberOfRegularPeriods) ? defaultOTPeriodDuration : defaultPeriodDuration;
-      newGameStateAfterTransition.live.clock.periodDisplayOverride = null;
-      newGameStateAfterTransition.live.clock.isClockRunning = false;
-      break;
-
-    case 'Time Out':
-      // A timeout ends, restore previous state (paused)
-      if (preTimeoutState) {
-        newGameStateAfterTransition.live.clock = {
-          ...currentState.live.clock,
-          currentPeriod: preTimeoutState.period,
-          currentTime: preTimeoutState.time,
-          isClockRunning: false,
-          periodDisplayOverride: preTimeoutState.override,
-          absoluteElapsedTimeCs: preTimeoutState.absoluteElapsedTimeCs,
-          _liveAbsoluteElapsedTimeCs: preTimeoutState.absoluteElapsedTimeCs,
-          preTimeoutState: null,
-        };
-      }
-      break;
-    
-    case null: // A game period ends
-      const newAbsoluteTime = calculateAbsoluteTimeForPeriod(currentPeriod, 0, currentState);
-      newGameStateAfterTransition.live.clock.absoluteElapsedTimeCs = newAbsoluteTime;
-      newGameStateAfterTransition.live.clock._liveAbsoluteElapsedTimeCs = newAbsoluteTime;
-
-      // Add the just-finished period to the played periods list
-      const finishedPeriodText = getPeriodText(currentPeriod, numberOfRegularPeriods);
-      let playedPeriods = [...(newGameStateAfterTransition.live.playedPeriods || [])];
-      if (!playedPeriods.includes(finishedPeriodText)) {
-          playedPeriods.push(finishedPeriodText);
-      }
-      newGameStateAfterTransition.live.playedPeriods = playedPeriods;
-
-      // Check for end of regulation or last OT
-      if (currentPeriod >= totalGamePeriods) {
-          if (score.home !== score.away) {
-              // Game ends, no tie. Call the finalizer.
-              return finalizeMatch(newGameStateAfterTransition);
-          } else {
-              // Tie game, go to pre-end decision state
-              newGameStateAfterTransition.live.clock.periodDisplayOverride = "AwaitingDecision";
-              newGameStateAfterTransition.live.shootout.isActive = false; 
-          }
-      } else if (currentPeriod >= numberOfRegularPeriods) {
-          // It's a regular OT period that ended (but not the last one)
-          if (score.home !== score.away) {
-              // Golden goal situation in a non-final OT, game is over
-              return finalizeMatch(newGameStateAfterTransition);
-          } else {
-              // Start a pre-OT break before the next OT
-              newGameStateAfterTransition.live.clock.currentTime = defaultPreOTBreakDuration;
-              newGameStateAfterTransition.live.clock.isClockRunning = autoStartPreOTBreaks && defaultPreOTBreakDuration > 0;
-              newGameStateAfterTransition.live.clock.periodDisplayOverride = 'Pre-OT Break';
-          }
-      } else {
-        // End of a regular period, not the final one
-        newGameStateAfterTransition.live.clock.currentTime = defaultBreakDuration;
-        newGameStateAfterTransition.live.clock.isClockRunning = autoStartBreaks && defaultBreakDuration > 0;
-        newGameStateAfterTransition.live.clock.periodDisplayOverride = 'Break';
-      }
-      break;
-
-    default: // No transition, e.g. "End of Game"
-      break;
-  }
-  
-  if (!newGameStateAfterTransition.live.clock.isClockRunning) {
-    newGameStateAfterTransition.live.clock.clockStartTimeMs = null;
-    newGameStateAfterTransition.live.clock.remainingTimeAtStartCs = null;
-  } else {
-    newGameStateAfterTransition.live.clock.clockStartTimeMs = Date.now();
-    newGameStateAfterTransition.live.clock.remainingTimeAtStartCs = newGameStateAfterTransition.live.clock.currentTime;
-  }
-  
-  newGameStateAfterTransition.live.clock.isFlashingZero = false;
-  newGameStateAfterTransition.live.clock.flashingZeroEndTime = undefined;
-
-  return newGameStateAfterTransition;
-};
-
-
-const statusOrderValues: Record<NonNullable<Penalty['_status']>, number> = {
-  running: 1,
-  pending_concurrent: 2,
-  pending_puck: 3,
-};
-
-const sortPenaltiesByStatus = (penalties: Penalty[]): Penalty[] => {
-  const penaltiesToSort = [...penalties];
-  return penaltiesToSort.sort((a, b) => {
-    if (!a.reducesPlayerCount && b.reducesPlayerCount) return 1;
-    if (a.reducesPlayerCount && !b.reducesPlayerCount) return -1;
-    
-    const aStatusVal = a._status ? (statusOrderValues[a._status] ?? 5) : 0;
-    const bStatusVal = b._status ? (statusOrderValues[b._status] ?? 5) : 0;
-    if (aStatusVal !== bStatusVal) return aStatusVal - bStatusVal;
-    return 0;
-  });
-};
-
-const applyFormatAndTimingsProfileToState = (state: GameState, profileId: string | null): GameState => {
-  const profiles = state.config.formatAndTimingsProfiles || [];
-  const profileToApply = profiles.find(p => p.id === profileId) || profiles[0] || createDefaultFormatAndTimingsProfile();
-  if (!profileToApply) return state;
-
-  return {
-    ...state,
-    config: {
-        ...state.config,
-        selectedFormatAndTimingsProfileId: profileToApply.id,
-        // Apply all settings from the profile to the main config object
-        ...profileToApply
-    }
-  };
-};
-
-const applyScoreboardLayoutProfileToState = (state: GameState, profileId: string | null): GameState => {
-    const profiles = state.config.scoreboardLayoutProfiles || [];
-    const profileToApply = profiles.find(p => p.id === profileId) || profiles[0] || createDefaultScoreboardLayoutProfile();
-    if (!profileToApply) return state;
-
-    // Ensure all properties from INITIAL_LAYOUT_SETTINGS have a default
-    const layoutSettingsWithDefaults = {
-        ...INITIAL_LAYOUT_SETTINGS,
-        ...profileToApply,
-    };
-    
-    const { id, name, ...layoutSettings } = layoutSettingsWithDefaults;
-
-    return {
-        ...state,
-        config: {
-            ...state.config,
-            selectedScoreboardLayoutProfileId: id,
-            scoreboardLayout: layoutSettings,
-        }
-    };
-};
+// Helper functions (calculateAbsoluteTimeForPeriod, finalizeMatch, handleAutoTransition, sortPenaltiesByStatus,
+// applyFormatAndTimingsProfileToState, applyScoreboardLayoutProfileToState)
+// are now imported from @/lib/game-state-reducer
 
 
 
@@ -500,10 +222,18 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             console.error("Hydration from server failed: config is missing.");
             return state; // Return current state if server data is incomplete
         }
-        
+
+        // Merge server config with initial state to ensure all properties exist
+        const initialState = getInitialState();
         let finalState: GameState = {
-            ...getInitialState(), 
-            config: serverState.config,
+            ...initialState,
+            config: {
+                ...initialState.config,
+                ...serverState.config,
+                // Ensure critical properties have defaults if missing
+                tunnel: serverState.config.tunnel || initialState.config.tunnel,
+                replays: serverState.config.replays || initialState.config.replays,
+            },
             _initialConfigLoadComplete: true,
         };
 
@@ -1395,8 +1125,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'FINISH_SHOOTOUT': {
       let finalScore = { ...state.live.score };
       if (state.live.shootout.isActive) {
-        const homeGoals = state.live.shootout.homeAttempts.filter(a => a.isGoal).length;
-        const awayGoals = state.live.shootout.awayAttempts.filter(a => a.isGoal).length;
+        const homeGoals = state.live.shootout.homeAttempts.filter(a => a.isGoal === true).length;
+        const awayGoals = state.live.shootout.awayAttempts.filter(a => a.isGoal === true).length;
 
         if (homeGoals > awayGoals) {
           finalScore.home += 1;
@@ -1811,10 +1541,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
   const nonOriginatingActionTypes: GameAction['type'][] = ['HYDRATE_FROM_SERVER', 'HYDRATE_TOURNAMENT_DETAILS', 'SET_STATE_FROM_LOCAL_BROADCAST'];
   if (action.type === 'TICK') return newState;
   if (nonOriginatingActionTypes.includes(action.type)) return { ...newState, _lastActionOriginator: undefined };
-  
+
   return { ...newState, _lastActionOriginator: TAB_ID, _lastUpdatedTimestamp: newTimestamp, _lastToastMessage: toastMessage };
 };
-
 
 const GameStateObserver = () => {
     const { state, dispatch } = useGameState();
@@ -1837,6 +1566,12 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const channelRef = useRef<BroadcastChannel | null>(null);
+
+  // Set the reducer reference for helper functions that need to call back to it
+  // This needs to be called after React hooks are initialized
+  React.useEffect(() => {
+    setGameReducerRef(gameReducer);
+  }, []);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -1986,109 +1721,8 @@ export const useGameState = () => {
   return context;
 };
 
-export const formatTime = (
-  totalCentiseconds: number,
-  options: {
-    showTenths?: boolean;
-    includeMinutesForTenths?: boolean;
-    rounding?: 'up' | 'down';
-  } = {}
-): string => {
-  if (isNaN(totalCentiseconds) || totalCentiseconds < 0) totalCentiseconds = 0;
-
-  const isUnderMinute = totalCentiseconds < 6000;
-  
-  if (isUnderMinute && options.showTenths) {
-    const totalSeconds = Math.floor(totalCentiseconds / 100);
-    const tenths = Math.floor((totalCentiseconds % 100) / 10);
-    if (options.includeMinutesForTenths) {
-      return `00:${totalSeconds.toString().padStart(2, '0')}.${tenths.toString()}`;
-    }
-    return `${totalSeconds.toString().padStart(2, '0')}.${tenths.toString()}`;
-  }
-  
-  let totalSecondsOnly;
-  if (options.rounding === 'down') {
-     totalSecondsOnly = Math.floor(totalCentiseconds / 100);
-  } else {
-    totalSecondsOnly = Math.ceil(totalCentiseconds / 100);
-  }
-  
-  const minutes = Math.floor(totalSecondsOnly / 60);
-  const seconds = totalSecondsOnly % 60;
-  
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
-
-
-export const getActualPeriodText = (period: number, override: PeriodDisplayOverrideType, numberOfRegularPeriods: number, shootoutState?: ShootoutState): string => {
-  if (override === "Time Out") return "TIME OUT";
-  if (override === "End of Game") return "FINALIZADO";
-  if (override === "AwaitingDecision") return "PRE-FINAL";
-  if (override === "Shootout" || (shootoutState && shootoutState.isActive)) {
-      return "SHOOTOUT"
-  }
-  if (override) return override;
-  return getPeriodText(period, numberOfRegularPeriods);
-};
-
-export const getPeriodText = (period: number, numRegPeriods: number): string => {
-    if (period === 0) return "Warm-up";
-    if (period < 0) return "---";
-    if (period <= numRegPeriods) {
-        if (period === 1) return "1ST";
-        if (period === 2) return "2ND";
-        if (period === 3) return "3RD";
-        return `${period}TH`;
-    }
-    const overtimeNumber = period - numRegPeriods;
-    return `OT${overtimeNumber > 1 ? overtimeNumber : ''}`.trim();
-};
-
-export const getPeriodContextFromAbsoluteTime = (absoluteTimeCs: number, state: GameState): { periodText: string, timeInPeriodCs: number, periodNumber: number } => {
-    if (absoluteTimeCs < 0) absoluteTimeCs = 0;
-    const { numberOfRegularPeriods, defaultPeriodDuration, defaultOTPeriodDuration, numberOfOvertimePeriods } = state.config;
-    let timeTracker = 0;
-    for (let i = 1; i <= numberOfRegularPeriods; i++) {
-        if (absoluteTimeCs <= timeTracker + defaultPeriodDuration) {
-            return { periodText: getPeriodText(i, numberOfRegularPeriods), timeInPeriodCs: Math.max(0, defaultPeriodDuration - (absoluteTimeCs - timeTracker)), periodNumber: i };
-        }
-        timeTracker += defaultPeriodDuration;
-    }
-    for (let i = 1; i <= numberOfOvertimePeriods; i++) {
-        const periodNumber = numberOfRegularPeriods + i;
-        if (absoluteTimeCs <= timeTracker + defaultOTPeriodDuration) {
-            return { periodText: getPeriodText(periodNumber, numberOfRegularPeriods), timeInPeriodCs: Math.max(0, defaultOTPeriodDuration - (absoluteTimeCs - timeTracker)), periodNumber: periodNumber };
-        }
-        timeTracker += defaultOTPeriodDuration;
-    }
-    const lastPeriodNumber = numberOfRegularPeriods + numberOfOvertimePeriods;
-    return { periodText: getPeriodText(lastPeriodNumber, numberOfRegularPeriods), timeInPeriodCs: 0, periodNumber: lastPeriodNumber };
-};
-
-export const centisecondsToDisplaySeconds = (centiseconds: number): string => {
-  if (isNaN(centiseconds) || centiseconds < 0) return "0";
-  return Math.floor(centiseconds / CENTISECONDS_PER_SECOND).toString();
-};
-export const centisecondsToDisplayMinutes = (centiseconds: number): string => {
-  if (isNaN(centiseconds) || centiseconds < 0) return "0";
-  return Math.floor(centiseconds / (60 * CENTISECONDS_PER_SECOND)).toString();
-};
-
-export const getEndReasonText = (reason?: PenaltyLog['endReason']): string => {
-    switch (reason) {
-        case 'completed': return 'Cumplida';
-        case 'deleted': return 'Eliminada';
-        case 'goal_on_pp': return 'Gol en Contra';
-        default: return 'Activa';
-    }
-};
-
-export const getCategoryNameById = (categoryId: string, availableCategories: CategoryData[] | undefined): string | undefined => {
-  if (!Array.isArray(availableCategories)) return undefined;
-  const category = availableCategories.find(cat => cat && typeof cat === 'object' && cat.id === categoryId);
-  return category ? category.name : undefined;
-};
+// Helper functions are now imported from @/lib/game-helpers
+// Re-exported at the top for backward compatibility
 
 
 

@@ -19,21 +19,21 @@ export function ScorePeriodControlCard() {
   // handleScoreAdjust y handleTeamNameChange ya no son necesarios aquí
 
   const handlePreviousPeriod = () => {
-    if (state.periodDisplayOverride === "Break" || state.periodDisplayOverride === "Pre-OT Break") {
-      dispatch({ type: 'SET_PERIOD', payload: state.currentPeriod });
-      toast({ title: "Período Cambiado", description: `Período establecido a ${getPeriodText(state.currentPeriod)}. Reloj reiniciado y pausado.` });
+    if (state.live.clock.periodDisplayOverride === "Break" || state.live.clock.periodDisplayOverride === "Pre-OT Break") {
+      dispatch({ type: 'SET_PERIOD', payload: state.live.clock.currentPeriod });
+      toast({ title: "Período Cambiado", description: `Período establecido a ${getPeriodText(state.live.clock.currentPeriod, state.config.numberOfRegularPeriods)}. Reloj reiniciado y pausado.` });
     } else {
-      if (state.currentPeriod > 1) {
-        // const periodBeforeIntendedBreak = state.currentPeriod -1; // No se usa directamente
-        dispatch({ type: 'START_BREAK_AFTER_PREVIOUS_PERIOD' }); 
+      if (state.live.clock.currentPeriod > 1) {
+        // const periodBeforeIntendedBreak = state.live.clock.currentPeriod -1; // No se usa directamente
+        dispatch({ type: 'START_BREAK_AFTER_PREVIOUS_PERIOD' });
         // El toast ahora debe reflejar el tipo de break que se inició y su duración
-        const breakType = (state.currentPeriod -1) >= 3 ? "Pre-OT Break" : "Break";
-        const duration = (state.currentPeriod -1) >= 3 ? state.defaultPreOTBreakDuration : state.defaultBreakDuration;
-        const autoStart = (state.currentPeriod -1) >= 3 ? state.autoStartPreOTBreaks : state.autoStartBreaks;
+        const breakType = (state.live.clock.currentPeriod -1) >= state.config.numberOfRegularPeriods ? "Pre-OT Break" : "Break";
+        const duration = (state.live.clock.currentPeriod -1) >= state.config.numberOfRegularPeriods ? state.config.defaultPreOTBreakDuration : state.config.defaultBreakDuration;
+        const autoStart = (state.live.clock.currentPeriod -1) >= state.config.numberOfRegularPeriods ? state.config.autoStartPreOTBreaks : state.config.autoStartBreaks;
 
-        toast({ 
-            title: `${breakType} Iniciado`, 
-            description: `${breakType} iniciado después de ${getPeriodText(state.currentPeriod-1)} (${secondsToMinutes(duration)} min). Reloj ${autoStart ? 'corriendo' : 'pausado'}.`
+        toast({
+            title: `${breakType} Iniciado`,
+            description: `${breakType} iniciado después de ${getPeriodText(state.live.clock.currentPeriod-1, state.config.numberOfRegularPeriods)} (${secondsToMinutes(duration)} min). Reloj ${autoStart ? 'corriendo' : 'pausado'}.`
         });
 
       } else {
@@ -43,38 +43,38 @@ export function ScorePeriodControlCard() {
   };
 
   const handleNextPeriod = () => {
-    if (state.periodDisplayOverride === "Break" || state.periodDisplayOverride === "Pre-OT Break") {
-      const nextNumericPeriod = state.currentPeriod + 1;
+    if (state.live.clock.periodDisplayOverride === "Break" || state.live.clock.periodDisplayOverride === "Pre-OT Break") {
+      const nextNumericPeriod = state.live.clock.currentPeriod + 1;
       if (nextNumericPeriod <= MAX_PERIOD_NUMBER) {
         dispatch({ type: 'SET_PERIOD', payload: nextNumericPeriod });
-        toast({ title: "Período Cambiado", description: `Período establecido a ${getPeriodText(nextNumericPeriod)}. Reloj reiniciado y pausado.` });
+        toast({ title: "Período Cambiado", description: `Período establecido a ${getPeriodText(nextNumericPeriod, state.config.numberOfRegularPeriods)}. Reloj reiniciado y pausado.` });
       } else {
-        toast({ title: "Límite de Período Alcanzado", description: `No se puede avanzar más allá de ${getPeriodText(state.currentPeriod)}.`, variant: "destructive" });
+        toast({ title: "Límite de Período Alcanzado", description: `No se puede avanzar más allá de ${getPeriodText(state.live.clock.currentPeriod, state.config.numberOfRegularPeriods)}.`, variant: "destructive" });
       }
     } else {
-      if (state.currentPeriod < MAX_PERIOD_NUMBER) {
-        const isPreOT = state.currentPeriod >= 3; 
+      if (state.live.clock.currentPeriod < MAX_PERIOD_NUMBER) {
+        const isPreOT = state.live.clock.currentPeriod >= state.config.numberOfRegularPeriods;
         const breakType = isPreOT ? "Pre-OT Break" : "Break";
-        const duration = isPreOT ? state.defaultPreOTBreakDuration : state.defaultBreakDuration;
-        const autoStart = isPreOT ? state.autoStartPreOTBreaks : state.autoStartBreaks;
+        const duration = isPreOT ? state.config.defaultPreOTBreakDuration : state.config.defaultBreakDuration;
+        const autoStart = isPreOT ? state.config.autoStartPreOTBreaks : state.config.autoStartBreaks;
 
         if (isPreOT) {
             dispatch({ type: 'START_PRE_OT_BREAK' });
         } else {
             dispatch({ type: 'START_BREAK' });
         }
-        toast({ 
-            title: `${breakType} Iniciado`, 
-            description: `${breakType} iniciado después de ${getPeriodText(state.currentPeriod)} (${secondsToMinutes(duration)} min). Reloj ${autoStart ? 'corriendo' : 'pausado'}.`
+        toast({
+            title: `${breakType} Iniciado`,
+            description: `${breakType} iniciado después de ${getPeriodText(state.live.clock.currentPeriod, state.config.numberOfRegularPeriods)} (${secondsToMinutes(duration)} min). Reloj ${autoStart ? 'corriendo' : 'pausado'}.`
         });
       } else {
-        toast({ title: "Límite de Período Alcanzado", description: `No se puede avanzar más allá de ${getPeriodText(state.currentPeriod)}.`, variant: "destructive" });
+        toast({ title: "Límite de Período Alcanzado", description: `No se puede avanzar más allá de ${getPeriodText(state.live.clock.currentPeriod, state.config.numberOfRegularPeriods)}.`, variant: "destructive" });
       }
     }
   };
   
-  const isPreviousDisabled = state.periodDisplayOverride === null && state.currentPeriod <= 1;
-  const isNextDisabled = state.periodDisplayOverride === null && state.currentPeriod >= MAX_PERIOD_NUMBER;
+  const isPreviousDisabled = state.live.clock.periodDisplayOverride === null && state.live.clock.currentPeriod <= 1;
+  const isNextDisabled = state.live.clock.periodDisplayOverride === null && state.live.clock.currentPeriod >= MAX_PERIOD_NUMBER;
 
   return (
     <ControlCardWrapper title="Controles de Período">
@@ -93,7 +93,7 @@ export function ScorePeriodControlCard() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-2xl font-bold w-36 text-center text-accent truncate">
-              {getActualPeriodText(state.currentPeriod, state.periodDisplayOverride)}
+              {getActualPeriodText(state.live.clock.currentPeriod, state.live.clock.periodDisplayOverride, state.config.numberOfRegularPeriods, state.live.shootout)}
             </span>
             <Button 
               onClick={handleNextPeriod} 

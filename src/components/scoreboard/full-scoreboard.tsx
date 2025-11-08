@@ -86,15 +86,21 @@ export function FullScoreboard({ className }: { className?: string }) {
     if (videoElement && live.replayLoadRequest?.url) {
         const canPlayHandler = () => {
             if(videoElement.src) {
-                dispatch({ type: 'SHOW_REPLAY_OVERLAY', payload: { url: videoElement.src } });
+                dispatch({
+                    type: 'SHOW_REPLAY_OVERLAY',
+                    payload: {
+                        url: videoElement.src,
+                        startTimeSeconds: live.replayLoadRequest.startTimeSeconds
+                    }
+                });
             }
         };
-        
+
         videoElement.addEventListener('canplaythrough', canPlayHandler);
-        
+
         videoElement.src = live.replayLoadRequest.url;
         videoElement.load();
-        
+
         return () => {
             videoElement.removeEventListener('canplaythrough', canPlayHandler);
         }
@@ -194,7 +200,11 @@ export function FullScoreboard({ className }: { className?: string }) {
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-30"
             >
-              <ReplayOverlay url={replayOverlay.url} onFinish={() => dispatch({ type: 'HIDE_REPLAY_OVERLAY' })} />
+              <ReplayOverlay
+                url={replayOverlay.url}
+                startTimeSeconds={replayOverlay.startTimeSeconds}
+                onFinish={() => dispatch({ type: 'HIDE_REPLAY_OVERLAY' })}
+              />
             </motion.div>
           )}
           {showOverlay && !replayOverlay && (

@@ -726,7 +726,7 @@ export default function ControlsPage() {
           return null;
       }
       const tournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-      if (!tournament) return null;
+      if (!tournament || !tournament.matches) return null;
       return tournament.matches.find(m => m.id === state.live.matchId);
   }, [state.live.clock.periodDisplayOverride, state.live.matchId, state.config.tournaments, state.config.selectedTournamentId]);
 
