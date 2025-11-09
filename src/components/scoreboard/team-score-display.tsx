@@ -98,7 +98,10 @@ export function TeamScoreDisplay({
                 src={logoDataUrl}
                 alt={`${teamActualName} background logo`}
                 fill
-                style={{objectFit: "contain"}}
+                style={{
+                    objectFit: "contain",
+                    opacity: layout.teamLogoOpacity / 100
+                }}
                 className="absolute inset-0 z-0 pointer-events-none"
                 sizes="20vw"
                 data-ai-hint="team logo"

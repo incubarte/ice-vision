@@ -2,7 +2,19 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 
-const DATA_DIR = path.join(process.cwd(), 'src/data');
+// Helper function to get the storage directory from environment or default
+function getStorageDir(): string {
+    const storagePath = process.env.STORAGE_PATH;
+    if (storagePath) {
+        // Check if the path is absolute. If so, use it directly. Otherwise, join it with the current working directory.
+        if (path.isAbsolute(storagePath)) {
+            return storagePath;
+        }
+        return path.join(process.cwd(), storagePath);
+    }
+    // Default to './storage' in the project root if the environment variable is not set.
+    return path.join(process.cwd(), 'storage');
+}
 
 // --- 1. The Storage Provider Interface ---
 
@@ -90,9 +102,16 @@ export class S3StorageProvider implements StorageProvider {
 }
 
 export class LocalFileStorageProvider implements StorageProvider {
+    private dataDir: string;
+
+    constructor() {
+        // All files are stored in the 'data' subdirectory of the storage directory
+        this.dataDir = path.join(getStorageDir(), 'data');
+    }
+
     private resolvePath(filePath: string): string {
-        const resolved = path.join(DATA_DIR, filePath);
-        if (!resolved.startsWith(DATA_DIR)) {
+        const resolved = path.join(this.dataDir, filePath);
+        if (!resolved.startsWith(this.dataDir)) {
             throw new Error(`File path is outside the allowed directory: ${filePath}`);
         }
         return resolved;
