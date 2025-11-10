@@ -238,6 +238,8 @@ export interface ConfigFields { // Interface for easier picking of fields
   tickIntervalMs: number;
   tunnel: TunnelState;
   replays: ReplaySettings;
+  showStandingsInWarmup: boolean;
+  showShotsData: boolean;
 }
 
 export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'name'>, ConfigFields {

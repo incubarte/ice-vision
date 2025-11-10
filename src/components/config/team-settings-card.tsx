@@ -31,6 +31,8 @@ export const TeamSettingsCard = forwardRef<TeamSettingsCardRef, TeamSettingsCard
   const [localShowAliasInSelector, setLocalShowAliasInSelector] = useState(state.config.showAliasInPenaltyPlayerSelector);
   const [localShowAliasInControlsList, setLocalShowAliasInControlsList] = useState(state.config.showAliasInControlsPenaltyList);
   const [localShowAliasInScoreboard, setLocalShowAliasInScoreboard] = useState(state.config.showAliasInScoreboardPenalties);
+  const [localShowStandingsInWarmup, setLocalShowStandingsInWarmup] = useState(state.config.showStandingsInWarmup);
+  const [localShowShotsData, setLocalShowShotsData] = useState(state.config.showShotsData);
   const [isDirtyLocal, setIsDirtyLocal] = useState(false);
 
   useEffect(() => {
@@ -44,13 +46,17 @@ export const TeamSettingsCard = forwardRef<TeamSettingsCardRef, TeamSettingsCard
       setLocalShowAliasInSelector(state.config.showAliasInPenaltyPlayerSelector);
       setLocalShowAliasInControlsList(state.config.showAliasInControlsPenaltyList);
       setLocalShowAliasInScoreboard(state.config.showAliasInScoreboardPenalties);
+      setLocalShowStandingsInWarmup(state.config.showStandingsInWarmup);
+      setLocalShowShotsData(state.config.showShotsData);
     }
   }, [
-    state.config.enableTeamSelectionInMiniScoreboard, 
+    state.config.enableTeamSelectionInMiniScoreboard,
     state.config.enablePlayerSelectionForPenalties,
     state.config.showAliasInPenaltyPlayerSelector,
     state.config.showAliasInControlsPenaltyList,
     state.config.showAliasInScoreboardPenalties,
+    state.config.showStandingsInWarmup,
+    state.config.showShotsData,
     isDirtyLocal,
   ]);
 
@@ -80,7 +86,10 @@ export const TeamSettingsCard = forwardRef<TeamSettingsCardRef, TeamSettingsCard
         updates.showAliasInControlsPenaltyList = false;
         updates.showAliasInScoreboardPenalties = false;
       }
-      
+
+      updates.showStandingsInWarmup = localShowStandingsInWarmup;
+      updates.showShotsData = localShowShotsData;
+
       dispatch({ type: "UPDATE_CONFIG_FIELDS", payload: updates });
       setIsDirtyLocal(false);
       return true; 
@@ -91,6 +100,8 @@ export const TeamSettingsCard = forwardRef<TeamSettingsCardRef, TeamSettingsCard
       setLocalShowAliasInSelector(state.config.showAliasInPenaltyPlayerSelector);
       setLocalShowAliasInControlsList(state.config.showAliasInControlsPenaltyList);
       setLocalShowAliasInScoreboard(state.config.showAliasInScoreboardPenalties);
+      setLocalShowStandingsInWarmup(state.config.showStandingsInWarmup);
+      setLocalShowShotsData(state.config.showShotsData);
       setIsDirtyLocal(false);
     },
     getIsDirty: () => {
@@ -99,6 +110,8 @@ export const TeamSettingsCard = forwardRef<TeamSettingsCardRef, TeamSettingsCard
       if (localShowAliasInSelector !== state.config.showAliasInPenaltyPlayerSelector) return true;
       if (localShowAliasInControlsList !== state.config.showAliasInControlsPenaltyList) return true;
       if (localShowAliasInScoreboard !== state.config.showAliasInScoreboardPenalties) return true;
+      if (localShowStandingsInWarmup !== state.config.showStandingsInWarmup) return true;
+      if (localShowShotsData !== state.config.showShotsData) return true;
       return false;
     },
   }));
@@ -209,6 +222,35 @@ export const TeamSettingsCard = forwardRef<TeamSettingsCardRef, TeamSettingsCard
                   />
                 </div>
             </div>
+        </div>
+
+        {/* Configuraciones Generales de Visualización */}
+        <div className="flex items-center justify-between p-4 border rounded-md bg-card shadow-sm">
+          <Label htmlFor="showStandingsInWarmupSwitch" className="flex flex-col space-y-1">
+            <span className="font-semibold text-base">Mostrar tabla de posiciones en Warm-up</span>
+            <span className="font-normal leading-snug text-muted-foreground text-xs">
+              Muestra la tabla de posiciones durante el período de calentamiento cuando hay un partido del fixture activo.
+            </span>
+          </Label>
+          <Switch
+            id="showStandingsInWarmupSwitch"
+            checked={localShowStandingsInWarmup}
+            onCheckedChange={(checked) => { setLocalShowStandingsInWarmup(checked); markDirty(); }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-4 border rounded-md bg-card shadow-sm">
+          <Label htmlFor="showShotsDataSwitch" className="flex flex-col space-y-1">
+            <span className="font-semibold text-base">Mostrar datos de tiros</span>
+            <span className="font-normal leading-snug text-muted-foreground text-xs">
+              Muestra información de tiros a gol en fixtures, tablas de posiciones y resúmenes de partidos.
+            </span>
+          </Label>
+          <Switch
+            id="showShotsDataSwitch"
+            checked={localShowShotsData}
+            onCheckedChange={(checked) => { setLocalShowShotsData(checked); markDirty(); }}
+          />
         </div>
       </div>
     </ControlCardWrapper>

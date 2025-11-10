@@ -155,7 +155,7 @@ export function FullScoreboard({ className }: { className?: string }) {
   // Determinar si mostrar la tabla de posiciones
   const isWarmup = clock.periodDisplayOverride === 'Warm-up';
   const isFixtureMatch = !!matchId;
-  const showStandings = isWarmup && isFixtureMatch;
+  const showStandings = config.showStandingsInWarmup && isWarmup && isFixtureMatch;
 
   return (
     <div 

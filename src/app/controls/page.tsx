@@ -761,7 +761,6 @@ export default function ControlsPage() {
         <HockeyPuckSpinner className="h-12 w-12 text-primary mb-4" />
         <p className="text-xl text-foreground">Verificando instancia de controles...</p>
         <p className="text-sm text-muted-foreground">Esto tomará un momento.</p>
-        <p className="text-xs text-muted-foreground mt-2">ID de esta instancia: ...{instanceId ? instanceId.slice(-6) : 'generando...'}</p>
       </div>
     );
   }
@@ -782,10 +781,6 @@ export default function ControlsPage() {
             Ir al Scoreboard
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-6">
-          ID de esta instancia: ...{instanceId ? instanceId.slice(-6) : 'N/A'} <br />
-          ID de la instancia activa: ...{currentLockHolderId?.slice(-6) || 'Desconocido'}
-        </p>
       </div>
     );
   }
@@ -889,9 +884,6 @@ export default function ControlsPage() {
           La acción "Iniciar Nuevo Partido" te llevará a una página para configurar los equipos y reglas del partido.
         </p>
       </div>
-       <p className="text-xs text-muted-foreground mt-6 text-center">
-          ID de esta instancia de Controles (Primaria): ...{instanceId ? instanceId.slice(-6) : 'N/A'}
-      </p>
 
       {/* Connection Status Indicators */}
       <div className="fixed bottom-4 right-4 flex flex-col items-end gap-2 z-50">

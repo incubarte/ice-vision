@@ -86,11 +86,15 @@ export default function TournamentDetailPage() {
       <Separator />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isReadOnly ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'} gap-1`}>
+        <TabsList className={`grid w-full ${
+          isReadOnly
+            ? (state.config.showShotsData ? 'grid-cols-3' : 'grid-cols-2')
+            : (state.config.showShotsData ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3')
+        } gap-1`}>
           {!isReadOnly && <TabsTrigger value="teamsAndCategories" className="text-xs sm:text-sm">Equipos y Categorías</TabsTrigger>}
           <TabsTrigger value="fixture" className="text-xs sm:text-sm">Fixture</TabsTrigger>
           <TabsTrigger value="standings" className="text-xs sm:text-sm">Tabla de Posiciones</TabsTrigger>
-          <TabsTrigger value="playerStats" className="text-xs sm:text-sm">Estadísticas</TabsTrigger>
+          {state.config.showShotsData && <TabsTrigger value="playerStats" className="text-xs sm:text-sm">Estadísticas</TabsTrigger>}
         </TabsList>
 
         {!isReadOnly && (
@@ -125,9 +129,11 @@ export default function TournamentDetailPage() {
         <TabsContent value="standings" className="mt-6">
             <StandingsTab />
         </TabsContent>
-        <TabsContent value="playerStats" className="mt-6">
+        {state.config.showShotsData && (
+          <TabsContent value="playerStats" className="mt-6">
             <PlayerStatsTab />
-        </TabsContent>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

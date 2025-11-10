@@ -316,11 +316,11 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
         </div>
 
         <Tabs defaultValue="general" className="w-full flex-grow flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+          <TabsList className={`grid w-full gap-1 ${state.config.showShotsData ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'}`}>
             <TabsTrigger value="general" className="text-xs sm:text-sm">General</TabsTrigger>
             <TabsTrigger value="goalsByPeriod" className="text-xs sm:text-sm">Goles</TabsTrigger>
             <TabsTrigger value="penaltiesByPeriod" className="text-xs sm:text-sm">Faltas</TabsTrigger>
-            <TabsTrigger value="statsByPeriod" className="text-xs sm:text-sm">Estadísticas</TabsTrigger>
+            {state.config.showShotsData && <TabsTrigger value="statsByPeriod" className="text-xs sm:text-sm">Estadísticas</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="general" className="flex-grow overflow-hidden mt-4">
@@ -336,37 +336,41 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={aggregatedPenalties.home} />
                       <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={aggregatedPenalties.away} />
                     </div>
-                    <Separator />
-                    <div className="grid grid-cols-2 gap-6">
-                        <PlayerStatsSection 
-                          team="home"
-                          teamName={homeTeam?.name || ''} 
-                          allPlayers={homeTeam?.players} 
-                          playerStats={aggregatedStats.home} 
-                          attendance={localSummary.attendance.home}
-                          editingAttendanceSet={localAttendance.home} 
-                          editable={false} 
-                          showAttendanceControls={!isReadOnly} 
-                          isAttendanceEditing={isAttendanceEditing}
-                          onToggleAttendance={handleToggleAttendance}
-                          onEditToggle={setIsAttendanceEditing} 
-                          onSave={handleSaveAttendance} 
-                        />
-                        <PlayerStatsSection
-                          team="away"
-                          teamName={awayTeam?.name || ''}
-                          allPlayers={awayTeam?.players}
-                          playerStats={aggregatedStats.away}
-                          attendance={localSummary.attendance.away}
-                          editingAttendanceSet={localAttendance.away}
-                          editable={false}
-                          showAttendanceControls={!isReadOnly}
-                          isAttendanceEditing={isAttendanceEditing}
-                          onToggleAttendance={handleToggleAttendance}
-                          onEditToggle={setIsAttendanceEditing}
-                          onSave={handleSaveAttendance}
-                        />
-                    </div>
+                    {state.config.showShotsData && (
+                      <>
+                        <Separator />
+                        <div className="grid grid-cols-2 gap-6">
+                            <PlayerStatsSection
+                              team="home"
+                              teamName={homeTeam?.name || ''}
+                              allPlayers={homeTeam?.players}
+                              playerStats={aggregatedStats.home}
+                              attendance={localSummary.attendance.home}
+                              editingAttendanceSet={localAttendance.home}
+                              editable={false}
+                              showAttendanceControls={!isReadOnly}
+                              isAttendanceEditing={isAttendanceEditing}
+                              onToggleAttendance={handleToggleAttendance}
+                              onEditToggle={setIsAttendanceEditing}
+                              onSave={handleSaveAttendance}
+                            />
+                            <PlayerStatsSection
+                              team="away"
+                              teamName={awayTeam?.name || ''}
+                              allPlayers={awayTeam?.players}
+                              playerStats={aggregatedStats.away}
+                              attendance={localSummary.attendance.away}
+                              editingAttendanceSet={localAttendance.away}
+                              editable={false}
+                              showAttendanceControls={!isReadOnly}
+                              isAttendanceEditing={isAttendanceEditing}
+                              onToggleAttendance={handleToggleAttendance}
+                              onEditToggle={setIsAttendanceEditing}
+                              onSave={handleSaveAttendance}
+                            />
+                        </div>
+                      </>
+                    )}
                     {localSummary.shootout && (localSummary.shootout.homeAttempts.length > 0 || localSummary.shootout.awayAttempts.length > 0) && (
                         <>
                           <Separator />
@@ -389,21 +393,25 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                        <GoalsSection teamName={homeTeam?.name || ''} goals={aggregatedGoals.home} editable={false} />
                        <Separator />
                        <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={aggregatedPenalties.home} />
-                       <Separator />
-                       <PlayerStatsSection
-                         team="home"
-                         teamName={homeTeam?.name || ''}
-                         allPlayers={homeTeam?.players}
-                         playerStats={aggregatedStats.home}
-                         attendance={localSummary.attendance.home}
-                         editingAttendanceSet={localAttendance.home}
-                         editable={false}
-                         showAttendanceControls={!isReadOnly}
-                         isAttendanceEditing={isAttendanceEditing}
-                         onToggleAttendance={handleToggleAttendance}
-                         onEditToggle={setIsAttendanceEditing}
-                         onSave={handleSaveAttendance}
-                       />
+                       {state.config.showShotsData && (
+                         <>
+                           <Separator />
+                           <PlayerStatsSection
+                             team="home"
+                             teamName={homeTeam?.name || ''}
+                             allPlayers={homeTeam?.players}
+                             playerStats={aggregatedStats.home}
+                             attendance={localSummary.attendance.home}
+                             editingAttendanceSet={localAttendance.home}
+                             editable={false}
+                             showAttendanceControls={!isReadOnly}
+                             isAttendanceEditing={isAttendanceEditing}
+                             onToggleAttendance={handleToggleAttendance}
+                             onEditToggle={setIsAttendanceEditing}
+                             onSave={handleSaveAttendance}
+                           />
+                         </>
+                       )}
                        {localSummary.shootout && localSummary.shootout.homeAttempts.length > 0 && (
                          <>
                            <Separator />
@@ -415,21 +423,25 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                        <GoalsSection teamName={awayTeam?.name || ''} goals={aggregatedGoals.away} editable={false} />
                        <Separator />
                        <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={aggregatedPenalties.away} />
-                       <Separator />
-                       <PlayerStatsSection
-                         team="away"
-                         teamName={awayTeam?.name || ''}
-                         allPlayers={awayTeam?.players}
-                         playerStats={aggregatedStats.away}
-                         attendance={localSummary.attendance.away}
-                         editingAttendanceSet={localAttendance.away}
-                         editable={false}
-                         showAttendanceControls={!isReadOnly}
-                         isAttendanceEditing={isAttendanceEditing}
-                         onToggleAttendance={handleToggleAttendance}
-                         onEditToggle={setIsAttendanceEditing}
-                         onSave={handleSaveAttendance}
-                       />
+                       {state.config.showShotsData && (
+                         <>
+                           <Separator />
+                           <PlayerStatsSection
+                             team="away"
+                             teamName={awayTeam?.name || ''}
+                             allPlayers={awayTeam?.players}
+                             playerStats={aggregatedStats.away}
+                             attendance={localSummary.attendance.away}
+                             editingAttendanceSet={localAttendance.away}
+                             editable={false}
+                             showAttendanceControls={!isReadOnly}
+                             isAttendanceEditing={isAttendanceEditing}
+                             onToggleAttendance={handleToggleAttendance}
+                             onEditToggle={setIsAttendanceEditing}
+                             onSave={handleSaveAttendance}
+                           />
+                         </>
+                       )}
                        {localSummary.shootout && localSummary.shootout.awayAttempts.length > 0 && (
                          <>
                            <Separator />
@@ -543,8 +555,9 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                  </div>
               </ScrollArea>
           </TabsContent>
-          
-          <TabsContent value="statsByPeriod" className="flex-grow overflow-hidden mt-4">
+
+          {state.config.showShotsData && (
+            <TabsContent value="statsByPeriod" className="flex-grow overflow-hidden mt-4">
              <ScrollArea className="h-full pr-6 -mr-6">
                 {!isReadOnly && (
                     <div className="flex justify-end pr-2 mb-4">
@@ -608,6 +621,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                  </div>
               </ScrollArea>
           </TabsContent>
+          )}
         </Tabs>
 
         <DialogFooter className="border-t pt-4 mt-auto">
