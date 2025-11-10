@@ -63,7 +63,17 @@ export class SupabaseStorageProvider implements StorageProvider {
     async readFile(filePath: string): Promise<string> {
         const { data, error } = await this.supabase.storage.from(this.bucket).download(filePath);
         if (error) {
-            console.error(error);
+            // Check for the existence of originalError for more detailed logging
+            if ('originalError' in error && typeof error.originalError === 'object' && error.originalError !== null && 'json' in error.originalError && typeof (error.originalError as any).json === 'function') {
+                (async () => {
+                    try {
+                        const errorBody = await (error.originalError as Response).json();
+                        console.error('Detailed Supabase error:', JSON.stringify(errorBody, null, 2));
+                    } catch (e) {
+                        console.error('Failed to parse Supabase error body.');
+                    }
+                })();
+            }
             if (error.message.includes('not found')) {
                 throw new Error(`File not found in Supabase: ${filePath}`); // Match S3/local behavior
             }
