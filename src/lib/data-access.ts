@@ -1,5 +1,6 @@
 import type { ConfigState, LiveState, MatchData, Tournament, GameSummary } from '@/types';
 import { storageProvider } from './storage';
+import { FileNotFoundError } from './storage/providers';
 
 // --- High-Level Data Access Functions ---
 
@@ -10,12 +11,12 @@ async function readJsonFile<T>(filePath: string): Promise<T | null> {
         console.log(`[data-access] Successfully read '${filePath}'. Content length: ${data.length}`);
         return JSON.parse(data) as T;
     } catch (error) {
-        if (error instanceof Error && (('code' in error && error.code === 'ENOENT') || error.name === 'NoSuchKey')) {
+        if (error instanceof FileNotFoundError) {
             console.warn(`[data-access] File not found: '${filePath}'. This may be normal.`);
             return null; // File doesn't exist, a valid case.
         }
-        // Log the full error for better diagnostics
-        console.error(`[data-access] Critical error reading '${filePath}':`, JSON.stringify(error, null, 2));
+        // For any other kind of error, log it as a critical failure.
+        console.error(`[data-access] Critical error reading '${filePath}':`, error);
         throw new Error(`Failed to read data file: ${filePath}`);
     }
 }

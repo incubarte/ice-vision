@@ -17,9 +17,24 @@ function getStorageDir(): string {
     return path.join(process.cwd(), 'storage');
 }
 
+// --- Custom Error for Abstraction ---
+
+export class FileNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'FileNotFoundError';
+    }
+}
+
 // --- 1. The Storage Provider Interface ---
 
 export interface StorageProvider {
+    /**
+     * Reads a file from the storage provider.
+     * @param filePath The path to the file.
+     * @returns A promise that resolves with the file content as a string.
+     * @throws {FileNotFoundError} If the file does not exist.
+     */
     readFile(filePath: string): Promise<string>;
     writeFile(filePath: string, content: string): Promise<void>;
     deleteFile(filePath: string): Promise<void>;
@@ -63,19 +78,22 @@ export class SupabaseStorageProvider implements StorageProvider {
     async readFile(filePath: string): Promise<string> {
         const { data, error } = await this.supabase.storage.from(this.bucket).download(filePath);
         if (error) {
+            if ('status' in error && error.status === 404) {
+                throw new FileNotFoundError(`File not found in Supabase: ${filePath}`);
+            }
             // Check for the existence of originalError for more detailed logging
-            if ('originalError' in error && typeof error.originalError === 'object' && error.originalError !== null && 'json' in error.originalError && typeof (error.originalError as any).json === 'function') {
+            else if ('originalError' in error && typeof error.originalError === 'object' && error.originalError !== null && 'json' in error.originalError && typeof (error.originalError as any).json === 'function') {
                 (async () => {
                     try {
                         const errorBody = await (error.originalError as Response).json();
+                        if (errorBody.status === 404) {
+                            throw new FileNotFoundError(`File not found in Supabase: ${filePath}`);
+                        }
                         console.error('Detailed Supabase error:', JSON.stringify(errorBody, null, 2));
                     } catch (e) {
                         console.error('Failed to parse Supabase error body.');
                     }
                 })();
-            }
-            if (error.message.includes('not found')) {
-                throw new Error(`File not found in Supabase: ${filePath}`); // Match S3/local behavior
             }
             throw error;
         }
@@ -143,12 +161,20 @@ export class S3StorageProvider implements StorageProvider {
     }
 
     async readFile(filePath: string): Promise<string> {
-        const command = new GetObjectCommand({ Bucket: this.bucket, Key: filePath });
-        const { Body } = await this.s3.send(command);
-        if (!Body) {
-            throw new Error(`File not found in S3: ${filePath}`);
+        try {
+            const command = new GetObjectCommand({ Bucket: this.bucket, Key: filePath });
+            const { Body } = await this.s3.send(command);
+            if (!Body) {
+                // This case is unlikely if GetObject succeeds, but good for safety
+                throw new FileNotFoundError(`File not found in S3: ${filePath}`);
+            }
+            return this.streamToString(Body);
+        } catch (error) {
+            if (error instanceof Error && error.name === 'NoSuchKey') {
+                throw new FileNotFoundError(`File not found in S3: ${filePath}`);
+            }
+            throw error;
         }
-        return this.streamToString(Body);
     }
 
     async writeFile(filePath: string, content: string): Promise<void> {
@@ -202,7 +228,14 @@ export class LocalFileStorageProvider implements StorageProvider {
     }
 
     async readFile(filePath: string): Promise<string> {
-        return fs.readFile(this.resolvePath(filePath), 'utf-8');
+        try {
+            return await fs.readFile(this.resolvePath(filePath), 'utf-8');
+        } catch (error) {
+            if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+                throw new FileNotFoundError(`File not found on local disk: ${filePath}`);
+            }
+            throw error;
+        }
     }
 
     async writeFile(filePath: string, content: string): Promise<void> {
