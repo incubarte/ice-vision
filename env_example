@@ -2,6 +2,9 @@
 #   - local: Lee y escribe archivos directamente en la carpeta /src/data del proyecto.
 #   - googledrive: (No implementado) Usaría Google Drive como base de datos principal.
 #   - googledrive_override: Lee desde los archivos locales para velocidad, pero sincroniza periódicamente desde Google Drive en segundo plano. Las escrituras están deshabilitadas.
+#   - s3
+#   - supabase_ro: readonly
+#   - supabase_rw: read/write
 STORAGE_PROVIDER=googledrive_override
 
 # El ID de la carpeta raíz en Google Drive que contiene los datos de la aplicación (config.json, live.json, carpeta tournaments).
@@ -12,3 +15,15 @@ GOOGLE_DRIVE_SYNC_INTERVAL_MINUTES=20
 
 # Poner en 'true' para deshabilitar todas las páginas de edición y controles, útil para mostrar solo el scoreboard.
 NEXT_PUBLIC_READ_ONLY=true
+
+# --- AWS configuration for bucket ---
+AWS_S3_BUCKET_NAME="your-unique-bucket-name"
+AWS_S3_REGION="your-chosen-region"
+AWS_ACCESS_KEY_ID="your-access-key-id"
+AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+
+# --- Supabase Configuration for bucket ---
+SUPABASE_URL="your-project-url"
+SUPABASE_BUCKET="your-single-bucket-name"
+SUPABASE_SERVICE_KEY="your-service-role-secret-key"   # for rw
+SUPABASE_ANON_KEY="your-anon-public-key"              # for ro

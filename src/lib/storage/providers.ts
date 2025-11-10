@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Helper function to get the storage directory from environment or default
 function getStorageDir(): string {
@@ -28,7 +29,79 @@ export interface StorageProvider {
 
 // --- 2. Local Filesystem Implementation ---
 
-// --- 3. S3 Implementation ---
+// --- 3. Supabase Implementation ---
+
+export class SupabaseStorageProvider implements StorageProvider {
+    private supabase: SupabaseClient;
+    private bucket: string;
+    private mode: 'rw' | 'ro';
+
+    constructor(mode: 'rw' | 'ro') {
+        this.mode = mode;
+        const supabaseUrl = process.env.SUPABASE_URL!;
+        this.bucket = process.env.SUPABASE_BUCKET!;
+
+        if (!this.bucket) {
+            throw new Error('SUPABASE_BUCKET environment variable is not set.');
+        }
+
+        if (mode === 'rw') {
+            const serviceKey = process.env.SUPABASE_SERVICE_KEY!;
+            if (!serviceKey) {
+                throw new Error('Supabase service key is not set for RW mode.');
+            }
+            this.supabase = createClient(supabaseUrl, serviceKey);
+        } else { // ro mode
+            const anonKey = process.env.SUPABASE_ANON_KEY!;
+            if (!anonKey) {
+                throw new Error('Supabase anon key is not set for RO mode.');
+            }
+            this.supabase = createClient(supabaseUrl, anonKey);
+        }
+    }
+
+    async readFile(filePath: string): Promise<string> {
+        const { data, error } = await this.supabase.storage.from(this.bucket).download(filePath);
+        if (error) {
+            if (error.message.includes('not found')) {
+                throw new Error(`File not found in Supabase: ${filePath}`); // Match S3/local behavior
+            }
+            throw error;
+        }
+        return data.text();
+    }
+
+    async writeFile(filePath: string, content: string): Promise<void> {
+        if (this.mode === 'ro') throw new Error('Cannot write in read-only mode.');
+        const { error } = await this.supabase.storage.from(this.bucket).upload(filePath, content, { upsert: true, contentType: 'application/json' });
+        if (error) throw error;
+    }
+
+    async deleteFile(filePath: string): Promise<void> {
+        if (this.mode === 'ro') throw new Error('Cannot delete in read-only mode.');
+        const { error } = await this.supabase.storage.from(this.bucket).remove([filePath]);
+        if (error) throw error;
+    }
+
+    async listFiles(directoryPath: string): Promise<string[]> {
+        const { data, error } = await this.supabase.storage.from(this.bucket).list(directoryPath, { limit: 1000 });
+        if (error) throw error;
+        return data?.map(file => file.name) || [];
+    }
+
+    async deleteFolder(directoryPath: string): Promise<void> {
+        if (this.mode === 'ro') throw new Error('Cannot delete in read-only mode.');
+        const { data, error } = await this.supabase.storage.from(this.bucket).list(directoryPath);
+        if (error) throw error;
+        if (!data || data.length === 0) return;
+
+        const filesToRemove = data.map(file => `${directoryPath}/${file.name}`);
+        const { error: removeError } = await this.supabase.storage.from(this.bucket).remove(filesToRemove);
+        if (removeError) throw removeError;
+    }
+}
+
+// --- 4. S3 Implementation ---
 
 export class S3StorageProvider implements StorageProvider {
     private s3: S3Client;
