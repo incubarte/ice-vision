@@ -83,17 +83,22 @@ export class SupabaseStorageProvider implements StorageProvider {
             }
             // Check for the existence of originalError for more detailed logging
             else if ('originalError' in error && typeof error.originalError === 'object' && error.originalError !== null && 'json' in error.originalError && typeof (error.originalError as any).json === 'function') {
-                await (async () => {
+                const errorBody = await (async () => {
                     try {
-                        const errorBody = await (error.originalError as Response).json();
-                        if (errorBody.statusCode === "404") {
-                            throw new FileNotFoundError(`File not found in Supabase: ${filePath}`);
-                        }
-                        console.error('Detailed Supabase error:', JSON.stringify(errorBody, null, 2));
+                        return await (error.originalError as Response).json();
                     } catch (e) {
                         console.error('Failed to parse Supabase error body.');
+                        return null;
                     }
                 })();
+
+                if (errorBody && errorBody.statusCode === '404') {
+                    throw new FileNotFoundError(`File not found in Supabase: ${filePath}`);
+                }
+                // If it's not a 404, log the detailed error for debugging
+                if (errorBody) {
+                    console.error('Detailed Supabase error:', JSON.stringify(errorBody, null, 2));
+                }
             }
             throw error;
         }
