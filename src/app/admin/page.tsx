@@ -160,13 +160,51 @@ function MatchStatusCard() {
 function SupabaseSyncCard() {
     const { toast } = useToast();
     const [isSyncing, setIsSyncing] = useState(false);
+    const [currentFile, setCurrentFile] = useState('');
+    const [progress, setProgress] = useState({ filesDownloaded: 0, totalFiles: 0 });
 
     const handleSyncFromSupabase = async () => {
         setIsSyncing(true);
+        setCurrentFile('Iniciando sincronización...');
+        setProgress({ filesDownloaded: 0, totalFiles: 0 });
+
+        const sessionId = Math.random().toString(36).substring(7);
+
         try {
-            const response = await fetch('/api/sync-from-supabase', {
-                method: 'POST'
+            // Start the sync process
+            const syncPromise = fetch('/api/sync-from-supabase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId })
             });
+
+            // Poll for progress updates
+            const pollInterval = setInterval(async () => {
+                try {
+                    const progressResponse = await fetch(`/api/sync-from-supabase/progress?sessionId=${sessionId}`);
+                    const progressData = await progressResponse.json();
+
+                    if (progressData.currentFile) {
+                        setCurrentFile(progressData.currentFile);
+                    }
+                    if (progressData.totalFiles) {
+                        setProgress({
+                            filesDownloaded: progressData.filesDownloaded || 0,
+                            totalFiles: progressData.totalFiles
+                        });
+                    }
+
+                    if (progressData.isComplete) {
+                        clearInterval(pollInterval);
+                    }
+                } catch (err) {
+                    console.error('Error polling progress:', err);
+                }
+            }, 300); // Poll every 300ms
+
+            // Wait for sync to complete
+            const response = await syncPromise;
+            clearInterval(pollInterval);
 
             const data = await response.json();
 
@@ -177,9 +215,9 @@ function SupabaseSyncCard() {
 
                 toast({
                     title: "✅ Sincronización Completada",
-                    description: `Se descargaron ${data.filesDownloaded} de ${data.totalFiles} archivos desde Supabase a: ${data.localStorageDir}`,
+                    description: `Se descargaron ${data.filesDownloaded} de ${data.totalFiles} archivos desde Supabase. La página se recargará para actualizar el contexto.`,
                     className: "bg-green-600 text-white border-green-700",
-                    duration: 10000,
+                    duration: 3000,
                 });
 
                 if (data.errors && data.errors.length > 0) {
@@ -188,8 +226,32 @@ function SupabaseSyncCard() {
                         title: "⚠️ Algunos archivos fallaron",
                         description: `${data.errors.length} archivos tuvieron errores. Ver consola para detalles.`,
                         variant: "destructive",
+                        duration: 3000,
                     });
                 }
+
+                // Hard reload after 2 seconds to clear browser cache and refresh context
+                setTimeout(() => {
+                    // Clear localStorage cache for game state to force reload from server
+                    if (typeof window !== 'undefined') {
+                        if (typeof localStorage !== 'undefined') {
+                            // Clear any cached game state/config that might prevent reload
+                            const keysToKeep = ['auth-token']; // Keep authentication
+                            const allKeys = Object.keys(localStorage);
+                            allKeys.forEach(key => {
+                                if (!keysToKeep.includes(key)) {
+                                    localStorage.removeItem(key);
+                                }
+                            });
+                        }
+
+                        // Force hard reload with cache busting
+                        // This ensures the browser doesn't use cached responses
+                        const currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('_t', Date.now().toString());
+                        window.location.href = currentUrl.toString();
+                    }
+                }, 2000);
             } else {
                 throw new Error(data.error || 'Error desconocido');
             }
@@ -202,6 +264,8 @@ function SupabaseSyncCard() {
             });
         } finally {
             setIsSyncing(false);
+            setCurrentFile('');
+            setProgress({ filesDownloaded: 0, totalFiles: 0 });
         }
     };
 
@@ -225,6 +289,35 @@ function SupabaseSyncCard() {
                         <strong> sobreescribiendo</strong> los archivos existentes en tu almacenamiento local.
                     </p>
                 </div>
+
+                {isSyncing && (
+                    <div className="bg-purple-100 dark:bg-purple-900/50 p-4 rounded-lg border border-purple-300 dark:border-purple-700 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+                                Progreso: {progress.filesDownloaded} / {progress.totalFiles}
+                            </span>
+                            <span className="text-xs text-purple-700 dark:text-purple-300">
+                                {progress.totalFiles > 0
+                                    ? `${Math.round((progress.filesDownloaded / progress.totalFiles) * 100)}%`
+                                    : '0%'
+                                }
+                            </span>
+                        </div>
+                        <div className="w-full bg-purple-200 dark:bg-purple-800 rounded-full h-2">
+                            <div
+                                className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                                style={{
+                                    width: progress.totalFiles > 0
+                                        ? `${(progress.filesDownloaded / progress.totalFiles) * 100}%`
+                                        : '0%'
+                                }}
+                            />
+                        </div>
+                        <div className="text-xs text-purple-700 dark:text-purple-300 font-mono truncate">
+                            📥 {currentFile}
+                        </div>
+                    </div>
+                )}
 
                 <AlertDialog>
                     <AlertDialogTrigger asChild>

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { updateProgress, clearProgress } from './progress/route';
+import { systemEmitter } from '@/lib/server-side-store';
 
 // Helper to get storage directory
 function getStorageDir(): string {
@@ -54,8 +56,14 @@ async function listAllFilesRecursively(supabase: any, bucket: string, prefix: st
     return allFiles;
 }
 
-export async function POST() {
+export async function POST(request: Request) {
     try {
+        const body = await request.json();
+        const sessionId = body.sessionId || Math.random().toString(36).substring(7);
+
+        // Clear any previous progress
+        clearProgress(sessionId);
+
         const storageMode = process.env.STORAGE_PROVIDER || 'local';
 
         // Only allow this operation in local mode (to download FROM Supabase TO local)
@@ -88,16 +96,22 @@ export async function POST() {
 
         // List all files in the bucket recursively
         console.log('[SUPABASE-SYNC] Listing files in bucket...');
+        updateProgress(sessionId, { currentFile: 'Listando archivos...', totalFiles: 0 });
         const allFiles = await listAllFilesRecursively(supabase, bucket);
         console.log('[SUPABASE-SYNC] Found files:', allFiles);
 
         if (allFiles.length === 0) {
+            updateProgress(sessionId, { isComplete: true });
             return NextResponse.json({
                 success: true,
                 message: 'No hay archivos en Supabase para descargar',
-                filesDownloaded: 0
+                filesDownloaded: 0,
+                sessionId
             });
         }
+
+        // Update total files count
+        updateProgress(sessionId, { totalFiles: allFiles.length });
 
         // Get local storage directory
         const localStorageDir = path.join(getStorageDir(), 'data');
@@ -113,6 +127,12 @@ export async function POST() {
         // Download each file
         for (const filePath of allFiles) {
             try {
+                // Update progress with current file
+                updateProgress(sessionId, {
+                    currentFile: filePath,
+                    filesDownloaded
+                });
+
                 // Get the file from Supabase
                 const { data, error } = await supabase.storage.from(bucket).download(filePath);
 
@@ -143,7 +163,14 @@ export async function POST() {
             }
         }
 
+        // Mark as complete
+        updateProgress(sessionId, { isComplete: true, filesDownloaded });
+
         console.log(`[SUPABASE-SYNC] Sync completed. Downloaded: ${filesDownloaded}, Errors: ${errors.length}`);
+
+        // Emit sync-complete event to reload server-side cache
+        console.log('[SUPABASE-SYNC] Emitting sync-complete event to reload cache...');
+        systemEmitter.emit('sync-complete');
 
         return NextResponse.json({
             success: true,
@@ -152,11 +179,20 @@ export async function POST() {
             totalFiles: allFiles.length,
             localStorageDir,
             filesList: allFiles,
-            errors: errors.length > 0 ? errors : undefined
+            errors: errors.length > 0 ? errors : undefined,
+            sessionId
         });
 
     } catch (error) {
         console.error('Error syncing from Supabase:', error);
+        const body = await request.json().catch(() => ({}));
+        const sessionId = body.sessionId;
+        if (sessionId) {
+            updateProgress(sessionId, {
+                isComplete: true,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
         return NextResponse.json(
             { error: 'Error al sincronizar desde Supabase', details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
