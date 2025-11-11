@@ -1,4 +1,4 @@
-import type { ConfigState, LiveState, MatchData, Tournament, GameSummary } from '@/types';
+import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData } from '@/types';
 import { storageProvider } from './storage';
 import { FileNotFoundError } from './storage/providers';
 
@@ -26,7 +26,17 @@ export async function readConfig(): Promise<Partial<ConfigState>> {
 }
 
 export async function writeConfig(config: ConfigState): Promise<void> {
-    await storageProvider.writeFile('config.json', JSON.stringify(config, null, 2));
+    // Don't write tournaments array to config.json - it's stored separately
+    const { tournaments, ...configWithoutTournaments } = config;
+    await storageProvider.writeFile('config.json', JSON.stringify(configWithoutTournaments, null, 2));
+}
+
+export async function readTournaments(): Promise<Partial<TournamentsData>> {
+    return (await readJsonFile<TournamentsData>('tournaments.json')) || { tournaments: [] };
+}
+
+export async function writeTournaments(tournamentsData: TournamentsData): Promise<void> {
+    await storageProvider.writeFile('tournaments.json', JSON.stringify(tournamentsData, null, 2));
 }
 
 export async function readLiveState(): Promise<Partial<LiveState>> {

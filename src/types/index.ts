@@ -242,12 +242,17 @@ export interface ConfigFields { // Interface for easier picking of fields
   showShotsData: boolean;
 }
 
+// Separate type for tournaments data (stored in tournaments.json)
+export interface TournamentsData {
+  tournaments: Tournament[];
+}
+
 export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'name'>, ConfigFields {
   formatAndTimingsProfiles: FormatAndTimingsProfile[];
   selectedFormatAndTimingsProfileId: string | null;
   scoreboardLayout: ScoreboardLayoutSettings;
   selectedScoreboardLayoutProfileId: string | null;
-  tournaments: Tournament[];
+  tournaments: Tournament[]; // Still part of runtime state, but loaded from tournaments.json
   selectedTournamentId: string | null;
   selectedMatchCategory: string;
 }

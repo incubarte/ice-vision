@@ -252,6 +252,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'HYDRATE_TOURNAMENT_DETAILS': {
         const { tournamentData } = action.payload;
         if (!tournamentData) return state;
+        console.log('[Reducer] HYDRATE_TOURNAMENT_DETAILS', tournamentData.id, 'teams:', tournamentData.teams?.length, 'categories:', tournamentData.categories?.length);
         const newTournaments = state.config.tournaments.map(t =>
             t.id === tournamentData.id ? { ...t, ...tournamentData } : t
         );
@@ -1623,7 +1624,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
         console.error("Error fetching tournament details:", error);
     }
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     fetchInitialData();
@@ -1656,12 +1657,16 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     const { selectedTournamentId, tournaments } = state.config;
     if (selectedTournamentId) {
         const tournament = tournaments.find(t => t.id === selectedTournamentId);
+        console.log('[GameState] Selected tournament:', selectedTournamentId, 'Has teams?', !!tournament?.teams);
         // Fetch details only if we don't have them (i.e., no teams or matches array)
         if (tournament && !tournament.teams) {
+            console.log('[GameState] Fetching tournament details for', selectedTournamentId);
             fetchTournamentDetails(selectedTournamentId);
         }
     }
-  }, [state.config.selectedTournamentId, state.config.tournaments, fetchTournamentDetails]);
+    // Only trigger when selectedTournamentId changes, NOT when tournaments array changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.config.selectedTournamentId, fetchTournamentDetails]);
 
 
   const prevStateRef = useRef<GameState>(state);

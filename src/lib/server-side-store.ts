@@ -1,12 +1,12 @@
 
-import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState } from '@/types';
+import type { LiveGameState, ConfigState, RemoteCommand, AccessRequest, TunnelState, TournamentsData } from '@/types';
 import { EventEmitter } from 'events';
 import { headers } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import localtunnel, { type Tunnel } from 'localtunnel';
-import { readConfig, readLiveState } from './data-access';
+import { readConfig, readLiveState, readTournaments } from './data-access';
 
 let accessRequests: Map<string, AccessRequest> = new Map();
 
@@ -76,14 +76,20 @@ if (process.env.NODE_ENV !== 'production') {
 // --- In-memory Caching ---
 let storedConfig: ConfigState | null = null;
 let storedGameState: LiveGameState | null = null;
+let storedTournaments: TournamentsData | null = null;
 
 // Function to load/reload all data from disk into the cache
 export async function reloadCacheFromDisk() {
     console.log('[Cache] Reloading data from disk...');
     try {
-        const [config, liveState] = await Promise.all([readConfig(), readLiveState()]);
+        const [config, liveState, tournaments] = await Promise.all([
+            readConfig(),
+            readLiveState(),
+            readTournaments()
+        ]);
         storedConfig = config as ConfigState;
         storedGameState = liveState as LiveGameState;
+        storedTournaments = tournaments as TournamentsData;
         console.log('[Cache] Reload complete.');
     } catch (error) {
         console.error('[Cache] Failed to reload cache from disk:', error);
@@ -98,11 +104,29 @@ export async function getConfig(): Promise<ConfigState | null> {
   if (!storedConfig) {
     await reloadCacheFromDisk();
   }
+  // Merge config with tournaments from separate cache
+  if (storedConfig && storedTournaments) {
+    return {
+      ...storedConfig,
+      tournaments: storedTournaments.tournaments
+    };
+  }
   return storedConfig;
 }
 
 export function setConfig(newConfig: ConfigState): void {
   storedConfig = newConfig;
+}
+
+export async function getTournaments(): Promise<TournamentsData | null> {
+  if (!storedTournaments) {
+    await reloadCacheFromDisk();
+  }
+  return storedTournaments;
+}
+
+export function setTournaments(newTournaments: TournamentsData): void {
+  storedTournaments = newTournaments;
 }
 
 export async function updateTunnelState(updates: Partial<TunnelState>) {

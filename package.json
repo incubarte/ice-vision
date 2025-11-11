@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:tournaments": "tsx scripts/migrate-tournaments.ts"
   },
   "dependencies": {
     "@genkit-ai/next": "^1.8.0",

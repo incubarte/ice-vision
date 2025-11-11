@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import type { Tournament } from '@/types';
-import { readTournament, writeTournament, readConfig } from '@/lib/data-access';
+import { readTournament, writeTournament, readTournaments } from '@/lib/data-access';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     const tournamentId = params.id;
@@ -10,18 +10,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
         if (!tournamentDetails) {
             // If tournament directory doesn't exist, we find its metadata and return a valid empty structure.
-            const config = await readConfig();
-            const tournamentMeta = (config?.tournaments || []).find((t: any) => t.id === tournamentId);
+            const tournamentsData = await readTournaments();
+            const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
 
             if (!tournamentMeta) {
-                 return NextResponse.json({ message: `Tournament metadata with id ${tournamentId} not found in config.json` }, { status: 404 });
+                 return NextResponse.json({ message: `Tournament metadata with id ${tournamentId} not found in tournaments.json` }, { status: 404 });
             }
             // Return a valid, empty tournament structure. This is NOT an error.
             return NextResponse.json({ tournament: { ...tournamentMeta, teams: [], categories: [], matches: [] } });
         }
 
-        const config = await readConfig();
-        const tournamentMeta = (config?.tournaments || []).find((t: any) => t.id === tournamentId);
+        const tournamentsData = await readTournaments();
+        const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
         
         const fullTournament = {
             ...tournamentMeta,

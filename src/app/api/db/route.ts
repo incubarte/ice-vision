@@ -1,8 +1,8 @@
 
 import { NextResponse } from 'next/server';
-import type { GameState, ConfigState, LiveState } from '@/types';
-import { setGameState, setConfig, getGameState, getConfig } from '@/lib/server-side-store';
-import { readConfig, writeConfig, readLiveState, writeLiveState } from '@/lib/data-access';
+import type { GameState, ConfigState, LiveState, TournamentsData } from '@/types';
+import { setGameState, setConfig, getGameState, getConfig, setTournaments, getTournaments } from '@/lib/server-side-store';
+import { readConfig, writeConfig, readLiveState, writeLiveState, readTournaments, writeTournaments } from '@/lib/data-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,13 +38,19 @@ export async function POST(request: Request) {
 
     if (config) {
         const { tournaments, ...baseConfig } = config;
-        const tournamentMetas = (tournaments || []).map(t => ({ id: t.id, name: t.name, status: t.status }));
-        const configToSave = { ...baseConfig, tournaments: tournamentMetas };
-        
-        await writeConfig(configToSave as ConfigState);
-        setConfig(config); // Update in-memory cache
+
+        // Save tournaments separately to tournaments.json
+        if (tournaments && tournaments.length > 0) {
+            const tournamentMetas = tournaments.map(t => ({ id: t.id, name: t.name, status: t.status }));
+            await writeTournaments({ tournaments: tournamentMetas });
+            setTournaments({ tournaments: tournamentMetas }); // Update in-memory cache
+        }
+
+        // Save config without tournaments to config.json
+        await writeConfig(baseConfig as ConfigState);
+        setConfig(config); // Update in-memory cache with full config (including tournaments)
     }
-    
+
     if (live) {
         await writeLiveState(live);
         setGameState(live); // Update in-memory cache and emit event
