@@ -13,7 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, ShieldAlert, LogIn, SlidersHorizontal, Info, MessageSquare, CalendarCheck, Clapperboard, Download, Play, CheckCircle, XCircle, Loader2, Cloud, HardDrive } from 'lucide-react';
+import { Trash2, ShieldAlert, LogIn, SlidersHorizontal, Info, MessageSquare, CalendarCheck, Clapperboard, Download, Cloud, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from "@/hooks/use-auth";
 import { HockeyPuckSpinner } from "@/components/ui/hockey-puck-spinner";
@@ -157,40 +157,29 @@ function MatchStatusCard() {
     );
 }
 
-function S3SyncCard() {
+function SupabaseSyncCard() {
     const { toast } = useToast();
-    const [isS3Mode, setIsS3Mode] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
 
-    useEffect(() => {
-        // Check if we're in S3 mode
-        fetch('/api/storage-mode')
-            .then(res => res.json())
-            .then(data => {
-                setIsS3Mode(data.isS3);
-                setIsLoading(false);
-            })
-            .catch(err => {
-                console.error('Error checking storage mode:', err);
-                setIsLoading(false);
-            });
-    }, []);
-
-    const handleSyncFromS3 = async () => {
+    const handleSyncFromSupabase = async () => {
         setIsSyncing(true);
         try {
-            const response = await fetch('/api/sync-from-s3', {
+            const response = await fetch('/api/sync-from-supabase', {
                 method: 'POST'
             });
 
             const data = await response.json();
 
             if (response.ok && data.success) {
+                console.log('[SUPABASE-SYNC] Response data:', data);
+                console.log('[SUPABASE-SYNC] Files saved to:', data.localStorageDir);
+                console.log('[SUPABASE-SYNC] Downloaded files:', data.filesList);
+
                 toast({
                     title: "✅ Sincronización Completada",
-                    description: `Se descargaron ${data.filesDownloaded} de ${data.totalFiles} archivos desde S3.`,
+                    description: `Se descargaron ${data.filesDownloaded} de ${data.totalFiles} archivos desde Supabase a: ${data.localStorageDir}`,
                     className: "bg-green-600 text-white border-green-700",
+                    duration: 10000,
                 });
 
                 if (data.errors && data.errors.length > 0) {
@@ -205,10 +194,10 @@ function S3SyncCard() {
                 throw new Error(data.error || 'Error desconocido');
             }
         } catch (error) {
-            console.error('Error syncing from S3:', error);
+            console.error('Error syncing from Supabase:', error);
             toast({
                 title: "❌ Error de Sincronización",
-                description: error instanceof Error ? error.message : "No se pudo sincronizar desde S3",
+                description: error instanceof Error ? error.message : "No se pudo sincronizar desde Supabase",
                 variant: "destructive",
             });
         } finally {
@@ -216,32 +205,24 @@ function S3SyncCard() {
         }
     };
 
-    if (isLoading) {
-        return null; // Don't show anything while checking
-    }
-
-    if (isS3Mode) {
-        return null; // Don't show if already in S3 mode (no need to sync from S3 when already using S3)
-    }
-
     return (
-        <Card className="bg-amber-500/10 border-amber-500/30">
+        <Card className="bg-purple-500/10 border-purple-500/30">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-amber-600">
-                    <Cloud className="h-5 w-5" /> Sincronización desde S3
+                <CardTitle className="flex items-center gap-2 text-purple-600">
+                    <Cloud className="h-5 w-5" /> Sincronización desde Supabase
                 </CardTitle>
                 <CardDescription>
-                    Descargar y sobreescribir el almacenamiento local con los datos de Amazon S3.
+                    Descargar y sobreescribir el almacenamiento local con los datos de Supabase Storage.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-                <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <p className="text-sm text-amber-800 dark:text-amber-200 font-semibold mb-2">
-                        ⚠️ Modo Local Activo
+                <div className="bg-purple-50 dark:bg-purple-950/30 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <p className="text-sm text-purple-800 dark:text-purple-200 font-semibold mb-2">
+                        ⚠️ Descarga desde Supabase
                     </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                        La aplicación está usando almacenamiento local. Puedes descargar todos los archivos desde S3
-                        para <strong>sobreescribir</strong> tu almacenamiento local. Esta acción reemplazará los archivos existentes.
+                    <p className="text-xs text-purple-700 dark:text-purple-300">
+                        Esta operación descargará todos los archivos desde Supabase Storage y los guardará localmente,
+                        <strong> sobreescribiendo</strong> los archivos existentes en tu almacenamiento local.
                     </p>
                 </div>
 
@@ -249,33 +230,33 @@ function S3SyncCard() {
                     <AlertDialogTrigger asChild>
                         <Button
                             disabled={isSyncing}
-                            className="w-full bg-amber-600 hover:bg-amber-700"
+                            className="w-full bg-purple-600 hover:bg-purple-700"
                         >
                             {isSyncing ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Descargando desde S3...
+                                    Descargando desde Supabase...
                                 </>
                             ) : (
                                 <>
                                     <Download className="mr-2 h-4 w-4" />
-                                    <HardDrive className="mr-2 h-4 w-4" />
-                                    Descargar y Sobreescribir desde S3
+                                    <Cloud className="mr-2 h-4 w-4" />
+                                    Descargar y Sobreescribir desde Supabase
                                 </>
                             )}
                         </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>⚠️ Confirmar Sincronización desde S3</AlertDialogTitle>
+                            <AlertDialogTitle>⚠️ Confirmar Sincronización desde Supabase</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Esta acción descargará todos los archivos desde Amazon S3 y <strong>sobreescribirá</strong> los archivos locales existentes.
+                                Esta acción descargará todos los archivos desde Supabase Storage y <strong>sobreescribirá</strong> los archivos locales existentes.
                                 Los datos actuales en tu almacenamiento local serán reemplazados. ¿Estás seguro de que quieres continuar?
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleSyncFromS3} className="bg-amber-600 hover:bg-amber-700">
+                            <AlertDialogAction onClick={handleSyncFromSupabase} className="bg-purple-600 hover:bg-purple-700">
                                 Sí, Descargar y Sobreescribir
                             </AlertDialogAction>
                         </AlertDialogFooter>
@@ -366,7 +347,7 @@ export default function AdminPage() {
 
         <PerformanceSettingsCard />
 
-        <S3SyncCard />
+        <SupabaseSyncCard />
 
         <Card className="bg-destructive/10 border-destructive/30">
             <CardHeader>

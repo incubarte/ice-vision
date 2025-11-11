@@ -91,9 +91,6 @@ export async function readVersion(): Promise<number> {
  * This is now the single point of truth for modifying the version.
  */
 async function incrementVersion(): Promise<void> {
-    if (process.env.STORAGE_PROVIDER === 'googledrive_override') {
-        return;
-    }
     const versionFilePath = getVersionFilePath();
     try {
         const currentVersion = await readVersion();

@@ -1,29 +1,16 @@
+# Storage Provider Configuration
 # Opciones válidas:
-#   - local: Lee y escribe archivos directamente en la carpeta /src/data del proyecto.
-#   - googledrive: (No implementado) Usaría Google Drive como base de datos principal.
-#   - googledrive_override: Lee desde los archivos locales para velocidad, pero sincroniza periódicamente desde Google Drive en segundo plano. Las escrituras están deshabilitadas.
-#   - s3
-#   - supabase_ro: readonly
-#   - supabase_rw: read/write
-STORAGE_PROVIDER=googledrive_override
-
-# El ID de la carpeta raíz en Google Drive que contiene los datos de la aplicación (config.json, live.json, carpeta tournaments).
-GOOGLE_DRIVE_FOLDER_ID=1SKZbrlozaDNLgKx_yDTbFgDrp7_FHhR9
-
-# Define el intervalo en minutos para la sincronización en segundo plano cuando se usa el modo 'googledrive_override'.
-GOOGLE_DRIVE_SYNC_INTERVAL_MINUTES=20
+#   - local: Lee y escribe archivos directamente en la carpeta /storage/data del proyecto.
+#   - supabase_ro: Lee desde Supabase Storage (read-only, usa SUPABASE_ANON_KEY).
+#   - supabase_rw: Lee y escribe en Supabase Storage (read/write, usa SUPABASE_SERVICE_KEY).
+STORAGE_PROVIDER=local
 
 # Poner en 'true' para deshabilitar todas las páginas de edición y controles, útil para mostrar solo el scoreboard.
-NEXT_PUBLIC_READ_ONLY=true
+NEXT_PUBLIC_READ_ONLY=false
 
-# --- AWS configuration for bucket ---
-AWS_S3_BUCKET_NAME="your-unique-bucket-name"
-AWS_S3_REGION="your-chosen-region"
-AWS_ACCESS_KEY_ID="your-access-key-id"
-AWS_SECRET_ACCESS_KEY="your-secret-access-key"
-
-# --- Supabase Configuration for bucket ---
-SUPABASE_URL="your-project-url"
-SUPABASE_BUCKET="your-single-bucket-name"
-SUPABASE_SERVICE_KEY="your-service-role-secret-key"   # for rw
-SUPABASE_ANON_KEY="your-anon-public-key"              # for ro
+# --- Supabase Configuration ---
+# Solo necesario si STORAGE_PROVIDER es supabase_ro o supabase_rw
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_BUCKET="your-bucket-name"
+SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1dmhpYnpuZWJ3ZGJ4Y3R0dWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NTg0NjksImV4cCI6MjA3ODMzNDQ2OX0.wuY5jQSKdiPzP7FdXy6t0zKqdf_QhRF6CO0Y3UAUFuk"   # Solo para supabase_rw
+SUPABASE_ANON_KEY=""              # Solo para supabase_ro
