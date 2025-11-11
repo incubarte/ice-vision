@@ -13,7 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, ShieldAlert, LogIn, SlidersHorizontal, Info, MessageSquare, CalendarCheck, Clapperboard, Download, Play, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Trash2, ShieldAlert, LogIn, SlidersHorizontal, Info, MessageSquare, CalendarCheck, Clapperboard, Download, Play, CheckCircle, XCircle, Loader2, Cloud, HardDrive } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from "@/hooks/use-auth";
 import { HockeyPuckSpinner } from "@/components/ui/hockey-puck-spinner";
@@ -157,6 +157,135 @@ function MatchStatusCard() {
     );
 }
 
+function S3SyncCard() {
+    const { toast } = useToast();
+    const [isS3Mode, setIsS3Mode] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    useEffect(() => {
+        // Check if we're in S3 mode
+        fetch('/api/storage-mode')
+            .then(res => res.json())
+            .then(data => {
+                setIsS3Mode(data.isS3);
+                setIsLoading(false);
+            })
+            .catch(err => {
+                console.error('Error checking storage mode:', err);
+                setIsLoading(false);
+            });
+    }, []);
+
+    const handleSyncFromS3 = async () => {
+        setIsSyncing(true);
+        try {
+            const response = await fetch('/api/sync-from-s3', {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                toast({
+                    title: "✅ Sincronización Completada",
+                    description: `Se descargaron ${data.filesDownloaded} de ${data.totalFiles} archivos desde S3.`,
+                    className: "bg-green-600 text-white border-green-700",
+                });
+
+                if (data.errors && data.errors.length > 0) {
+                    console.error('Errores durante la sincronización:', data.errors);
+                    toast({
+                        title: "⚠️ Algunos archivos fallaron",
+                        description: `${data.errors.length} archivos tuvieron errores. Ver consola para detalles.`,
+                        variant: "destructive",
+                    });
+                }
+            } else {
+                throw new Error(data.error || 'Error desconocido');
+            }
+        } catch (error) {
+            console.error('Error syncing from S3:', error);
+            toast({
+                title: "❌ Error de Sincronización",
+                description: error instanceof Error ? error.message : "No se pudo sincronizar desde S3",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    if (isLoading) {
+        return null; // Don't show anything while checking
+    }
+
+    if (isS3Mode) {
+        return null; // Don't show if already in S3 mode (no need to sync from S3 when already using S3)
+    }
+
+    return (
+        <Card className="bg-amber-500/10 border-amber-500/30">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-600">
+                    <Cloud className="h-5 w-5" /> Sincronización desde S3
+                </CardTitle>
+                <CardDescription>
+                    Descargar y sobreescribir el almacenamiento local con los datos de Amazon S3.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-800 dark:text-amber-200 font-semibold mb-2">
+                        ⚠️ Modo Local Activo
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                        La aplicación está usando almacenamiento local. Puedes descargar todos los archivos desde S3
+                        para <strong>sobreescribir</strong> tu almacenamiento local. Esta acción reemplazará los archivos existentes.
+                    </p>
+                </div>
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button
+                            disabled={isSyncing}
+                            className="w-full bg-amber-600 hover:bg-amber-700"
+                        >
+                            {isSyncing ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Descargando desde S3...
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    <HardDrive className="mr-2 h-4 w-4" />
+                                    Descargar y Sobreescribir desde S3
+                                </>
+                            )}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>⚠️ Confirmar Sincronización desde S3</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción descargará todos los archivos desde Amazon S3 y <strong>sobreescribirá</strong> los archivos locales existentes.
+                                Los datos actuales en tu almacenamiento local serán reemplazados. ¿Estás seguro de que quieres continuar?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleSyncFromS3} className="bg-amber-600 hover:bg-amber-700">
+                                Sí, Descargar y Sobreescribir
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardContent>
+        </Card>
+    );
+}
+
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -236,6 +365,8 @@ export default function AdminPage() {
         <MatchStatusCard />
 
         <PerformanceSettingsCard />
+
+        <S3SyncCard />
 
         <Card className="bg-destructive/10 border-destructive/30">
             <CardHeader>

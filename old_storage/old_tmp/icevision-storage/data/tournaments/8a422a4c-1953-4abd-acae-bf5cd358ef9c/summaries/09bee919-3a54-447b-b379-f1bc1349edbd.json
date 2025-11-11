@@ -1,0 +1,1157 @@
+{
+  "attendance": {
+    "home": [
+      {
+        "id": "f772d40b-1370-43ad-9584-8b5a5ce388e8",
+        "number": "17",
+        "name": "SAVCHUK ROMAN"
+      },
+      {
+        "id": "462f3918-d0db-406f-98cb-dc46d06623ce",
+        "number": "10",
+        "name": "SAN MILLAN LIONEL"
+      },
+      {
+        "id": "92076fce-dcc7-4e76-b089-faa4a164c737",
+        "number": "99",
+        "name": "ESEISA MICHEL"
+      },
+      {
+        "id": "6eb1aee6-df33-41e3-91a4-9fda5b90631f",
+        "number": "18",
+        "name": "CLEMENTINO RENZO"
+      },
+      {
+        "id": "50869ab8-810f-416f-aaf8-47ba0008aada",
+        "number": "",
+        "name": "LA GRECA NICOLAS"
+      },
+      {
+        "id": "959f3736-452b-4be0-a788-091dd7f6a396",
+        "number": "",
+        "name": "HERTNER GIANNI"
+      },
+      {
+        "id": "2b4bbc11-3d40-4e7c-9987-65ab3d9bea08",
+        "number": "",
+        "name": "ROBAINA LUCAS"
+      },
+      {
+        "id": "1eea8c7c-e6e2-48d2-a17c-1f55b1395ef7",
+        "number": "",
+        "name": "DEL GUESSO TOMAS"
+      },
+      {
+        "id": "69aa0e23-a427-4f6e-9724-7a7b66cbffdc",
+        "number": "",
+        "name": "CRISTALDO ARNALDO"
+      },
+      {
+        "id": "f7657545-18b7-4341-8444-64dfb24f517b",
+        "number": "",
+        "name": "CONTI SOFIA"
+      },
+      {
+        "id": "dccfbfdc-da9b-4bcd-8314-b4f10ad0d7fb",
+        "number": "",
+        "name": "TUBIO DAMIAN"
+      },
+      {
+        "id": "59d54d5d-0a4f-4737-af10-8f02ea2fc6cf",
+        "number": "",
+        "name": "CHEVALLIER JOSE"
+      },
+      {
+        "id": "dc433a60-f061-476b-aa6f-7cd9d95964bd",
+        "number": "",
+        "name": "LOPEZ SILVA FERMÍN"
+      },
+      {
+        "id": "8a827d69-d8fc-476b-b4b5-d87fb2d92844",
+        "number": "",
+        "name": "MONTES LUCAS"
+      },
+      {
+        "id": "dac8248a-962f-44b8-9ec2-b3b522807547",
+        "number": "",
+        "name": "NORMAN UDDSTROM CHAD"
+      },
+      {
+        "id": "1a585d5f-8bba-42ca-9657-276dc8e5a695",
+        "number": "",
+        "name": "BARVINOK SERGEI"
+      }
+    ],
+    "away": [
+      {
+        "id": "aa9e3074-c383-41cb-9c36-2911e35054d0",
+        "number": "",
+        "name": "MAZAFERRO ADRIANO"
+      },
+      {
+        "id": "7682a261-e668-4f8a-b927-ddbd063110bd",
+        "number": "1",
+        "name": "GARCIA FABCISCO"
+      },
+      {
+        "id": "5b4b40f0-ca37-4af4-94d7-8dd71f7bca93",
+        "number": "6",
+        "name": "MARINELLI EDUARDO"
+      },
+      {
+        "id": "193eb7c8-8512-48e1-a0db-924d216c09e4",
+        "number": "77",
+        "name": "CLARET AGUSTIN"
+      },
+      {
+        "id": "f076fbf7-44de-4006-a93d-839527ad54db",
+        "number": "2",
+        "name": "BOIX CRITIAN"
+      },
+      {
+        "id": "2307c748-0e30-458b-8a19-b705c3d0e837",
+        "number": "9",
+        "name": "OCAMPO NICOLAS"
+      },
+      {
+        "id": "a0e81d83-2064-410c-b668-ace200740b17",
+        "number": "23",
+        "name": "BOIX. CONTU"
+      },
+      {
+        "id": "3b99ac24-d251-404e-86a5-ea3af58614cf",
+        "number": "7",
+        "name": "BOIX BAUTI"
+      },
+      {
+        "id": "2eae4810-8035-45b7-acd3-adae8dcce29f",
+        "number": "",
+        "name": "SHENDERA IVAN"
+      },
+      {
+        "id": "5c23fa2c-16c4-4db5-93db-0fed9eac3567",
+        "number": "",
+        "name": "VAL FRAN"
+      },
+      {
+        "id": "6efa665f-261a-4a98-a05b-d3cd5345fd72",
+        "number": "",
+        "name": "BELLI GUIDO"
+      },
+      {
+        "id": "83e525a3-796b-46e9-8e3b-3de2419f9828",
+        "number": "93",
+        "name": "LOMBRAÑA FEDERICO"
+      },
+      {
+        "id": "f7f67111-2210-46e3-a46a-4cf761d3dff7",
+        "number": "",
+        "name": "LUTTERAL LIAM"
+      }
+    ]
+  },
+  "statsByPeriod": [
+    {
+      "period": "1ST",
+      "stats": {
+        "goals": {
+          "home": [
+            {
+              "team": "home",
+              "timestamp": 1762819417246,
+              "gameTime": 94368,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "18",
+                "playerName": "CLEMENTINO RENZO"
+              },
+              "assist": {
+                "playerNumber": "17",
+                "playerName": "SAVCHUK ROMAN"
+              },
+              "id": "b4ce9098-d52a-41bc-aa7d-ea4729fc7952"
+            },
+            {
+              "team": "home",
+              "timestamp": 1762819596333,
+              "gameTime": 87737,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "17",
+                "playerName": "SAVCHUK ROMAN"
+              },
+              "assist": {
+                "playerNumber": "4"
+              },
+              "id": "a239a491-9c1a-4a5c-894a-03924fd55339"
+            }
+          ],
+          "away": [
+            {
+              "team": "away",
+              "timestamp": 1762804425718,
+              "gameTime": 120000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "2",
+                "playerName": "BOIX CRITIAN"
+              },
+              "id": "b8b0db32-8387-4fae-b283-7ead8f7e87c1"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762804436764,
+              "gameTime": 120000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "assist": {
+                "playerNumber": "2",
+                "playerName": "BOIX CRITIAN"
+              },
+              "id": "11f03c5f-315f-4bd0-8d99-6ca4f1a55fb3"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762819110285,
+              "gameTime": 120000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "34"
+              },
+              "id": "97d854c9-130f-4c45-a809-89dceab7cdba"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762819132157,
+              "gameTime": 120000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "111"
+              },
+              "assist": {
+                "playerNumber": "4"
+              },
+              "id": "6fec015a-fe4e-452f-9f0f-334ceb1b2609"
+            }
+          ]
+        },
+        "penalties": {
+          "home": [
+            {
+              "id": "28062ca3-ff70-4db2-9b93-2e53ff9126f8",
+              "team": "home",
+              "playerNumber": "17",
+              "playerName": "SAVCHUK ROMAN",
+              "penaltyName": "Menor",
+              "initialDuration": 120,
+              "reducesPlayerCount": true,
+              "clearsOnGoal": true,
+              "isBenchPenalty": false,
+              "addTimestamp": 1762819392508,
+              "addGameTime": 95504,
+              "addPeriodText": "1ST",
+              "endTimestamp": 1762819638874,
+              "endGameTime": 83483,
+              "endPeriodText": "1ST",
+              "endReason": "completed",
+              "timeServed": 120
+            }
+          ],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "f772d40b-1370-43ad-9584-8b5a5ce388e8",
+              "name": "SAVCHUK ROMAN",
+              "number": "17",
+              "shots": 0,
+              "goals": 1,
+              "assists": 1
+            },
+            {
+              "id": "462f3918-d0db-406f-98cb-dc46d06623ce",
+              "name": "SAN MILLAN LIONEL",
+              "number": "10",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "92076fce-dcc7-4e76-b089-faa4a164c737",
+              "name": "ESEISA MICHEL",
+              "number": "99",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6eb1aee6-df33-41e3-91a4-9fda5b90631f",
+              "name": "CLEMENTINO RENZO",
+              "number": "18",
+              "shots": 0,
+              "goals": 1,
+              "assists": 0
+            },
+            {
+              "id": "50869ab8-810f-416f-aaf8-47ba0008aada",
+              "name": "LA GRECA NICOLAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "959f3736-452b-4be0-a788-091dd7f6a396",
+              "name": "HERTNER GIANNI",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2b4bbc11-3d40-4e7c-9987-65ab3d9bea08",
+              "name": "ROBAINA LUCAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1eea8c7c-e6e2-48d2-a17c-1f55b1395ef7",
+              "name": "DEL GUESSO TOMAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "69aa0e23-a427-4f6e-9724-7a7b66cbffdc",
+              "name": "CRISTALDO ARNALDO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f7657545-18b7-4341-8444-64dfb24f517b",
+              "name": "CONTI SOFIA",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dccfbfdc-da9b-4bcd-8314-b4f10ad0d7fb",
+              "name": "TUBIO DAMIAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "59d54d5d-0a4f-4737-af10-8f02ea2fc6cf",
+              "name": "CHEVALLIER JOSE",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dc433a60-f061-476b-aa6f-7cd9d95964bd",
+              "name": "LOPEZ SILVA FERMÍN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "8a827d69-d8fc-476b-b4b5-d87fb2d92844",
+              "name": "MONTES LUCAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dac8248a-962f-44b8-9ec2-b3b522807547",
+              "name": "NORMAN UDDSTROM CHAD",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1a585d5f-8bba-42ca-9657-276dc8e5a695",
+              "name": "BARVINOK SERGEI",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "aa9e3074-c383-41cb-9c36-2911e35054d0",
+              "name": "MAZAFERRO ADRIANO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7682a261-e668-4f8a-b927-ddbd063110bd",
+              "name": "GARCIA FABCISCO",
+              "number": "1",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5b4b40f0-ca37-4af4-94d7-8dd71f7bca93",
+              "name": "MARINELLI EDUARDO",
+              "number": "6",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "193eb7c8-8512-48e1-a0db-924d216c09e4",
+              "name": "CLARET AGUSTIN",
+              "number": "77",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f076fbf7-44de-4006-a93d-839527ad54db",
+              "name": "BOIX CRITIAN",
+              "number": "2",
+              "shots": 0,
+              "goals": 1,
+              "assists": 1
+            },
+            {
+              "id": "2307c748-0e30-458b-8a19-b705c3d0e837",
+              "name": "OCAMPO NICOLAS",
+              "number": "9",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "a0e81d83-2064-410c-b668-ace200740b17",
+              "name": "BOIX. CONTU",
+              "number": "23",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "3b99ac24-d251-404e-86a5-ea3af58614cf",
+              "name": "BOIX BAUTI",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2eae4810-8035-45b7-acd3-adae8dcce29f",
+              "name": "SHENDERA IVAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5c23fa2c-16c4-4db5-93db-0fed9eac3567",
+              "name": "VAL FRAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6efa665f-261a-4a98-a05b-d3cd5345fd72",
+              "name": "BELLI GUIDO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "83e525a3-796b-46e9-8e3b-3de2419f9828",
+              "name": "LOMBRAÑA FEDERICO",
+              "number": "93",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f7f67111-2210-46e3-a46a-4cf761d3dff7",
+              "name": "LUTTERAL LIAM",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "period": "2ND",
+      "stats": {
+        "goals": {
+          "home": [
+            {
+              "team": "home",
+              "timestamp": 1762741495569,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "1"
+              },
+              "id": "c126c610-ce69-4b66-8654-f37e9cf3db1e"
+            }
+          ],
+          "away": [
+            {
+              "team": "away",
+              "timestamp": 1762741497865,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "1",
+                "playerName": "GARCIA FABCISCO"
+              },
+              "id": "de520c76-5cd0-4482-b0ec-e52a63ad9522"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762821337744,
+              "gameTime": 116684,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "3"
+              },
+              "id": "3c9e3020-7a39-477f-bcc5-e0906a3deccc"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762821354734,
+              "gameTime": 114987,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "51965c3a-8765-4a8a-9ccb-b8f8538599a2"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762821373841,
+              "gameTime": 113080,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "5"
+              },
+              "id": "3a61fbb2-0e5f-4f7d-bdae-aa5b439b6b1e"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762821381461,
+              "gameTime": 112316,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "5"
+              },
+              "id": "2b97e8c7-a369-4acd-97c0-512e04e49749"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762822567457,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "5"
+              },
+              "id": "dab0253f-afa2-4cc1-bbed-35e7a7730b59"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762822600921,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "5"
+              },
+              "id": "30854c93-b369-4982-9e91-4b88f6f8513d"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762822607422,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "43"
+              },
+              "id": "d1285a8b-a60f-4e19-b3a4-69e22e46e7dc"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762822908560,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "262045e7-252e-4a39-a1ec-2c901cbbdabe"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762822919437,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "679f6196-d676-48c2-8c3e-4fd47f073959"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762823453612,
+              "gameTime": 119747,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "54"
+              },
+              "id": "919bd9ce-b127-46ff-a842-641ef9382f16"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762823458169,
+              "gameTime": 119296,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "37ccde12-bb33-4efd-8f39-8d0e4ccdff0b"
+            }
+          ]
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "f772d40b-1370-43ad-9584-8b5a5ce388e8",
+              "name": "SAVCHUK ROMAN",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "462f3918-d0db-406f-98cb-dc46d06623ce",
+              "name": "SAN MILLAN LIONEL",
+              "number": "10",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "92076fce-dcc7-4e76-b089-faa4a164c737",
+              "name": "ESEISA MICHEL",
+              "number": "99",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6eb1aee6-df33-41e3-91a4-9fda5b90631f",
+              "name": "CLEMENTINO RENZO",
+              "number": "18",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "50869ab8-810f-416f-aaf8-47ba0008aada",
+              "name": "LA GRECA NICOLAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "959f3736-452b-4be0-a788-091dd7f6a396",
+              "name": "HERTNER GIANNI",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2b4bbc11-3d40-4e7c-9987-65ab3d9bea08",
+              "name": "ROBAINA LUCAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1eea8c7c-e6e2-48d2-a17c-1f55b1395ef7",
+              "name": "DEL GUESSO TOMAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "69aa0e23-a427-4f6e-9724-7a7b66cbffdc",
+              "name": "CRISTALDO ARNALDO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f7657545-18b7-4341-8444-64dfb24f517b",
+              "name": "CONTI SOFIA",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dccfbfdc-da9b-4bcd-8314-b4f10ad0d7fb",
+              "name": "TUBIO DAMIAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "59d54d5d-0a4f-4737-af10-8f02ea2fc6cf",
+              "name": "CHEVALLIER JOSE",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dc433a60-f061-476b-aa6f-7cd9d95964bd",
+              "name": "LOPEZ SILVA FERMÍN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "8a827d69-d8fc-476b-b4b5-d87fb2d92844",
+              "name": "MONTES LUCAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dac8248a-962f-44b8-9ec2-b3b522807547",
+              "name": "NORMAN UDDSTROM CHAD",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1a585d5f-8bba-42ca-9657-276dc8e5a695",
+              "name": "BARVINOK SERGEI",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "aa9e3074-c383-41cb-9c36-2911e35054d0",
+              "name": "MAZAFERRO ADRIANO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7682a261-e668-4f8a-b927-ddbd063110bd",
+              "name": "GARCIA FABCISCO",
+              "number": "1",
+              "shots": 0,
+              "goals": 1,
+              "assists": 0
+            },
+            {
+              "id": "5b4b40f0-ca37-4af4-94d7-8dd71f7bca93",
+              "name": "MARINELLI EDUARDO",
+              "number": "6",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "193eb7c8-8512-48e1-a0db-924d216c09e4",
+              "name": "CLARET AGUSTIN",
+              "number": "77",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f076fbf7-44de-4006-a93d-839527ad54db",
+              "name": "BOIX CRITIAN",
+              "number": "2",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2307c748-0e30-458b-8a19-b705c3d0e837",
+              "name": "OCAMPO NICOLAS",
+              "number": "9",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "a0e81d83-2064-410c-b668-ace200740b17",
+              "name": "BOIX. CONTU",
+              "number": "23",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "3b99ac24-d251-404e-86a5-ea3af58614cf",
+              "name": "BOIX BAUTI",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2eae4810-8035-45b7-acd3-adae8dcce29f",
+              "name": "SHENDERA IVAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5c23fa2c-16c4-4db5-93db-0fed9eac3567",
+              "name": "VAL FRAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6efa665f-261a-4a98-a05b-d3cd5345fd72",
+              "name": "BELLI GUIDO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "83e525a3-796b-46e9-8e3b-3de2419f9828",
+              "name": "LOMBRAÑA FEDERICO",
+              "number": "93",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f7f67111-2210-46e3-a46a-4cf761d3dff7",
+              "name": "LUTTERAL LIAM",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "period": "OT",
+      "stats": {
+        "goals": {
+          "home": [
+            {
+              "team": "home",
+              "timestamp": 1762741504245,
+              "gameTime": 30000,
+              "periodText": "OT",
+              "scorer": {
+                "playerNumber": "2"
+              },
+              "id": "c4b88059-a5a5-45c7-8af8-54ee6ceabcc8"
+            }
+          ],
+          "away": []
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "f772d40b-1370-43ad-9584-8b5a5ce388e8",
+              "name": "SAVCHUK ROMAN",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "462f3918-d0db-406f-98cb-dc46d06623ce",
+              "name": "SAN MILLAN LIONEL",
+              "number": "10",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "92076fce-dcc7-4e76-b089-faa4a164c737",
+              "name": "ESEISA MICHEL",
+              "number": "99",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6eb1aee6-df33-41e3-91a4-9fda5b90631f",
+              "name": "CLEMENTINO RENZO",
+              "number": "18",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "50869ab8-810f-416f-aaf8-47ba0008aada",
+              "name": "LA GRECA NICOLAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "959f3736-452b-4be0-a788-091dd7f6a396",
+              "name": "HERTNER GIANNI",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2b4bbc11-3d40-4e7c-9987-65ab3d9bea08",
+              "name": "ROBAINA LUCAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1eea8c7c-e6e2-48d2-a17c-1f55b1395ef7",
+              "name": "DEL GUESSO TOMAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "69aa0e23-a427-4f6e-9724-7a7b66cbffdc",
+              "name": "CRISTALDO ARNALDO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f7657545-18b7-4341-8444-64dfb24f517b",
+              "name": "CONTI SOFIA",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dccfbfdc-da9b-4bcd-8314-b4f10ad0d7fb",
+              "name": "TUBIO DAMIAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "59d54d5d-0a4f-4737-af10-8f02ea2fc6cf",
+              "name": "CHEVALLIER JOSE",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dc433a60-f061-476b-aa6f-7cd9d95964bd",
+              "name": "LOPEZ SILVA FERMÍN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "8a827d69-d8fc-476b-b4b5-d87fb2d92844",
+              "name": "MONTES LUCAS",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dac8248a-962f-44b8-9ec2-b3b522807547",
+              "name": "NORMAN UDDSTROM CHAD",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1a585d5f-8bba-42ca-9657-276dc8e5a695",
+              "name": "BARVINOK SERGEI",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "aa9e3074-c383-41cb-9c36-2911e35054d0",
+              "name": "MAZAFERRO ADRIANO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7682a261-e668-4f8a-b927-ddbd063110bd",
+              "name": "GARCIA FABCISCO",
+              "number": "1",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5b4b40f0-ca37-4af4-94d7-8dd71f7bca93",
+              "name": "MARINELLI EDUARDO",
+              "number": "6",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "193eb7c8-8512-48e1-a0db-924d216c09e4",
+              "name": "CLARET AGUSTIN",
+              "number": "77",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f076fbf7-44de-4006-a93d-839527ad54db",
+              "name": "BOIX CRITIAN",
+              "number": "2",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2307c748-0e30-458b-8a19-b705c3d0e837",
+              "name": "OCAMPO NICOLAS",
+              "number": "9",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "a0e81d83-2064-410c-b668-ace200740b17",
+              "name": "BOIX. CONTU",
+              "number": "23",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "3b99ac24-d251-404e-86a5-ea3af58614cf",
+              "name": "BOIX BAUTI",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2eae4810-8035-45b7-acd3-adae8dcce29f",
+              "name": "SHENDERA IVAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5c23fa2c-16c4-4db5-93db-0fed9eac3567",
+              "name": "VAL FRAN",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6efa665f-261a-4a98-a05b-d3cd5345fd72",
+              "name": "BELLI GUIDO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "83e525a3-796b-46e9-8e3b-3de2419f9828",
+              "name": "LOMBRAÑA FEDERICO",
+              "number": "93",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f7f67111-2210-46e3-a46a-4cf761d3dff7",
+              "name": "LUTTERAL LIAM",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "playedPeriods": [
+    "1ST",
+    "2ND",
+    "OT"
+  ],
+  "overTimeOrShootouts": true
+}

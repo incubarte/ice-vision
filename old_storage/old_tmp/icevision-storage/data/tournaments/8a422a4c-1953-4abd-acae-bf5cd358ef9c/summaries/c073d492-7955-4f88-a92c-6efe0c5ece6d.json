@@ -1,0 +1,243 @@
+
+{
+  "attendance": {
+    "home": [
+      {
+        "id": "a1267a33-140a-4ebb-92ae-67e2f91c5d8c",
+        "number": "25",
+        "name": "SCOTTO DI CARLO NATALIA"
+      },
+      {
+        "id": "6522a433-3afe-491a-b0c1-eba803be98f6",
+        "number": "0",
+        "name": "BONVEHI SEBASTIAN"
+      },
+      {
+        "id": "7d435986-1a05-45ef-97f3-dfea388eb125",
+        "number": "52",
+        "name": "BRAVO LAUTARO HERNAN"
+      },
+      {
+        "id": "18396ec9-7833-478c-84ff-2dadb5c3fcf5",
+        "number": "33",
+        "name": "CACERES LEON CRISTIAN"
+      },
+      {
+        "id": "e9a6ecf0-5ff3-482b-b526-46fc064e47ad",
+        "number": "17",
+        "name": "CARIMATTO JESICA"
+      },
+      {
+        "id": "98647fc4-64c8-4745-a892-d1a225c1effa",
+        "number": "72",
+        "name": "CRUSES RAMIRO"
+      },
+      {
+        "id": "7c2b9f49-8e9a-4ca7-a985-c64d5e613c57",
+        "number": "18",
+        "name": "DE LA VEGA FLAVIA MICHELLE"
+      },
+      {
+        "id": "fc7c6551-7d6a-4ac9-9f9b-0862fd9b7d7e",
+        "number": "90",
+        "name": "DUPERRON SANTIAGO"
+      },
+      {
+        "id": "2cf39754-9b90-4c24-b893-c23b103c08b1",
+        "number": "30",
+        "name": "GARIBOTTO JULIAN"
+      },
+      {
+        "id": "c985a3b3-495b-45e7-bae2-d97037c733bc",
+        "number": "74",
+        "name": "GIULIODORO JUAN CARLOS"
+      },
+      {
+        "id": "681bc4ec-d842-4c62-bc3c-14c7d5530e94",
+        "number": "7",
+        "name": "HERRERA JAVIER"
+      },
+      {
+        "id": "c0027f1f-9458-487d-8624-01b264fc7c07",
+        "number": "70",
+        "name": "SUAREZ PABLO"
+      },
+      {
+        "id": "ffb17c2c-59e7-43ad-be02-832968c15a6a",
+        "number": "27",
+        "name": "SANCHEZ MATIAS"
+      },
+      {
+        "id": "1c75df96-8771-4644-a413-204f6021b81c",
+        "number": "22",
+        "name": "PONCE GERMAN"
+      }
+    ],
+    "away": [
+      {
+        "id": "a6bc065e-a0b8-4a40-b567-f03081d20d09",
+        "number": "",
+        "name": "BOTTERO CARCACCI MERLINA"
+      },
+      {
+        "id": "57ebff8c-a746-4329-b6c3-8b8ea1b2f491",
+        "number": "",
+        "name": "CANITROT VICENTE"
+      },
+      {
+        "id": "4ce849a2-0084-4fbf-9e7b-5287e8aa72fc",
+        "number": "",
+        "name": "DÍAZ DIDIER"
+      },
+      {
+        "id": "6e412465-9077-455b-ac35-eaa35e15edd4",
+        "number": "",
+        "name": "FIGUEROA JUAN MANUEL"
+      },
+      {
+        "id": "69556ada-dc48-4c62-af00-410d566a771d",
+        "number": "",
+        "name": "GARCIA CANEPA SEBASTIAN"
+      },
+      {
+        "id": "a28323d5-ee29-41e1-9653-aec18b0cb13d",
+        "number": "",
+        "name": "GIORDANI LIZA"
+      },
+      {
+        "id": "148bdb93-4b8d-4212-b993-8fa9c1574e45",
+        "number": "",
+        "name": "GUTIERREZ JIMENEZ FERMIN"
+      },
+      {
+        "id": "f6c96532-c5cd-4aa0-b3aa-f8da7c7499c5",
+        "number": "",
+        "name": "MARTIN ALEJO NICOLÁS"
+      },
+      {
+        "id": "fe9e4fc1-9e85-4584-a5c2-76e031f24527",
+        "number": "",
+        "name": "MARTINEZ DIAZ PABLO SALVADOR"
+      },
+      {
+        "id": "3ae65bb6-22d3-419f-890f-abce6c415d91",
+        "number": "",
+        "name": "MARTINEZ DIS FERNANDO"
+      },
+      {
+        "id": "07205c0b-6471-42d4-bb49-15eaa4b520bf",
+        "number": "",
+        "name": "MAZZUCCHELLI CAMILA"
+      },
+      {
+        "id": "41985ed2-0706-4ce2-9a73-42c499bf421b",
+        "number": "",
+        "name": "OKIER SEBASTIAN MANUEL"
+      },
+      {
+        "id": "29b90776-830c-4bbb-b4e4-b06da28a166a",
+        "number": "",
+        "name": "PANGIONE NICOLÁS"
+      },
+      {
+        "id": "e724ea30-9f6c-40c2-b2c9-312aadbcf534",
+        "number": "",
+        "name": "PELUFFO ELIAS"
+      },
+      {
+        "id": "7a15a35c-df0f-44a3-a87b-1d63c5024b5a",
+        "number": "",
+        "name": "PUGA NICOLÁS"
+      },
+      {
+        "id": "c1cc3fad-e967-48f5-8d0f-7b72978384ad",
+        "number": "",
+        "name": "RAMÍREZ AZUL CAMILA"
+      },
+      {
+        "id": "32b5b292-b6c3-4772-9fc7-d723a238cbda",
+        "number": "",
+        "name": "ROST AGUSTÍN"
+      }
+    ]
+  },
+  "statsByPeriod": [
+    {
+      "period": "1ST",
+      "stats": {
+        "goals": {
+          "home": [],
+          "away": []
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [],
+          "away": []
+        }
+      }
+    },
+    {
+      "period": "2ND",
+      "stats": {
+        "goals": {
+          "home": [],
+          "away": []
+        },
+        "penalties": {
+          "home": [
+            {
+              "id": "16ac12ff-721f-4a8f-9455-5d2b92ff5200",
+              "team": "home",
+              "playerNumber": "25",
+              "playerName": "SCOTTO DI CARLO NATALIA",
+              "penaltyName": "Menor",
+              "initialDuration": 120,
+              "reducesPlayerCount": true,
+              "clearsOnGoal": true,
+              "isBenchPenalty": false,
+              "addTimestamp": 1761844293501,
+              "addGameTime": 119538,
+              "addPeriodText": "2ND"
+            }
+          ],
+          "away": []
+        },
+        "playerStats": {
+          "home": [],
+          "away": []
+        }
+      }
+    }
+  ],
+  "overTimeOrShootouts": true,
+  "shootout": {
+    "rounds": 5,
+    "homeAttempts": [
+      {
+        "id": "ce0d29a4-2a2a-403e-aba1-0f1de4e52e9f",
+        "round": 1,
+        "playerId": "c985a3b3-495b-45e7-bae2-d97037c733bc",
+        "playerNumber": "74",
+        "playerName": "GIULIODORO JUAN CARLOS",
+        "isGoal": true
+      }
+    ],
+    "awayAttempts": [
+      {
+        "id": "33b97711-edcb-4114-96f4-743ecc1f9b4c",
+        "round": 1,
+        "playerId": "unknown-44",
+        "playerNumber": "44",
+        "isGoal": false
+      }
+    ],
+    "initiator": "home"
+  },
+  "playedPeriods": [
+    "1ST",
+    "2ND"
+  ]
+}

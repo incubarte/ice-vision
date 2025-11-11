@@ -1,0 +1,69 @@
+{
+  "2025-11-10": {
+    "09bee919-3a54-447b-b379-f1bc1349edbd": {
+      "replay_1762822919550": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-220209.mp4"
+      },
+      "replay_1762823438800": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-221038.mp4"
+      },
+      "replay_1762823444736": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-221044.mp4"
+      },
+      "replay_1762823445739": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-221045.mp4"
+      },
+      "replay_1762823453671": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-221103.mp4"
+      },
+      "replay_1762823458215": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-221108.mp4"
+      },
+      "replay_1762825604208": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-224644.mp4"
+      },
+      "replay_1762825612594": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-224652.mp4"
+      },
+      "replay_1762825685935": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-224805.mp4"
+      },
+      "replay_1762825691946": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-224811.mp4"
+      },
+      "replay_1762825771667": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-224931.mp4"
+      },
+      "replay_1762825781367": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-224941.mp4"
+      },
+      "replay_1762825790872": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-224950.mp4"
+      },
+      "replay_1762825796240": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-224956.mp4"
+      },
+      "replay_1762825807009": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-225006.mp4"
+      },
+      "replay_1762825836852": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-225036.mp4"
+      },
+      "replay_1762825848793": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-225048.mp4"
+      },
+      "replay_1762825965631": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-225245.mp4"
+      },
+      "replay_1762826011737": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-225331.mp4"
+      },
+      "replay_1762826018578": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-225338.mp4"
+      },
+      "replay_1762826027883": {
+        "location": "gs://test-bucket/replays/2025-11-10/09bee919-3a54-447b-b379-f1bc1349edbd/test_replay_20251110-225347.mp4"
+      }
+    }
+  }
+}

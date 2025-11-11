@@ -1,0 +1,226 @@
+{
+  "score": {
+    "home": 1,
+    "away": 0,
+    "homeShots": 0,
+    "awayShots": 0
+  },
+  "penalties": {
+    "home": [],
+    "away": []
+  },
+  "goals": {
+    "home": [
+      {
+        "team": "home",
+        "timestamp": 1762827062338,
+        "gameTime": 120000,
+        "periodText": "1ST",
+        "scorer": {
+          "playerNumber": "17",
+          "playerName": "SAVCHUK ROMAN"
+        },
+        "assist": {
+          "playerNumber": "18",
+          "playerName": "CLEMENTINO RENZO"
+        },
+        "id": "a8c12257-5eb1-48b9-ad40-3ba8cd549b96"
+      }
+    ],
+    "away": []
+  },
+  "penaltiesLog": {
+    "home": [],
+    "away": []
+  },
+  "shotsLog": {
+    "home": [],
+    "away": []
+  },
+  "attendance": {
+    "home": [
+      {
+        "id": "f772d40b-1370-43ad-9584-8b5a5ce388e8",
+        "number": "17",
+        "name": "SAVCHUK ROMAN"
+      },
+      {
+        "id": "462f3918-d0db-406f-98cb-dc46d06623ce",
+        "number": "10",
+        "name": "SAN MILLAN LIONEL"
+      },
+      {
+        "id": "92076fce-dcc7-4e76-b089-faa4a164c737",
+        "number": "99",
+        "name": "ESEISA MICHEL"
+      },
+      {
+        "id": "6eb1aee6-df33-41e3-91a4-9fda5b90631f",
+        "number": "18",
+        "name": "CLEMENTINO RENZO"
+      },
+      {
+        "id": "50869ab8-810f-416f-aaf8-47ba0008aada",
+        "number": "",
+        "name": "LA GRECA NICOLAS"
+      },
+      {
+        "id": "959f3736-452b-4be0-a788-091dd7f6a396",
+        "number": "",
+        "name": "HERTNER GIANNI"
+      },
+      {
+        "id": "2b4bbc11-3d40-4e7c-9987-65ab3d9bea08",
+        "number": "",
+        "name": "ROBAINA LUCAS"
+      },
+      {
+        "id": "1eea8c7c-e6e2-48d2-a17c-1f55b1395ef7",
+        "number": "",
+        "name": "DEL GUESSO TOMAS"
+      },
+      {
+        "id": "69aa0e23-a427-4f6e-9724-7a7b66cbffdc",
+        "number": "",
+        "name": "CRISTALDO ARNALDO"
+      },
+      {
+        "id": "f7657545-18b7-4341-8444-64dfb24f517b",
+        "number": "",
+        "name": "CONTI SOFIA"
+      },
+      {
+        "id": "dccfbfdc-da9b-4bcd-8314-b4f10ad0d7fb",
+        "number": "",
+        "name": "TUBIO DAMIAN"
+      },
+      {
+        "id": "59d54d5d-0a4f-4737-af10-8f02ea2fc6cf",
+        "number": "",
+        "name": "CHEVALLIER JOSE"
+      },
+      {
+        "id": "dc433a60-f061-476b-aa6f-7cd9d95964bd",
+        "number": "",
+        "name": "LOPEZ SILVA FERMÍN"
+      },
+      {
+        "id": "8a827d69-d8fc-476b-b4b5-d87fb2d92844",
+        "number": "",
+        "name": "MONTES LUCAS"
+      },
+      {
+        "id": "dac8248a-962f-44b8-9ec2-b3b522807547",
+        "number": "",
+        "name": "NORMAN UDDSTROM CHAD"
+      },
+      {
+        "id": "1a585d5f-8bba-42ca-9657-276dc8e5a695",
+        "number": "",
+        "name": "BARVINOK SERGEI"
+      }
+    ],
+    "away": [
+      {
+        "id": "2e8c0519-5592-4b60-84bb-f89db002d1ae",
+        "number": "93",
+        "name": "KYSAINOV ALMAT"
+      },
+      {
+        "id": "1c290edd-eddf-413d-9344-c323d881d44e",
+        "number": "10",
+        "name": "SERYY ANDREY"
+      },
+      {
+        "id": "6f2a8f7e-89a0-4659-865d-66926463f501",
+        "number": "13",
+        "name": "HAROSHKA SIARGEI"
+      },
+      {
+        "id": "fb0e4215-5c0f-4a6a-9535-4e68bb1afd88",
+        "number": "92",
+        "name": "EFIMOV GRIGORY"
+      },
+      {
+        "id": "38d17ecc-9090-4545-8e8d-ad5de325fa3f",
+        "number": "20",
+        "name": "STOLYAROV VICTOR"
+      },
+      {
+        "id": "1f0ecd60-e5b5-4f0e-9322-eda43785c11e",
+        "number": "14",
+        "name": "LEE MARTIN"
+      },
+      {
+        "id": "7530c1a6-304a-44b2-9731-2ec94e23893a",
+        "number": "77",
+        "name": "PEREZ BELLO PATRICIO"
+      },
+      {
+        "id": "07dd987f-7542-4e59-a71b-7946d655d23c",
+        "number": "9",
+        "name": "NOZHNOV ANDREY"
+      },
+      {
+        "id": "0476510f-d86d-42a8-85cd-5bd8b42f3e47",
+        "number": "11",
+        "name": "ARTUROVICH NARULIN ROMAN"
+      },
+      {
+        "id": "d86ff016-8cfc-4b1d-8c48-c862c9108a82",
+        "number": "69",
+        "name": "DE LUCA ELIAS"
+      },
+      {
+        "id": "49dc5674-af21-44d4-880c-79d8e8e11ca9",
+        "number": "12",
+        "name": "POVELIKIN EVGENII"
+      },
+      {
+        "id": "aecc22f2-045d-4dcf-a39e-e4195f90920a",
+        "number": "87",
+        "name": "SEDRAN NICOLAS"
+      },
+      {
+        "id": "cc614d68-ff92-4a7b-b452-4dafc4a8880c",
+        "number": "35",
+        "name": "RUDENKO DANIL"
+      },
+      {
+        "id": "828dc642-cb14-45d9-a238-9c5547c92de5",
+        "number": "36",
+        "name": "LOPEZ SILVA GASPAR"
+      }
+    ]
+  },
+  "clock": {
+    "currentTime": 120000,
+    "currentPeriod": 1,
+    "isClockRunning": false,
+    "periodDisplayOverride": null,
+    "preTimeoutState": null,
+    "clockStartTimeMs": null,
+    "remainingTimeAtStartCs": null,
+    "absoluteElapsedTimeCs": 0,
+    "_liveAbsoluteElapsedTimeCs": 0,
+    "isFlashingZero": false
+  },
+  "shootout": {
+    "isActive": false,
+    "rounds": 5,
+    "homeAttempts": [],
+    "awayAttempts": [],
+    "initiator": null
+  },
+  "homeTeamName": "ACEMHH",
+  "awayTeamName": "Fantasy Skate",
+  "playHornTrigger": 93,
+  "playPenaltyBeepTrigger": 20,
+  "pendingPowerPlayGoal": null,
+  "overlayMessage": null,
+  "goalCelebration": null,
+  "replayLoadRequest": null,
+  "replayOverlay": null,
+  "matchId": "c411cc64-5d53-4ae4-a9de-097e14af9de0",
+  "playedPeriods": []
+}
