@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Helper function to get the storage directory from environment or default
 function getStorageDir(): string {
@@ -16,9 +17,24 @@ function getStorageDir(): string {
     return path.join(process.cwd(), 'storage');
 }
 
+// --- Custom Error for Abstraction ---
+
+export class FileNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'FileNotFoundError';
+    }
+}
+
 // --- 1. The Storage Provider Interface ---
 
 export interface StorageProvider {
+    /**
+     * Reads a file from the storage provider.
+     * @param filePath The path to the file.
+     * @returns A promise that resolves with the file content as a string.
+     * @throws {FileNotFoundError} If the file does not exist.
+     */
     readFile(filePath: string): Promise<string>;
     writeFile(filePath: string, content: string): Promise<void>;
     deleteFile(filePath: string): Promise<void>;
@@ -28,7 +44,98 @@ export interface StorageProvider {
 
 // --- 2. Local Filesystem Implementation ---
 
-// --- 3. S3 Implementation ---
+// --- 3. Supabase Implementation ---
+
+export class SupabaseStorageProvider implements StorageProvider {
+    private supabase: SupabaseClient;
+    private bucket: string;
+    private mode: 'rw' | 'ro';
+
+    constructor(mode: 'rw' | 'ro') {
+        this.mode = mode;
+        const supabaseUrl = process.env.SUPABASE_URL!;
+        this.bucket = process.env.SUPABASE_BUCKET!;
+
+        if (!this.bucket) {
+            throw new Error('SUPABASE_BUCKET environment variable is not set.');
+        }
+
+        if (mode === 'rw') {
+            const serviceKey = process.env.SUPABASE_SERVICE_KEY!;
+            if (!serviceKey) {
+                throw new Error('Supabase service key is not set for RW mode.');
+            }
+            this.supabase = createClient(supabaseUrl, serviceKey);
+        } else { // ro mode
+            const anonKey = process.env.SUPABASE_ANON_KEY!;
+            if (!anonKey) {
+                throw new Error('Supabase anon key is not set for RO mode.');
+            }
+            this.supabase = createClient(supabaseUrl, anonKey);
+        }
+    }
+
+    async readFile(filePath: string): Promise<string> {
+        const { data, error } = await this.supabase.storage.from(this.bucket).download(filePath);
+        if (error) {
+            if ('status' in error && error.status === 404) {
+                throw new FileNotFoundError(`File not found in Supabase: ${filePath}`);
+            }
+            // Check for the existence of originalError for more detailed logging
+            else if ('originalError' in error && typeof error.originalError === 'object' && error.originalError !== null && 'json' in error.originalError && typeof (error.originalError as any).json === 'function') {
+                const errorBody = await (async () => {
+                    try {
+                        return await (error.originalError as Response).json();
+                    } catch (e) {
+                        console.error('Failed to parse Supabase error body.');
+                        return null;
+                    }
+                })();
+
+                if (errorBody && errorBody.statusCode === '404') {
+                    throw new FileNotFoundError(`File not found in Supabase: ${filePath}`);
+                }
+                // If it's not a 404, log the detailed error for debugging
+                if (errorBody) {
+                    console.error('Detailed Supabase error:', JSON.stringify(errorBody, null, 2));
+                }
+            }
+            throw error;
+        }
+        return data.text();
+    }
+
+    async writeFile(filePath: string, content: string): Promise<void> {
+        if (this.mode === 'ro') throw new Error('Cannot write in read-only mode.');
+        const { error } = await this.supabase.storage.from(this.bucket).upload(filePath, content, { upsert: true, contentType: 'application/json' });
+        if (error) throw error;
+    }
+
+    async deleteFile(filePath: string): Promise<void> {
+        if (this.mode === 'ro') throw new Error('Cannot delete in read-only mode.');
+        const { error } = await this.supabase.storage.from(this.bucket).remove([filePath]);
+        if (error) throw error;
+    }
+
+    async listFiles(directoryPath: string): Promise<string[]> {
+        const { data, error } = await this.supabase.storage.from(this.bucket).list(directoryPath, { limit: 1000 });
+        if (error) throw error;
+        return data?.map(file => file.name) || [];
+    }
+
+    async deleteFolder(directoryPath: string): Promise<void> {
+        if (this.mode === 'ro') throw new Error('Cannot delete in read-only mode.');
+        const { data, error } = await this.supabase.storage.from(this.bucket).list(directoryPath);
+        if (error) throw error;
+        if (!data || data.length === 0) return;
+
+        const filesToRemove = data.map(file => `${directoryPath}/${file.name}`);
+        const { error: removeError } = await this.supabase.storage.from(this.bucket).remove(filesToRemove);
+        if (removeError) throw removeError;
+    }
+}
+
+// --- 4. S3 Implementation ---
 
 export class S3StorageProvider implements StorageProvider {
     private s3: S3Client;
@@ -59,12 +166,20 @@ export class S3StorageProvider implements StorageProvider {
     }
 
     async readFile(filePath: string): Promise<string> {
-        const command = new GetObjectCommand({ Bucket: this.bucket, Key: filePath });
-        const { Body } = await this.s3.send(command);
-        if (!Body) {
-            throw new Error(`File not found in S3: ${filePath}`);
+        try {
+            const command = new GetObjectCommand({ Bucket: this.bucket, Key: filePath });
+            const { Body } = await this.s3.send(command);
+            if (!Body) {
+                // This case is unlikely if GetObject succeeds, but good for safety
+                throw new FileNotFoundError(`File not found in S3: ${filePath}`);
+            }
+            return this.streamToString(Body);
+        } catch (error) {
+            if (error instanceof Error && error.name === 'NoSuchKey') {
+                throw new FileNotFoundError(`File not found in S3: ${filePath}`);
+            }
+            throw error;
         }
-        return this.streamToString(Body);
     }
 
     async writeFile(filePath: string, content: string): Promise<void> {
@@ -118,7 +233,14 @@ export class LocalFileStorageProvider implements StorageProvider {
     }
 
     async readFile(filePath: string): Promise<string> {
-        return fs.readFile(this.resolvePath(filePath), 'utf-8');
+        try {
+            return await fs.readFile(this.resolvePath(filePath), 'utf-8');
+        } catch (error) {
+            if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+                throw new FileNotFoundError(`File not found on local disk: ${filePath}`);
+            }
+            throw error;
+        }
     }
 
     async writeFile(filePath: string, content: string): Promise<void> {
