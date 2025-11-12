@@ -308,10 +308,14 @@ export interface SyncPlan {
   status: 'pending' | 'ready' | 'invalid' | 'executing';
   toUpload: { filePath: string; hash: string }[];
   toDownload: { filePath: string; hash: string }[];
+  toDeleteLocally: { filePath: string; reason: string }[]; // Files to delete from local storage
+  toDeleteRemotely: { filePath: string; reason: string }[]; // Files to delete from remote storage
   conflicts: SyncPlanConflict[];
   summary: {
     uploadCount: number;
     downloadCount: number;
+    deleteLocalCount: number;
+    deleteRemoteCount: number;
     conflictCount: number;
     unchangedCount: number;
   };
@@ -329,7 +333,7 @@ export interface SyncSnapshotMetadata {
 // Updated sync log entry with conflict info
 export interface SyncLogFileEntry {
   filePath: string;
-  action: 'uploaded' | 'downloaded' | 'conflict-resolved';
+  action: 'uploaded' | 'downloaded' | 'deleted-locally' | 'deleted-remotely' | 'conflict-resolved';
   hadConflict?: boolean;
   conflictWinner?: 'local' | 'remote';
   snapshotId?: string; // timestamp of snapshot if conflict

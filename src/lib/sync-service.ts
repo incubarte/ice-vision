@@ -52,10 +52,14 @@ export async function analyzeSync(): Promise<SyncPlan> {
             status: 'pending',
             toUpload: [],
             toDownload: [],
+            toDeleteLocally: [],
+            toDeleteRemotely: [],
             conflicts: [],
             summary: {
                 uploadCount: 0,
                 downloadCount: 0,
+                deleteLocalCount: 0,
+                deleteRemoteCount: 0,
                 conflictCount: 0,
                 unchangedCount: 0
             }
@@ -88,21 +92,47 @@ export async function analyzeSync(): Promise<SyncPlan> {
             const local = localManifest.files[filePath];
             const remote = remoteManifest.files[filePath];
 
-            // Case 1: File only exists locally
+            // Case 1: File only exists in local manifest
             if (local && !remote) {
-                plan.toUpload.push({
-                    filePath,
-                    hash: local.hash
-                });
+                // Check if file actually exists locally
+                const fileExists = await checkFileExistsLocally(filePath);
+
+                if (fileExists) {
+                    // File exists locally but not in remote manifest = new file to upload
+                    plan.toUpload.push({
+                        filePath,
+                        hash: local.hash
+                    });
+                } else {
+                    // File in manifest but doesn't exist locally = was deleted locally
+                    // This is a stale manifest entry, just remove it (don't add to plan)
+                    console.log(`[Sync] Stale manifest entry detected for local file: ${filePath} (file doesn't exist)`);
+                }
                 continue;
             }
 
-            // Case 2: File only exists remotely
+            // Case 2: File only exists in remote manifest
             if (!local && remote) {
-                plan.toDownload.push({
-                    filePath,
-                    hash: remote.hash
-                });
+                // Check if file actually exists remotely
+                const fileExists = await checkFileExistsRemotely(filePath);
+
+                if (fileExists) {
+                    // File exists remotely but not in local manifest = new file to download
+                    plan.toDownload.push({
+                        filePath,
+                        hash: remote.hash
+                    });
+                } else {
+                    // File in remote manifest but doesn't exist remotely = was deleted remotely
+                    // Should delete from local if it exists
+                    const localFileExists = await checkFileExistsLocally(filePath);
+                    if (localFileExists) {
+                        plan.toDeleteLocally.push({
+                            filePath,
+                            reason: 'deleted-remotely'
+                        });
+                    }
+                }
                 continue;
             }
 
@@ -146,6 +176,8 @@ export async function analyzeSync(): Promise<SyncPlan> {
         // 6. Update summary
         plan.summary.uploadCount = plan.toUpload.length;
         plan.summary.downloadCount = plan.toDownload.length;
+        plan.summary.deleteLocalCount = plan.toDeleteLocally.length;
+        plan.summary.deleteRemoteCount = plan.toDeleteRemotely.length;
         plan.summary.conflictCount = plan.conflicts.length;
         plan.summary.unchangedCount = unchangedCount;
 
@@ -162,6 +194,8 @@ export async function analyzeSync(): Promise<SyncPlan> {
             status: plan.status,
             uploads: plan.toUpload.length,
             downloads: plan.toDownload.length,
+            deleteLocal: plan.toDeleteLocally.length,
+            deleteRemote: plan.toDeleteRemotely.length,
             conflicts: plan.conflicts.length,
             unchanged: unchangedCount
         });
@@ -171,6 +205,55 @@ export async function analyzeSync(): Promise<SyncPlan> {
     } catch (error) {
         console.error('[Sync] Error analyzing sync:', error);
         throw error;
+    }
+}
+
+/**
+ * Check if a file exists locally in storage
+ */
+async function checkFileExistsLocally(filePath: string): Promise<boolean> {
+    try {
+        await storageProvider.readFile(filePath);
+        return true;
+    } catch (error: any) {
+        if (error.name === 'FileNotFoundError' || error.code === 'ENOENT') {
+            return false;
+        }
+        // For other errors, assume file exists (to be safe)
+        console.error(`[Sync] Error checking if file exists locally: ${filePath}`, error);
+        return true;
+    }
+}
+
+/**
+ * Check if a file exists remotely in Supabase
+ */
+async function checkFileExistsRemotely(filePath: string): Promise<boolean> {
+    try {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+        const bucket = process.env.SUPABASE_BUCKET;
+
+        if (!supabaseUrl || !supabaseKey || !bucket) {
+            throw new Error('Supabase configuration missing');
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data, error } = await supabase.storage.from(bucket).download(filePath);
+
+        if (error) {
+            if ('status' in error && error.status === 404) {
+                return false;
+            }
+            // For other errors, assume file exists (to be safe)
+            console.error(`[Sync] Error checking if file exists remotely: ${filePath}`, error);
+            return true;
+        }
+
+        return !!data;
+    } catch (error) {
+        console.error(`[Sync] Error checking if file exists remotely: ${filePath}`, error);
+        return true; // Assume exists on error to be safe
     }
 }
 
@@ -706,6 +789,11 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
 
                 if (error) throw error;
 
+                // Update local manifest with the uploaded content
+                // This ensures manifest reflects what was actually uploaded
+                const { updateManifestEntry } = await import('./sync-manifest');
+                await updateManifestEntry(item.filePath, content);
+
                 result.filesUploaded++;
                 logFiles.push({
                     filePath: item.filePath,
@@ -745,7 +833,49 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
             }
         }
 
-        // 5. Execute conflicts (based on decisions)
+        // 5. Execute local deletions (files deleted remotely)
+        for (const item of plan.toDeleteLocally) {
+            try {
+                await storageProvider.deleteFile(item.filePath);
+                const { removeManifestEntry } = await import('./sync-manifest');
+                await removeManifestEntry(item.filePath);
+
+                logFiles.push({
+                    filePath: item.filePath,
+                    action: 'deleted-locally'
+                });
+                console.log(`[Sync] Deleted locally: ${item.filePath} (${item.reason})`);
+            } catch (error) {
+                result.errors.push({
+                    filePath: item.filePath,
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        }
+
+        // 6. Execute remote deletions (files deleted locally)
+        for (const item of plan.toDeleteRemotely) {
+            try {
+                const { error } = await supabase.storage
+                    .from(bucket)
+                    .remove([item.filePath]);
+
+                if (error) throw error;
+
+                logFiles.push({
+                    filePath: item.filePath,
+                    action: 'deleted-remotely'
+                });
+                console.log(`[Sync] Deleted remotely: ${item.filePath} (${item.reason})`);
+            } catch (error) {
+                result.errors.push({
+                    filePath: item.filePath,
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        }
+
+        // 7. Execute conflicts (based on decisions)
         for (const conflict of plan.conflicts) {
             if (!conflict.decision) {
                 console.warn(`[Sync] Skipping conflict without decision: ${conflict.filePath}`);
@@ -766,6 +896,10 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
                         .upload(conflict.filePath, content, { upsert: true });
 
                     if (error) throw error;
+
+                    // Update local manifest with the uploaded content
+                    const { updateManifestEntry } = await import('./sync-manifest');
+                    await updateManifestEntry(conflict.filePath, content);
 
                     result.conflictsResolved++;
                     logFiles.push({
@@ -802,11 +936,13 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
             }
         }
 
-        // 6. Update manifests
+        // 8. Update manifests
         await updateManifestsAfterSync();
 
-        // 7. Add log entry
+        // 9. Add log entry
         result.success = result.errors.length === 0;
+        const totalOperations = result.filesUploaded + result.filesDownloaded + result.conflictsResolved +
+                                plan.toDeleteLocally.length + plan.toDeleteRemotely.length;
         await addSyncLog({
             timestamp: new Date().toISOString(),
             action: 'sync',
@@ -814,10 +950,10 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
             result: result.success ? 'success' : 'partial',
             files: logFiles,
             errorCount: result.errors.length,
-            message: `Synced ${result.filesUploaded + result.filesDownloaded + result.conflictsResolved} files`
+            message: `Synced ${totalOperations} files (${result.filesUploaded} up, ${result.filesDownloaded} down, ${plan.toDeleteLocally.length} del local, ${plan.toDeleteRemotely.length} del remote, ${result.conflictsResolved} conflicts)`
         });
 
-        // 8. Delete the plan
+        // 10. Delete the plan
         await deletePlan();
 
         console.log('[Sync] Plan executed successfully');

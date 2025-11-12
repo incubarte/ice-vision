@@ -539,7 +539,9 @@ function SyncAnalysisCard() {
                 {plan && (
                     <>
                         {/* Show execute button if there are changes to sync */}
-                        {(plan.summary.uploadCount > 0 || plan.summary.downloadCount > 0 || plan.summary.conflictCount > 0) && (
+                        {(plan.summary.uploadCount > 0 || plan.summary.downloadCount > 0 ||
+                          plan.summary.deleteLocalCount > 0 || plan.summary.deleteRemoteCount > 0 ||
+                          plan.summary.conflictCount > 0) && (
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button
@@ -572,6 +574,12 @@ function SyncAnalysisCard() {
                                                     {plan.summary.downloadCount > 0 && (
                                                         <li>Descargar {plan.summary.downloadCount} archivo(s) desde Supabase</li>
                                                     )}
+                                                    {plan.summary.deleteLocalCount > 0 && (
+                                                        <li className="text-red-600">Eliminar {plan.summary.deleteLocalCount} archivo(s) localmente (fueron eliminados en Supabase)</li>
+                                                    )}
+                                                    {plan.summary.deleteRemoteCount > 0 && (
+                                                        <li className="text-red-600">Eliminar {plan.summary.deleteRemoteCount} archivo(s) en Supabase (fueron eliminados localmente)</li>
+                                                    )}
                                                     {plan.summary.conflictCount > 0 && (
                                                         <li>Resolver {plan.summary.conflictCount} conflicto(s) - Local gana, remoto se respalda</li>
                                                     )}
@@ -602,6 +610,12 @@ function SyncAnalysisCard() {
                             <ul className="space-y-1 text-blue-800 dark:text-blue-200">
                                 <li>📤 <strong>Subir:</strong> {plan.summary.uploadCount} archivos</li>
                                 <li>📥 <strong>Descargar:</strong> {plan.summary.downloadCount} archivos</li>
+                                {plan.summary.deleteLocalCount > 0 && (
+                                    <li className="text-red-600 dark:text-red-400">🗑️ <strong>Eliminar Local:</strong> {plan.summary.deleteLocalCount} archivos</li>
+                                )}
+                                {plan.summary.deleteRemoteCount > 0 && (
+                                    <li className="text-red-600 dark:text-red-400">🗑️ <strong>Eliminar Remoto:</strong> {plan.summary.deleteRemoteCount} archivos</li>
+                                )}
                                 <li>⚠️ <strong>Conflictos:</strong> {plan.summary.conflictCount} archivos</li>
                                 <li>✅ <strong>Sin cambios:</strong> {plan.summary.unchangedCount} archivos</li>
                             </ul>
@@ -631,6 +645,36 @@ function SyncAnalysisCard() {
                                     {plan.toDownload.map((item: any) => (
                                         <li key={item.filePath} title={item.reason}>
                                             {item.filePath}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </details>
+                        )}
+
+                        {plan.toDeleteLocally && plan.toDeleteLocally.length > 0 && (
+                            <details className="bg-red-50 dark:bg-red-950/30 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                                <summary className="cursor-pointer font-semibold text-red-800 dark:text-red-200">
+                                    🗑️ Para Eliminar Localmente ({plan.toDeleteLocally.length})
+                                </summary>
+                                <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-red-700 dark:text-red-300">
+                                    {plan.toDeleteLocally.map((item: any) => (
+                                        <li key={item.filePath} title={item.reason}>
+                                            {item.filePath} <span className="text-red-500">({item.reason})</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </details>
+                        )}
+
+                        {plan.toDeleteRemotely && plan.toDeleteRemotely.length > 0 && (
+                            <details className="bg-red-50 dark:bg-red-950/30 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                                <summary className="cursor-pointer font-semibold text-red-800 dark:text-red-200">
+                                    🗑️ Para Eliminar Remotamente ({plan.toDeleteRemotely.length})
+                                </summary>
+                                <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-red-700 dark:text-red-300">
+                                    {plan.toDeleteRemotely.map((item: any) => (
+                                        <li key={item.filePath} title={item.reason}>
+                                            {item.filePath} <span className="text-red-500">({item.reason})</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -801,177 +845,78 @@ function SyncAnalysisCard() {
     );
 }
 
-function SyncErrorsCard() {
-    const { toast } = useToast();
-    const [syncErrors, setSyncErrors] = useState<{ filePath: string; error: string; attempts: number; hasConflict: boolean; conflictDetectedAt?: string }[]>([]);
+function SyncHistoryCard() {
+    const [syncLogs, setSyncLogs] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [isRetrying, setIsRetrying] = useState(false);
+    const [expandedLogs, setExpandedLogs] = useState<Record<number, boolean>>({});
 
-    // Load errors from manifest
-    const loadSyncErrors = async () => {
+    // Load logs
+    const loadSyncLogs = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/sync/manifest');
+            const response = await fetch('/api/sync/logs');
             const data = await response.json();
 
-            if (response.ok && data.manifest) {
-                const errors = Object.entries(data.manifest.files || {})
-                    .filter(([_, metadata]: [string, any]) => {
-                        return metadata.syncAttempts > 0 || metadata.hasConflict === true;
-                    })
-                    .map(([filePath, metadata]: [string, any]) => ({
-                        filePath,
-                        error: metadata.lastSyncError || 'Conflicto detectado',
-                        attempts: metadata.syncAttempts || 0,
-                        hasConflict: metadata.hasConflict || false,
-                        conflictDetectedAt: metadata.conflictDetectedAt
-                    }));
-
-                setSyncErrors(errors);
+            if (response.ok && data.logs) {
+                setSyncLogs(data.logs);
             }
         } catch (error) {
-            console.error('Error loading sync errors:', error);
+            console.error('Error loading sync logs:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Load errors on mount and poll every 10 seconds
+    // Toggle expand state for a log entry
+    const toggleExpanded = (index: number) => {
+        setExpandedLogs(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
+    };
+
+    // Load logs on mount
     useEffect(() => {
-        loadSyncErrors();
-
-        // Poll every 10 seconds to catch new errors/conflicts
-        const interval = setInterval(() => {
-            loadSyncErrors();
-        }, 10000);
-
-        return () => clearInterval(interval);
+        loadSyncLogs();
     }, []);
 
-    const handleRetrySync = async () => {
-        setIsRetrying(true);
-        try {
-            // Trigger a full analysis and sync
-            const response = await fetch('/api/sync/execute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    strategy: 'local-wins',
-                    sessionId: Math.random().toString(36).substring(7)
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                toast({
-                    title: "✅ Sync Completado",
-                    description: `Se sincronizaron ${data.filesUploaded + data.filesDownloaded + data.conflictsResolved} archivos.`,
-                    className: "bg-green-600 text-white border-green-700",
-                });
-
-                // Reload errors
-                setTimeout(() => loadSyncErrors(), 500);
-            } else {
-                throw new Error(data.error || 'Error desconocido');
-            }
-        } catch (error) {
-            console.error('Error retrying sync:', error);
-            toast({
-                title: "❌ Error en Sync",
-                description: error instanceof Error ? error.message : "No se pudo reintentar la sincronización",
-                variant: "destructive",
-            });
-        } finally {
-            setIsRetrying(false);
-        }
-    };
-
-    const handleClearErrors = async () => {
-        try {
-            const response = await fetch('/api/sync/manifest');
-            const data = await response.json();
-
-            if (response.ok && data.manifest) {
-                // Clear error flags from manifest
-                const updatedFiles = { ...data.manifest.files };
-                Object.keys(updatedFiles).forEach(filePath => {
-                    delete updatedFiles[filePath].syncAttempts;
-                    delete updatedFiles[filePath].lastSyncError;
-                    delete updatedFiles[filePath].hasConflict;
-                    delete updatedFiles[filePath].conflictDetectedAt;
-                });
-
-                const updateResponse = await fetch('/api/sync/manifest', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        manifest: {
-                            ...data.manifest,
-                            files: updatedFiles
-                        }
-                    })
-                });
-
-                if (updateResponse.ok) {
-                    toast({
-                        title: "✅ Errores Limpiados",
-                        description: "Se limpiaron todos los errores del manifest.",
-                    });
-                    loadSyncErrors();
-                } else {
-                    throw new Error('Error updating manifest');
-                }
-            }
-        } catch (error) {
-            console.error('Error clearing errors:', error);
-            toast({
-                title: "❌ Error",
-                description: "No se pudieron limpiar los errores",
-                variant: "destructive",
-            });
-        }
-    };
 
     if (isLoading) {
         return (
-            <Card className="bg-amber-500/10 border-amber-500/30">
+            <Card className="bg-blue-500/10 border-blue-500/30">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-amber-600">
-                        <AlertTriangle className="h-5 w-5" /> Errores de Sincronización
+                    <CardTitle className="flex items-center gap-2 text-blue-600">
+                        📋 Historial de Sincronización
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Cargando errores...
+                        Cargando historial...
                     </div>
                 </CardContent>
             </Card>
         );
     }
 
-    if (syncErrors.length === 0) {
+    if (syncLogs.length === 0) {
         return (
-            <Card className="bg-green-500/10 border-green-500/30">
+            <Card className="bg-blue-500/10 border-blue-500/30">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-green-600">
-                        <AlertTriangle className="h-5 w-5" /> Errores de Sincronización
+                    <CardTitle className="flex items-center gap-2 text-blue-600">
+                        📋 Historial de Sincronización
                     </CardTitle>
                     <CardDescription>
-                        Archivos con errores de sync o conflictos pendientes
+                        Últimas sincronizaciones realizadas
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="text-center py-4">
-                        <p className="text-sm text-green-600 font-semibold">✅ No hay errores de sincronización</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Todos los archivos están sincronizados correctamente
-                        </p>
+                        <p className="text-sm text-muted-foreground">No hay sincronizaciones registradas</p>
                     </div>
                     <div className="flex justify-center pt-2 border-t mt-4">
                         <Button
-                            onClick={() => loadSyncErrors()}
+                            onClick={() => loadSyncLogs()}
                             variant="outline"
                             size="sm"
                         >
@@ -985,79 +930,138 @@ function SyncErrorsCard() {
     }
 
     return (
-        <Card className="bg-amber-500/10 border-amber-500/30">
+        <Card className="bg-blue-500/10 border-blue-500/30">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-amber-600">
-                    <AlertTriangle className="h-5 w-5" /> Errores de Sincronización
+                <CardTitle className="flex items-center gap-2 text-blue-600">
+                    📋 Historial de Sincronización
                 </CardTitle>
                 <CardDescription>
-                    Archivos con errores de sync o conflictos pendientes ({syncErrors.length})
+                    Últimas {syncLogs.length} sincronizaciones
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {/* Error list */}
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {syncErrors.map((error) => (
-                        <div
-                            key={error.filePath}
-                            className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg border border-amber-200 dark:border-amber-800"
-                        >
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-mono text-amber-900 dark:text-amber-100 truncate">
-                                        {error.filePath}
-                                    </p>
-                                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                                        {error.hasConflict ? (
-                                            <>
-                                                <strong>Conflicto detectado</strong>
-                                                {error.conflictDetectedAt && (
-                                                    <> - {new Date(error.conflictDetectedAt).toLocaleString()}</>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <>
-                                                {error.error}
-                                            </>
-                                        )}
-                                    </p>
-                                    {error.attempts > 0 && (
-                                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                                            Intentos fallidos: {error.attempts}
-                                        </p>
-                                    )}
-                                </div>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {syncLogs.map((log, index) => {
+                        const uploadCount = log.files?.filter((f: any) => f.action === 'uploaded').length || 0;
+                        const downloadCount = log.files?.filter((f: any) => f.action === 'downloaded').length || 0;
+                        const deleteLocalCount = log.files?.filter((f: any) => f.action === 'deleted-locally').length || 0;
+                        const deleteRemoteCount = log.files?.filter((f: any) => f.action === 'deleted-remotely').length || 0;
+                        const conflictCount = log.files?.filter((f: any) => f.hadConflict).length || 0;
+                        const isExpanded = expandedLogs[index] || false;
+
+                        return (
+                            <div
+                                key={index}
+                                className={`rounded-lg border ${
+                                    log.result === 'success'
+                                        ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800'
+                                        : log.result === 'partial'
+                                        ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
+                                        : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+                                }`}
+                            >
+                                <button
+                                    onClick={() => toggleExpanded(index)}
+                                    className="w-full p-3 text-left hover:opacity-80 transition-opacity"
+                                >
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs font-medium">
+                                                {new Date(log.timestamp).toLocaleString('es-AR', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </span>
+                                            {log.trigger && (
+                                                <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700">
+                                                    {log.trigger === 'manual' ? '👆 Manual' :
+                                                     log.trigger === 'after-summary-edit' ? '💾 Auto' :
+                                                     log.trigger}
+                                                </span>
+                                            )}
+                                            <span className={`text-xs font-semibold ${
+                                                log.result === 'success' ? 'text-green-600' :
+                                                log.result === 'partial' ? 'text-amber-600' :
+                                                'text-red-600'
+                                            }`}>
+                                                {log.result === 'success' ? '✅ Exitoso' :
+                                                 log.result === 'partial' ? '⚠️ Parcial' :
+                                                 '❌ Error'}
+                                            </span>
+                                        </div>
+                                        <span className="text-xs text-muted-foreground">
+                                            {isExpanded ? '▼' : '▶'}
+                                        </span>
+                                    </div>
+
+                                    <div className="text-xs text-muted-foreground font-medium">
+                                        {uploadCount > 0 && `↑ ${uploadCount} subidos`}
+                                        {downloadCount > 0 && (uploadCount > 0 ? ', ' : '') + `↓ ${downloadCount} descargados`}
+                                        {deleteLocalCount > 0 && (uploadCount > 0 || downloadCount > 0 ? ', ' : '') + `🗑️ ${deleteLocalCount} eliminados local`}
+                                        {deleteRemoteCount > 0 && (uploadCount > 0 || downloadCount > 0 || deleteLocalCount > 0 ? ', ' : '') + `🗑️ ${deleteRemoteCount} eliminados remoto`}
+                                        {conflictCount > 0 && (uploadCount > 0 || downloadCount > 0 || deleteLocalCount > 0 || deleteRemoteCount > 0 ? ', ' : '') + `⚔️ ${conflictCount} conflictos`}
+                                        {log.errorCount > 0 && ` ❌ ${log.errorCount} errores`}
+                                    </div>
+                                </button>
+
+                                {isExpanded && log.files && log.files.length > 0 && (
+                                    <div className="px-3 pb-3 border-t border-gray-200 dark:border-gray-700 pt-2 mt-1">
+                                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                                            {log.files.map((file: any, fileIndex: number) => (
+                                                <div key={fileIndex} className="text-xs flex items-start gap-2 py-1">
+                                                    <span className={`font-mono flex-shrink-0 ${
+                                                        file.action === 'deleted-locally' || file.action === 'deleted-remotely'
+                                                            ? 'text-red-600 dark:text-red-400'
+                                                            : 'text-gray-600 dark:text-gray-400'
+                                                    }`}>
+                                                        {file.action === 'uploaded' ? '↑' :
+                                                         file.action === 'downloaded' ? '↓' :
+                                                         file.action === 'deleted-locally' ? '🗑️' :
+                                                         file.action === 'deleted-remotely' ? '🗑️' :
+                                                         file.hadConflict ? '⚔️' : '·'}
+                                                    </span>
+                                                    <span className={`font-mono flex-1 break-all ${
+                                                        file.action === 'deleted-locally' || file.action === 'deleted-remotely'
+                                                            ? 'text-red-700 dark:text-red-300 line-through'
+                                                            : 'text-gray-800 dark:text-gray-200'
+                                                    }`}>
+                                                        {file.filePath}
+                                                    </span>
+                                                    {file.action === 'deleted-locally' && (
+                                                        <span className="text-xs px-1.5 py-0.5 rounded bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100 flex-shrink-0">
+                                                            Eliminado Local
+                                                        </span>
+                                                    )}
+                                                    {file.action === 'deleted-remotely' && (
+                                                        <span className="text-xs px-1.5 py-0.5 rounded bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100 flex-shrink-0">
+                                                            Eliminado Remoto
+                                                        </span>
+                                                    )}
+                                                    {file.hadConflict && (
+                                                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 flex-shrink-0">
+                                                            {file.conflictWinner === 'local' ? '💻 Local' : '☁️ Remoto'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-2 border-t">
+                <div className="flex justify-center pt-2 border-t">
                     <Button
-                        onClick={handleRetrySync}
-                        disabled={isRetrying}
-                        className="flex-1"
-                        variant="default"
-                    >
-                        {isRetrying ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Reintentando...
-                            </>
-                        ) : (
-                            <>
-                                <RefreshCcw className="mr-2 h-4 w-4" />
-                                Reintentar Sync
-                            </>
-                        )}
-                    </Button>
-                    <Button
-                        onClick={handleClearErrors}
-                        disabled={isRetrying}
+                        onClick={() => loadSyncLogs()}
                         variant="outline"
+                        size="sm"
                     >
-                        Limpiar Errores
+                        <RefreshCcw className="mr-2 h-4 w-4" />
+                        Actualizar
                     </Button>
                 </div>
             </CardContent>
@@ -1455,7 +1459,7 @@ export default function AdminPage() {
             {/* SYNC TAB */}
             <TabsContent value="sync" className="space-y-6 mt-6">
                 <SyncAnalysisCard />
-                <SyncErrorsCard />
+                <SyncHistoryCard />
                 <SupabaseSyncCard />
             </TabsContent>
 

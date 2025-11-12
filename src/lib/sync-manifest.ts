@@ -106,6 +106,12 @@ export async function writeManifest(manifest: SyncManifest): Promise<void> {
         const manifestPath = getManifestPath();
         await fs.mkdir(path.dirname(manifestPath), { recursive: true });
         await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+
+        // Ensure file is flushed to disk before returning
+        // This prevents issues with immediate subsequent reads
+        const fileHandle = await fs.open(manifestPath, 'r+');
+        await fileHandle.sync();
+        await fileHandle.close();
     });
 }
 
