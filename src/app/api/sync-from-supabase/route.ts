@@ -4,6 +4,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { updateProgress, clearProgress } from './progress/route';
 import { systemEmitter } from '@/lib/server-side-store';
+import { readManifest, writeManifest, hashContent } from '@/lib/sync-manifest';
+import type { FileMetadata } from '@/types';
 
 // Helper to get storage directory
 function getStorageDir(): string {
@@ -60,6 +62,7 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const sessionId = body.sessionId || Math.random().toString(36).substring(7);
+        const excludeTournaments = body.excludeTournaments || false;
 
         // Clear any previous progress
         clearProgress(sessionId);
@@ -74,31 +77,50 @@ export async function POST(request: Request) {
             );
         }
 
-        // Get Supabase configuration (use same logic as SupabaseStorageProvider in RO mode)
+        // Get Supabase configuration - use SERVICE_KEY for full access
         const supabaseUrl = process.env.SUPABASE_URL;
         const bucket = process.env.SUPABASE_BUCKET;
-        const anonKey = process.env.SUPABASE_ANON_KEY;
+        const serviceKey = process.env.SUPABASE_SERVICE_KEY;
 
-        if (!supabaseUrl || !bucket || !anonKey) {
+        if (!supabaseUrl || !bucket || !serviceKey) {
             return NextResponse.json(
-                { error: 'Configuración de Supabase incompleta. Necesitas SUPABASE_URL, SUPABASE_BUCKET y SUPABASE_ANON_KEY' },
+                { error: 'Configuración de Supabase incompleta. Necesitas SUPABASE_URL, SUPABASE_BUCKET y SUPABASE_SERVICE_KEY' },
                 { status: 500 }
             );
         }
 
-        // Create Supabase client using ANON_KEY (same as supabase_ro mode)
+        // Create Supabase client using SERVICE_KEY for full access
         console.log('[SUPABASE-SYNC] Creating Supabase client...');
         console.log('[SUPABASE-SYNC] URL:', supabaseUrl);
         console.log('[SUPABASE-SYNC] Bucket:', bucket);
-        console.log('[SUPABASE-SYNC] Using ANON_KEY (same as supabase_ro mode)');
+        console.log('[SUPABASE-SYNC] Using SERVICE_KEY for full access');
+        console.log('[SUPABASE-SYNC] Exclude tournaments:', excludeTournaments);
 
-        const supabase = createClient(supabaseUrl, anonKey);
+        const supabase = createClient(supabaseUrl, serviceKey);
 
         // List all files in the bucket recursively
         console.log('[SUPABASE-SYNC] Listing files in bucket...');
         updateProgress(sessionId, { currentFile: 'Listando archivos...', totalFiles: 0 });
-        const allFiles = await listAllFilesRecursively(supabase, bucket);
+        let allFiles = await listAllFilesRecursively(supabase, bucket);
         console.log('[SUPABASE-SYNC] Found files:', allFiles);
+
+        // Filter files based on what we want to download
+        if (excludeTournaments) {
+            // This mode downloads ONLY config.json and live.json
+            // Used by "Descargar Solo Config y Live" button
+            allFiles = allFiles.filter(file => {
+                return file === 'config.json' || file === 'live.json';
+            });
+            console.log('[SUPABASE-SYNC] Downloading only config and live:', allFiles.length, 'files');
+        } else {
+            // This mode downloads tournaments data + manifest
+            // Excludes config.json and live.json
+            // Used by "Descargar TODO" button
+            allFiles = allFiles.filter(file => {
+                return file !== 'config.json' && file !== 'live.json';
+            });
+            console.log('[SUPABASE-SYNC] Downloading tournaments + manifest:', allFiles.length, 'files');
+        }
 
         if (allFiles.length === 0) {
             updateProgress(sessionId, { isComplete: true });

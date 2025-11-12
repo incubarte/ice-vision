@@ -1,0 +1,659 @@
+import { createClient } from '@supabase/supabase-js';
+import { readManifest, hashContent, writeManifest, getGMTTimestamp, updatePreviousVersionAfterSync } from './sync-manifest';
+import type { SyncManifest, FileMetadata } from '@/types';
+import { storageProvider } from './storage';
+import { addSyncLog, addSyncError } from './sync-logs';
+import path from 'path';
+import fs from 'fs/promises';
+
+export interface SyncDifference {
+    filePath: string;
+    action: 'upload' | 'download' | 'conflict' | 'skip';
+    reason: string;
+    localVersion?: FileMetadata;
+    remoteVersion?: FileMetadata;
+}
+
+export interface SyncAnalysis {
+    toUpload: SyncDifference[];
+    toDownload: SyncDifference[];
+    conflicts: SyncDifference[];
+    unchanged: SyncDifference[];
+    summary: {
+        totalFiles: number;
+        uploadCount: number;
+        downloadCount: number;
+        conflictCount: number;
+        unchangedCount: number;
+    };
+}
+
+/**
+ * Compare local and remote manifests to determine what needs to sync
+ */
+export async function analyzeSync(): Promise<SyncAnalysis> {
+    const result: SyncAnalysis = {
+        toUpload: [],
+        toDownload: [],
+        conflicts: [],
+        unchanged: [],
+        summary: {
+            totalFiles: 0,
+            uploadCount: 0,
+            downloadCount: 0,
+            conflictCount: 0,
+            unchangedCount: 0
+        }
+    };
+
+    try {
+        // 1. Read local manifest
+        const localManifest = await readManifest();
+        console.log('[Sync] Local manifest loaded:', Object.keys(localManifest.files).length, 'files');
+
+        // 2. Read remote manifest from Supabase
+        const remoteManifest = await fetchRemoteManifest();
+        const hasRemoteManifest = remoteManifest !== null;
+        console.log('[Sync] Remote manifest loaded:', hasRemoteManifest ? Object.keys(remoteManifest!.files).length + ' files' : 'NOT FOUND (first sync)');
+
+        // 3. If no remote manifest exists, all local files should be uploaded
+        if (!hasRemoteManifest) {
+            for (const [filePath, metadata] of Object.entries(localManifest.files)) {
+                result.toUpload.push({
+                    filePath,
+                    action: 'upload',
+                    reason: 'No remote manifest exists - first sync',
+                    localVersion: metadata
+                });
+            }
+            result.summary.uploadCount = result.toUpload.length;
+            result.summary.totalFiles = result.toUpload.length;
+            return result;
+        }
+
+        // 4. Compare files
+        const allFiles = new Set([
+            ...Object.keys(localManifest.files),
+            ...Object.keys(remoteManifest.files)
+        ]);
+
+        for (const filePath of allFiles) {
+            const local = localManifest.files[filePath];
+            const remote = remoteManifest.files[filePath];
+
+            // Case 1: File only exists locally
+            if (local && !remote) {
+                result.toUpload.push({
+                    filePath,
+                    action: 'upload',
+                    reason: 'New local file',
+                    localVersion: local
+                });
+                continue;
+            }
+
+            // Case 2: File only exists remotely
+            if (!local && remote) {
+                result.toDownload.push({
+                    filePath,
+                    action: 'download',
+                    reason: 'New remote file',
+                    remoteVersion: remote
+                });
+                continue;
+            }
+
+            // Case 3: File exists in both places
+            if (local && remote) {
+                // Same hash = no changes
+                if (local.hash === remote.hash) {
+                    result.unchanged.push({
+                        filePath,
+                        action: 'skip',
+                        reason: 'Identical (same hash)',
+                        localVersion: local,
+                        remoteVersion: remote
+                    });
+                    continue;
+                }
+
+                // Different content - check for conflicts
+                const conflict = detectConflict(local, remote);
+
+                if (conflict) {
+                    // CONFLICT: Both sides changed since last sync
+                    result.conflicts.push({
+                        filePath,
+                        action: 'conflict',
+                        reason: 'Both local and remote changed - local wins',
+                        localVersion: local,
+                        remoteVersion: remote
+                    });
+                } else if (isLocalNewer(local, remote)) {
+                    // Local is newer, upload
+                    result.toUpload.push({
+                        filePath,
+                        action: 'upload',
+                        reason: 'Local version is newer',
+                        localVersion: local,
+                        remoteVersion: remote
+                    });
+                } else {
+                    // Remote is newer, download
+                    result.toDownload.push({
+                        filePath,
+                        action: 'download',
+                        reason: 'Remote version is newer',
+                        localVersion: local,
+                        remoteVersion: remote
+                    });
+                }
+            }
+        }
+
+        // Update summary
+        result.summary.totalFiles = allFiles.size;
+        result.summary.uploadCount = result.toUpload.length;
+        result.summary.downloadCount = result.toDownload.length;
+        result.summary.conflictCount = result.conflicts.length;
+        result.summary.unchangedCount = result.unchanged.length;
+
+        // Mark conflicts in local manifest
+        if (result.conflicts.length > 0) {
+            const now = new Date().toISOString();
+            for (const conflict of result.conflicts) {
+                if (localManifest.files[conflict.filePath]) {
+                    localManifest.files[conflict.filePath].hasConflict = true;
+                    localManifest.files[conflict.filePath].conflictDetectedAt = now;
+                }
+            }
+            await writeManifest(localManifest);
+            console.log('[Sync] Marked', result.conflicts.length, 'conflicts in manifest');
+        }
+
+        return result;
+
+    } catch (error) {
+        console.error('[Sync] Error analyzing sync:', error);
+        throw error;
+    }
+}
+
+/**
+ * Detect if there's a conflict (both sides changed)
+ *
+ * Conflict exists if:
+ * - Remote changed (remote.hash != local.previousVersion.hash)
+ * - AND local changed (local has previousVersion, meaning it was modified)
+ */
+function detectConflict(local: FileMetadata, remote: FileMetadata): boolean {
+    // If local doesn't have previousVersion, it's a new file locally, not a conflict
+    if (!local.previousVersion) {
+        return false;
+    }
+
+    // Check if remote is different from what we last synced
+    const remoteChanged = remote.hash !== local.previousVersion.hash;
+
+    // Local changed if it has a previousVersion (was modified at least once)
+    const localChanged = true; // If previousVersion exists, local was modified
+
+    return remoteChanged && localChanged;
+}
+
+/**
+ * Check if local version is newer than remote
+ */
+function isLocalNewer(local: FileMetadata, remote: FileMetadata): boolean {
+    return new Date(local.lastModified) > new Date(remote.lastModified);
+}
+
+/**
+ * Fetch remote manifest from Supabase
+ * Returns null if manifest doesn't exist yet (first sync)
+ */
+async function fetchRemoteManifest(): Promise<SyncManifest | null> {
+    try {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_KEY; // Service key to bypass RLS
+        const bucket = process.env.SUPABASE_BUCKET;
+
+        if (!supabaseUrl || !supabaseKey || !bucket) {
+            throw new Error('Supabase configuration missing (SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_BUCKET)');
+        }
+
+        if (!supabaseKey.startsWith('eyJ')) {
+            throw new Error('SUPABASE_SERVICE_KEY appears to be invalid. It should be a JWT token starting with "eyJ"');
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false
+            }
+        });
+
+        const { data, error } = await supabase.storage
+            .from(bucket)
+            .download('sync-manifest.json');
+
+        if (error) {
+            // 404 or 400 means manifest doesn't exist yet - this is OK for first sync
+            const errorMessage = error.message?.toLowerCase() || '';
+            const originalError = (error as any).originalError;
+            const status = originalError?.status;
+
+            if (
+                errorMessage.includes('not found') ||
+                errorMessage.includes('404') ||
+                status === 404 ||
+                status === 400  // Supabase returns 400 for non-existent files
+            ) {
+                console.log('[Sync] Remote manifest not found - treating as first sync');
+                return null;
+            }
+            throw error;
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        const text = await data.text();
+        return JSON.parse(text) as SyncManifest;
+
+    } catch (error) {
+        console.error('[Sync] Error fetching remote manifest:', error);
+        throw error;
+    }
+}
+
+export interface SyncResult {
+    success: boolean;
+    filesUploaded: number;
+    filesDownloaded: number;
+    conflictsResolved: number;
+    errors: Array<{ filePath: string; error: string }>;
+    backupPath?: string;
+}
+
+export type ConflictStrategy = 'local-wins' | 'remote-wins';
+
+export interface SyncOptions {
+    strategy?: ConflictStrategy;
+    filterFiles?: (filePath: string) => boolean; // Function to filter which files to sync
+    trigger?: 'manual' | 'auto-interval' | 'after-match' | 'after-summary-edit'; // What triggered this sync
+}
+
+/**
+ * Execute sync based on analysis
+ * - Uploads files marked for upload (if strategy allows)
+ * - Downloads files marked for download
+ * - Resolves conflicts based on strategy
+ * - Updates both local and remote manifests
+ */
+export async function executeSync(analysis: SyncAnalysis, options: SyncOptions = {}): Promise<SyncResult> {
+    const strategy = options.strategy || 'local-wins';
+    const filterFiles = options.filterFiles;
+    const result: SyncResult = {
+        success: true,
+        filesUploaded: 0,
+        filesDownloaded: 0,
+        conflictsResolved: 0,
+        errors: []
+    };
+
+    try {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_KEY; // Service key to bypass RLS
+        const bucket = process.env.SUPABASE_BUCKET;
+
+        if (!supabaseUrl || !supabaseKey || !bucket) {
+            throw new Error('Supabase configuration missing (SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_BUCKET)');
+        }
+
+        if (!supabaseKey.startsWith('eyJ')) {
+            throw new Error('SUPABASE_SERVICE_KEY appears to be invalid. It should be a JWT token starting with "eyJ"');
+        }
+
+        console.log('[Sync Execute] Using Supabase URL:', supabaseUrl);
+        console.log('[Sync Execute] Using bucket:', bucket);
+        console.log('[Sync Execute] Service key starts with:', supabaseKey.substring(0, 20) + '...');
+
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false
+            }
+        });
+
+        console.log('[Sync Execute] Strategy:', strategy);
+
+        // 1. Handle conflicts based on strategy
+        if (strategy === 'remote-wins') {
+            // Remote wins: treat all conflicts and uploads as downloads
+            for (const item of [...analysis.conflicts, ...analysis.toUpload]) {
+                analysis.toDownload.push(item);
+            }
+            analysis.conflicts = [];
+            analysis.toUpload = [];
+            console.log('[Sync Execute] Remote-wins strategy: converted all conflicts/uploads to downloads');
+        }
+
+        // 2. Apply file filter if provided
+        if (filterFiles) {
+            console.log('[Sync Execute] Applying file filter...');
+            console.log('[Sync Execute] Before filter - toDownload files:', analysis.toDownload.map(i => i.filePath));
+
+            analysis.toUpload = analysis.toUpload.filter(item => filterFiles(item.filePath));
+            analysis.toDownload = analysis.toDownload.filter(item => filterFiles(item.filePath));
+            analysis.conflicts = analysis.conflicts.filter(item => filterFiles(item.filePath));
+
+            console.log('[Sync Execute] After filter - toDownload files:', analysis.toDownload.map(i => i.filePath));
+            console.log('[Sync Execute] After filtering:', {
+                toUpload: analysis.toUpload.length,
+                toDownload: analysis.toDownload.length,
+                conflicts: analysis.conflicts.length
+            });
+        }
+
+        // 2. Handle conflicts (local-wins strategy only)
+        if (analysis.conflicts.length > 0) {
+            const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+            const backupDir = `mergeConflictsBackup/${timestamp}`;
+            result.backupPath = backupDir;
+
+            for (const conflict of analysis.conflicts) {
+                try {
+                    // Download remote version to backup
+                    const { data: remoteData, error: downloadError } = await supabase.storage
+                        .from(bucket)
+                        .download(conflict.filePath);
+
+                    if (downloadError) {
+                        result.errors.push({
+                            filePath: conflict.filePath,
+                            error: `Failed to download for backup: ${downloadError.message}`
+                        });
+                        continue;
+                    }
+
+                    if (remoteData) {
+                        const remoteContent = await remoteData.text();
+                        // Keep the full path structure in backup
+                        const backupPath = `${backupDir}/${conflict.filePath}`;
+
+                        console.log('[Sync] Attempting to backup to:', backupPath);
+
+                        // Upload to backup location with contentType
+                        const { error: backupError } = await supabase.storage
+                            .from(bucket)
+                            .upload(backupPath, remoteContent, {
+                                upsert: true,
+                                contentType: 'application/json'
+                            });
+
+                        if (backupError) {
+                            console.error('[Sync] Failed to backup conflict:', backupError);
+                            result.errors.push({
+                                filePath: conflict.filePath,
+                                error: `Failed to backup: ${backupError.message}`
+                            });
+                            continue;
+                        }
+
+                        console.log('[Sync] Successfully backed up to:', backupPath);
+                    }
+
+                    // Now upload local version (local wins)
+                    const localContent = await storageProvider.readFile(conflict.filePath);
+                    const { error: uploadError } = await supabase.storage
+                        .from(bucket)
+                        .upload(conflict.filePath, localContent, { upsert: true });
+
+                    if (uploadError) {
+                        result.errors.push({
+                            filePath: conflict.filePath,
+                            error: `Failed to upload local: ${uploadError.message}`
+                        });
+                        continue;
+                    }
+
+                    result.conflictsResolved++;
+                    console.log('[Sync] Conflict resolved:', conflict.filePath, '- Local wins, remote backed up to', backupPath);
+
+                } catch (error) {
+                    result.errors.push({
+                        filePath: conflict.filePath,
+                        error: error instanceof Error ? error.message : 'Unknown error'
+                    });
+                }
+            }
+        }
+
+        // 2. Upload files
+        const filesToUpload = [...analysis.toUpload];
+        for (const item of filesToUpload) {
+            try {
+                const content = await storageProvider.readFile(item.filePath);
+
+                // Verify hash matches what we analyzed
+                const currentHash = hashContent(content);
+                if (item.localVersion && currentHash !== item.localVersion.hash) {
+                    console.warn('[Sync] File changed since analysis:', item.filePath);
+                    result.errors.push({
+                        filePath: item.filePath,
+                        error: 'File changed since analysis started'
+                    });
+                    continue;
+                }
+
+                const { error } = await supabase.storage
+                    .from(bucket)
+                    .upload(item.filePath, content, {
+                        upsert: true,
+                        contentType: 'application/json'
+                    });
+
+                if (error) {
+                    result.errors.push({
+                        filePath: item.filePath,
+                        error: `Upload failed: ${error.message}`
+                    });
+                    continue;
+                }
+
+                result.filesUploaded++;
+                console.log('[Sync] Uploaded:', item.filePath, 'with hash:', currentHash);
+
+            } catch (error) {
+                result.errors.push({
+                    filePath: item.filePath,
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        }
+
+        // 3. Download files
+        for (const item of analysis.toDownload) {
+            try {
+                const { data, error } = await supabase.storage
+                    .from(bucket)
+                    .download(item.filePath);
+
+                if (error) {
+                    result.errors.push({
+                        filePath: item.filePath,
+                        error: `Download failed: ${error.message}`
+                    });
+                    continue;
+                }
+
+                if (data) {
+                    const content = await data.text();
+                    await storageProvider.writeFile(item.filePath, content);
+                    result.filesDownloaded++;
+                    console.log('[Sync] Downloaded:', item.filePath);
+                }
+
+            } catch (error) {
+                result.errors.push({
+                    filePath: item.filePath,
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        }
+
+        // 4. Update local manifest: mark synced files with previousVersion
+        const localManifest = await readManifest();
+
+        // For uploaded files: update previousVersion to mark as synced
+        for (const item of [...filesToUpload, ...analysis.conflicts]) {
+            if (item.localVersion) {
+                const currentMetadata = localManifest.files[item.filePath];
+                if (currentMetadata && currentMetadata.hash === item.localVersion.hash) {
+                    // File hasn't changed since we uploaded it, update previousVersion
+                    currentMetadata.previousVersion = {
+                        lastModified: currentMetadata.lastModified,
+                        hash: currentMetadata.hash
+                    };
+                    localManifest.files[item.filePath] = currentMetadata;
+                } else if (currentMetadata) {
+                    console.warn('[Sync] File changed during sync:', item.filePath);
+                }
+            }
+        }
+
+        // For downloaded files: update local manifest with remote metadata
+        for (const item of analysis.toDownload) {
+            if (item.remoteVersion) {
+                localManifest.files[item.filePath] = {
+                    ...item.remoteVersion,
+                    previousVersion: {
+                        lastModified: item.remoteVersion.lastModified,
+                        hash: item.remoteVersion.hash
+                    }
+                };
+            }
+        }
+
+        localManifest.lastSync = getGMTTimestamp();
+        await writeManifest(localManifest);
+
+        console.log('[Sync] Local manifest updated');
+
+        // 5. Upload local manifest to remote (they should be identical after sync)
+        const manifestContent = JSON.stringify(localManifest, null, 2);
+        const { error: manifestError } = await supabase.storage
+            .from(bucket)
+            .upload('sync-manifest.json', manifestContent, { upsert: true, contentType: 'application/json' });
+
+        if (manifestError) {
+            console.error('[Sync] Failed to upload manifest:', manifestError);
+            result.errors.push({
+                filePath: 'sync-manifest.json',
+                error: `Failed to upload manifest: ${manifestError.message}`
+            });
+        } else {
+            console.log('[Sync] Successfully uploaded manifest to remote');
+        }
+
+        result.success = result.errors.length === 0;
+
+        // Update manifest with error status for failed files
+        if (result.errors.length > 0) {
+            const localManifest = await readManifest();
+            for (const err of result.errors) {
+                if (err.filePath !== 'sync-manifest.json' && err.filePath !== 'sync-execution') {
+                    const fileMetadata = localManifest.files[err.filePath];
+                    if (fileMetadata) {
+                        fileMetadata.syncAttempts = (fileMetadata.syncAttempts || 0) + 1;
+                        fileMetadata.lastSyncError = err.error;
+                        localManifest.files[err.filePath] = fileMetadata;
+
+                        // Log error
+                        await addSyncError({
+                            timestamp: new Date().toISOString(),
+                            filePath: err.filePath,
+                            action: analysis.toUpload.some(i => i.filePath === err.filePath) ? 'upload' : 'download',
+                            error: err.error,
+                            attempt: fileMetadata.syncAttempts
+                        });
+                    }
+                }
+            }
+            await writeManifest(localManifest);
+            console.log('[Sync] Updated manifest with error status for', result.errors.length, 'files');
+        }
+
+        // Clear error flags for successful files and conflicts resolved
+        if (result.filesUploaded > 0 || result.filesDownloaded > 0 || result.conflictsResolved > 0) {
+            const localManifest = await readManifest();
+            const successfulFiles = [
+                ...filesToUpload.map(i => i.filePath).filter(f => !result.errors.some(e => e.filePath === f)),
+                ...analysis.toDownload.map(i => i.filePath).filter(f => !result.errors.some(e => e.filePath === f)),
+                ...analysis.conflicts.map(i => i.filePath).filter(f => !result.errors.some(e => e.filePath === f))
+            ];
+
+            for (const filePath of successfulFiles) {
+                const fileMetadata = localManifest.files[filePath];
+                if (fileMetadata) {
+                    // Clear error status
+                    delete fileMetadata.syncAttempts;
+                    delete fileMetadata.lastSyncError;
+                    delete fileMetadata.hasConflict;
+                    delete fileMetadata.conflictDetectedAt;
+                    localManifest.files[filePath] = fileMetadata;
+                }
+            }
+            await writeManifest(localManifest);
+        }
+
+        // Add sync log
+        const filesAffected = [
+            ...filesToUpload.map(i => i.filePath),
+            ...analysis.toDownload.map(i => i.filePath),
+            ...analysis.conflicts.map(i => i.filePath)
+        ];
+
+        await addSyncLog({
+            timestamp: new Date().toISOString(),
+            action: 'sync',
+            trigger: options.trigger,
+            analysis: {
+                uploadCount: analysis.summary.uploadCount,
+                downloadCount: analysis.summary.downloadCount,
+                conflictCount: analysis.summary.conflictCount,
+                unchangedCount: analysis.summary.unchangedCount
+            },
+            result: result.success ? 'success' : (result.filesUploaded > 0 || result.filesDownloaded > 0 ? 'partial' : 'error'),
+            filesAffected,
+            errorCount: result.errors.length,
+            message: result.success
+                ? `Sync completed: ${result.filesUploaded} uploaded, ${result.filesDownloaded} downloaded, ${result.conflictsResolved} conflicts resolved`
+                : `Sync completed with ${result.errors.length} errors`
+        });
+
+        return result;
+
+    } catch (error) {
+        console.error('[Sync] Error executing sync:', error);
+        result.success = false;
+        result.errors.push({
+            filePath: 'sync-execution',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+
+        // Log critical error
+        await addSyncLog({
+            timestamp: new Date().toISOString(),
+            action: 'sync',
+            trigger: options.trigger,
+            result: 'error',
+            errorCount: 1,
+            message: error instanceof Error ? error.message : 'Unknown error'
+        });
+
+        return result;
+    }
+}

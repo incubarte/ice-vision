@@ -240,11 +240,64 @@ export interface ConfigFields { // Interface for easier picking of fields
   replays: ReplaySettings;
   showStandingsInWarmup: boolean;
   showShotsData: boolean;
+  // Auto-sync configuration
+  autoSyncAnalysisIntervalMinutes: number;
+  autoSyncEnabled: boolean;
+  autoSyncResolveConflicts: boolean;
+  autoSyncSkipDuringMatch: boolean;
+  autoSyncAfterMatch: boolean;
+  autoSyncAfterSummaryEdit: boolean;
 }
 
 // Separate type for tournaments data (stored in tournaments.json)
 export interface TournamentsData {
   tournaments: Tournament[];
+}
+
+// Sync manifest types
+export interface FileVersion {
+  lastModified: string; // ISO 8601 GMT+0
+  hash: string;         // MD5 or SHA256 of content
+}
+
+export interface FileMetadata extends FileVersion {
+  size: number;
+  previousVersion?: FileVersion; // Track previous state for conflict detection
+  // Sync status tracking
+  syncAttempts?: number; // Number of failed sync attempts
+  lastSyncError?: string; // Last error message when trying to sync
+  hasConflict?: boolean; // True if this file has a detected conflict
+  conflictDetectedAt?: string; // ISO 8601 timestamp when conflict was detected
+}
+
+export interface SyncManifest {
+  lastSync: string; // ISO 8601 GMT+0 - when last successful sync completed
+  files: Record<string, FileMetadata>; // key = relative file path
+}
+
+// Sync logs
+export interface SyncLogEntry {
+  timestamp: string; // ISO 8601
+  action: 'analyze' | 'sync' | 'upload' | 'download' | 'conflict-resolve';
+  trigger?: 'manual' | 'auto-interval' | 'after-match' | 'after-summary-edit';
+  analysis?: {
+    uploadCount: number;
+    downloadCount: number;
+    conflictCount: number;
+    unchangedCount: number;
+  };
+  result: 'success' | 'partial' | 'error';
+  filesAffected?: string[];
+  errorCount?: number;
+  message?: string;
+}
+
+export interface SyncErrorLogEntry {
+  timestamp: string; // ISO 8601
+  filePath: string;
+  action: 'upload' | 'download' | 'conflict-resolve';
+  error: string;
+  attempt: number; // Which attempt number failed
 }
 
 export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'name'>, ConfigFields {

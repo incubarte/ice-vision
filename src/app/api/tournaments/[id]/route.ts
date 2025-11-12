@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import type { Tournament } from '@/types';
 import { readTournament, writeTournament, readTournaments } from '@/lib/data-access';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-    const tournamentId = params.id;
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    const { id: tournamentId } = await params;
     try {
         const tournamentDetails = await readTournament(tournamentId);
 
@@ -37,12 +37,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 }
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') {
         return NextResponse.json({ success: false, message: 'La aplicación está en modo de solo lectura. No se permiten escrituras.' }, { status: 403 });
     }
 
-    const tournamentId = params.id;
+    const { id: tournamentId } = await params;
     try {
         const { tournament } = await request.json() as { tournament: Tournament };
 
@@ -51,6 +51,13 @@ export async function POST(request: Request, { params }: { params: { id: string 
         }
         
         await writeTournament(tournament);
+
+        // Trigger sync if configured (fire and forget - don't wait)
+        fetch(`${request.url.split('/api/')[0]}/api/sync-trigger`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trigger: 'after-summary-edit' })
+        }).catch(err => console.error('[Tournament] Sync trigger failed:', err));
 
         return NextResponse.json({ success: true, message: `Tournament ${tournamentId} saved successfully.` });
     } catch (error) {

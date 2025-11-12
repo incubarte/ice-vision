@@ -163,6 +163,13 @@ const getInitialState = (): GameState => {
       selectedTournamentId: null,
       tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
       replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,
+      // Auto-sync defaults
+      autoSyncAnalysisIntervalMinutes: 0,
+      autoSyncEnabled: false,
+      autoSyncResolveConflicts: false,
+      autoSyncSkipDuringMatch: true,
+      autoSyncAfterMatch: false,
+      autoSyncAfterSummaryEdit: false,
     },
     live: {
       ...INITIAL_LIVE_DATA,

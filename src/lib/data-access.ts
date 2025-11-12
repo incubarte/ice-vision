@@ -1,6 +1,7 @@
 import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData } from '@/types';
 import { storageProvider } from './storage';
 import { FileNotFoundError } from './storage/providers';
+import { updateManifestEntry } from './sync-manifest';
 
 // --- High-Level Data Access Functions ---
 
@@ -36,7 +37,10 @@ export async function readTournaments(): Promise<Partial<TournamentsData>> {
 }
 
 export async function writeTournaments(tournamentsData: TournamentsData): Promise<void> {
-    await storageProvider.writeFile('tournaments.json', JSON.stringify(tournamentsData, null, 2));
+    const content = JSON.stringify(tournamentsData, null, 2);
+    await storageProvider.writeFile('tournaments.json', content);
+    // Update sync manifest
+    await updateManifestEntry('tournaments.json', content);
 }
 
 export async function readLiveState(): Promise<Partial<LiveState>> {
@@ -92,11 +96,12 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
             const { summary, ...matchWithoutSummary } = match;
             if (summary) {
                 const summaryKey = `${tournamentPrefix}summaries/${match.id}.json`;
-                summaryWritePromises.push(storageProvider.writeFile(summaryKey, JSON.stringify(summary, null, 2)));
-                
+                const summaryContent = JSON.stringify(summary, null, 2);
+                summaryWritePromises.push(storageProvider.writeFile(summaryKey, summaryContent));
+
                 const homeScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
                 const awayScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
-                
+
                 matchWithoutSummary.homeScore = homeScore;
                 matchWithoutSummary.awayScore = awayScore;
                 matchWithoutSummary.overTimeOrShootouts = summary.overTimeOrShootouts;
@@ -105,14 +110,35 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
         });
 
         const fixtureData = { matches: fixtureMatches };
+        const teamsContent = JSON.stringify(teamsData, null, 2);
+        const fixtureContent = JSON.stringify(fixtureData, null, 2);
 
+        // Write all files in parallel (fast)
         await Promise.all([
-            storageProvider.writeFile(teamsKey, JSON.stringify(teamsData, null, 2)),
-            storageProvider.writeFile(fixtureKey, JSON.stringify(fixtureData, null, 2)),
+            storageProvider.writeFile(teamsKey, teamsContent),
+            storageProvider.writeFile(fixtureKey, fixtureContent),
             ...summaryWritePromises,
         ]);
+
+        // Update manifest SEQUENTIALLY to avoid race conditions
+        // (manifest reads/writes need to be atomic)
+        await updateManifestEntry(teamsKey, teamsContent);
+        await updateManifestEntry(fixtureKey, fixtureContent);
+
+        // Update summaries sequentially too
+        const summaries = (tournament.matches || [])
+            .map(match => match.summary ? {
+                key: `${tournamentPrefix}summaries/${match.id}.json`,
+                content: JSON.stringify(match.summary, null, 2)
+            } : null)
+            .filter(Boolean) as Array<{key: string, content: string}>;
+
+        for (const {key, content} of summaries) {
+            await updateManifestEntry(key, content);
+        }
     } catch (error) {
         console.error(`Error writing tournament ${tournament.id} to provider:`, error);
-        throw new Error("Failed to write tournament files to provider.");
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Failed to write tournament files to provider: ${errorMessage}`);
     }
 }
