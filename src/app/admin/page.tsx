@@ -164,7 +164,7 @@ function SyncAnalysisCard() {
     const { state, dispatch } = useGameState();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [analysis, setAnalysis] = useState<any>(null);
+    const [plan, setPlan] = useState<any>(null);
     const [selectedConflict, setSelectedConflict] = useState<any>(null);
 
     // Auto-sync configuration states
@@ -173,7 +173,6 @@ function SyncAnalysisCard() {
     const [autoSyncEnabled, setAutoSyncEnabled] = useState(state.config.autoSyncEnabled || false);
     const [autoResolveConflicts, setAutoResolveConflicts] = useState(state.config.autoSyncResolveConflicts || false);
     const [skipSyncDuringMatch, setSkipSyncDuringMatch] = useState(state.config.autoSyncSkipDuringMatch ?? true);
-    const [syncAfterMatch, setSyncAfterMatch] = useState(state.config.autoSyncAfterMatch || false);
     const [syncAfterSummaryEdit, setSyncAfterSummaryEdit] = useState(state.config.autoSyncAfterSummaryEdit || false);
 
     // Handlers for auto-sync config changes
@@ -217,32 +216,57 @@ function SyncAnalysisCard() {
         dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncSkipDuringMatch: checked } });
     };
 
-    const handleSyncAfterMatchChange = (checked: boolean) => {
-        setSyncAfterMatch(checked);
-        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncAfterMatch: checked } });
-    };
-
     const handleSyncAfterSummaryEditChange = (checked: boolean) => {
         setSyncAfterSummaryEdit(checked);
         dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncAfterSummaryEdit: checked } });
     };
 
+    // Load existing plan on mount
+    useEffect(() => {
+        const loadExistingPlan = async () => {
+            try {
+                const response = await fetch('/api/sync/plan');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.plan) {
+                        setPlan(data.plan);
+                        console.log('[Admin] Loaded existing plan:', data.plan.status);
+                    }
+                }
+            } catch (error) {
+                // No plan exists, that's fine
+                console.log('[Admin] No existing plan found');
+            }
+        };
+
+        loadExistingPlan();
+    }, []);
+
     const handleAnalyze = async () => {
         setIsAnalyzing(true);
-        setAnalysis(null);
+        setPlan(null);
         try {
             const response = await fetch('/api/sync/analyze');
             const data = await response.json();
 
             if (response.ok && data.success) {
-                setAnalysis(data.analysis);
+                setPlan(data.plan);
                 toast({
-                    title: "✅ Análisis Completado",
+                    title: "✅ Plan Creado",
                     description: data.message,
                     className: "bg-green-600 text-white border-green-700",
                 });
             } else {
-                throw new Error(data.error || 'Error desconocido');
+                // Check if it's a network error
+                if (data.isNetworkError) {
+                    toast({
+                        title: "⚠️ Sin Conexión",
+                        description: "No se pudo conectar a Supabase. Verifica tu conexión a internet.",
+                        variant: "destructive",
+                    });
+                } else {
+                    throw new Error(data.error || 'Error desconocido');
+                }
             }
         } catch (error) {
             console.error('Error analyzing sync:', error);
@@ -256,50 +280,83 @@ function SyncAnalysisCard() {
         }
     };
 
+    const handleResolveConflict = async (filePath: string, decision: 'local-wins' | 'remote-wins' | 'skip') => {
+        try {
+            const response = await fetch('/api/sync/plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    decisions: [{ filePath, decision }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.plan) {
+                setPlan(data.plan);
+                setSelectedConflict(null);
+                toast({
+                    title: "✅ Conflicto Resuelto",
+                    description: `${filePath}: ${decision === 'local-wins' ? 'Local gana' : decision === 'remote-wins' ? 'Remoto gana' : 'Omitir'}`,
+                    className: "bg-green-600 text-white border-green-700",
+                });
+            } else {
+                throw new Error(data.error || 'Error desconocido');
+            }
+        } catch (error) {
+            console.error('Error resolving conflict:', error);
+            toast({
+                title: "❌ Error",
+                description: error instanceof Error ? error.message : "No se pudo resolver el conflicto",
+                variant: "destructive",
+            });
+        }
+    };
+
     const handleExecuteSync = async () => {
+        if (!plan || plan.status !== 'ready') {
+            toast({
+                title: "⚠️ Plan no está listo",
+                description: "Resuelve los conflictos primero o crea un nuevo plan",
+                variant: "destructive",
+            });
+            return;
+        }
+
         setIsSyncing(true);
         try {
-            const response = await fetch('/api/sync/execute', {
-                method: 'POST'
+            const response = await fetch('/api/sync/execute-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trigger: 'manual' })
             });
             const data = await response.json();
 
-            if (response.ok && data.result) {
-                const { result } = data;
-                const totalSynced = result.filesUploaded + result.filesDownloaded + result.conflictsResolved;
+            if (response.ok && data.success) {
+                const totalSynced = data.filesUploaded + data.filesDownloaded + data.conflictsResolved;
 
-                // Show success if at least some files were synced
-                if (totalSynced > 0) {
-                    toast({
-                        title: "✅ Sincronización Completada",
-                        description: data.message,
-                        className: "bg-green-600 text-white border-green-700",
-                        duration: 5000,
-                    });
-                }
+                toast({
+                    title: "✅ Sincronización Completada",
+                    description: `Se sincronizaron ${totalSynced} archivos`,
+                    className: "bg-green-600 text-white border-green-700",
+                    duration: 5000,
+                });
 
                 // Show errors if any
-                if (result.errors && result.errors.length > 0) {
+                if (data.errors && data.errors.length > 0) {
                     toast({
-                        title: `⚠️ ${result.errors.length} Error(es) Durante Sync`,
-                        description: result.errors.map((e: any) => `${e.filePath}: ${e.error}`).join('\n').substring(0, 200),
+                        title: `⚠️ ${data.errors.length} Error(es) Durante Sync`,
+                        description: data.errors.map((e: any) => `${e.filePath}: ${e.error}`).join('\n').substring(0, 200),
                         variant: "destructive",
                         duration: 10000,
                     });
                 }
 
-                // Show backup path if conflicts were resolved
-                if (result.backupPath) {
-                    toast({
-                        title: "📦 Archivos en Conflicto Respaldados",
-                        description: `Versiones remotas guardadas en: ${result.backupPath}`,
-                        className: "bg-yellow-600 text-white border-yellow-700",
-                        duration: 8000,
-                    });
-                }
+                // Clear plan after successful execution
+                setPlan(null);
 
-                // Reload page to refresh context if files were downloaded
-                if (result.filesDownloaded > 0) {
+                // Reload page if files were downloaded
+                if (data.filesDownloaded > 0) {
                     setTimeout(() => {
                         if (typeof window !== 'undefined') {
                             if (typeof localStorage !== 'undefined') {
@@ -317,9 +374,6 @@ function SyncAnalysisCard() {
                         }
                     }, 2000);
                 }
-
-                // Re-analyze to show updated state
-                setTimeout(() => handleAnalyze(), 500);
 
             } else {
                 throw new Error(data.error || 'Error desconocido');
@@ -446,31 +500,14 @@ function SyncAnalysisCard() {
                         />
                     </div>
 
-                    {/* Sync tras partido finalizado */}
-                    <div className="flex items-center justify-between space-x-2">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="sync-after-match" className="text-xs">
-                                Sync Tras Partido Finalizado
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                                Ejecutar sync automáticamente cuando un partido finaliza
-                            </p>
-                        </div>
-                        <Switch
-                            id="sync-after-match"
-                            checked={syncAfterMatch}
-                            onCheckedChange={handleSyncAfterMatchChange}
-                        />
-                    </div>
-
-                    {/* Sync tras edición de summary */}
+                    {/* Sync al guardar torneo */}
                     <div className="flex items-center justify-between space-x-2">
                         <div className="space-y-0.5">
                             <Label htmlFor="sync-after-summary-edit" className="text-xs">
-                                Sync Tras Edición de Summary
+                                Sync al Guardar Torneo
                             </Label>
                             <p className="text-xs text-muted-foreground">
-                                Ejecutar sync automáticamente tras editar un summary
+                                Ejecutar sync al guardar torneo (incluye finalizar partido y editar summaries)
                             </p>
                         </div>
                         <Switch
@@ -499,10 +536,10 @@ function SyncAnalysisCard() {
                     )}
                 </Button>
 
-                {analysis && (
+                {plan && (
                     <>
                         {/* Show execute button if there are changes to sync */}
-                        {(analysis.summary.uploadCount > 0 || analysis.summary.downloadCount > 0 || analysis.summary.conflictCount > 0) && (
+                        {(plan.summary.uploadCount > 0 || plan.summary.downloadCount > 0 || plan.summary.conflictCount > 0) && (
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button
@@ -529,14 +566,14 @@ function SyncAnalysisCard() {
                                             <div>
                                                 <p>Esta acción realizará los siguientes cambios:</p>
                                                 <ul className="mt-2 space-y-1 text-sm list-disc list-inside">
-                                                    {analysis.summary.uploadCount > 0 && (
-                                                        <li>Subir {analysis.summary.uploadCount} archivo(s) a Supabase</li>
+                                                    {plan.summary.uploadCount > 0 && (
+                                                        <li>Subir {plan.summary.uploadCount} archivo(s) a Supabase</li>
                                                     )}
-                                                    {analysis.summary.downloadCount > 0 && (
-                                                        <li>Descargar {analysis.summary.downloadCount} archivo(s) desde Supabase</li>
+                                                    {plan.summary.downloadCount > 0 && (
+                                                        <li>Descargar {plan.summary.downloadCount} archivo(s) desde Supabase</li>
                                                     )}
-                                                    {analysis.summary.conflictCount > 0 && (
-                                                        <li>Resolver {analysis.summary.conflictCount} conflicto(s) - Local gana, remoto se respalda</li>
+                                                    {plan.summary.conflictCount > 0 && (
+                                                        <li>Resolver {plan.summary.conflictCount} conflicto(s) - Local gana, remoto se respalda</li>
                                                     )}
                                                 </ul>
                                                 <p className="mt-2 font-semibold">¿Deseas continuar?</p>
@@ -558,25 +595,25 @@ function SyncAnalysisCard() {
                     </>
                 )}
 
-                {analysis && (
+                {plan && (
                     <div className="mt-4 space-y-3 text-sm">
                         <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                             <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">Resumen:</h4>
                             <ul className="space-y-1 text-blue-800 dark:text-blue-200">
-                                <li>📤 <strong>Subir:</strong> {analysis.summary.uploadCount} archivos</li>
-                                <li>📥 <strong>Descargar:</strong> {analysis.summary.downloadCount} archivos</li>
-                                <li>⚠️ <strong>Conflictos:</strong> {analysis.summary.conflictCount} archivos</li>
-                                <li>✅ <strong>Sin cambios:</strong> {analysis.summary.unchangedCount} archivos</li>
+                                <li>📤 <strong>Subir:</strong> {plan.summary.uploadCount} archivos</li>
+                                <li>📥 <strong>Descargar:</strong> {plan.summary.downloadCount} archivos</li>
+                                <li>⚠️ <strong>Conflictos:</strong> {plan.summary.conflictCount} archivos</li>
+                                <li>✅ <strong>Sin cambios:</strong> {plan.summary.unchangedCount} archivos</li>
                             </ul>
                         </div>
 
-                        {analysis.toUpload.length > 0 && (
+                        {plan.toUpload.length > 0 && (
                             <details className="bg-green-50 dark:bg-green-950/30 p-3 rounded-lg border border-green-200 dark:border-green-800">
                                 <summary className="cursor-pointer font-semibold text-green-800 dark:text-green-200">
-                                    📤 Para Subir ({analysis.toUpload.length})
+                                    📤 Para Subir ({plan.toUpload.length})
                                 </summary>
                                 <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-green-700 dark:text-green-300">
-                                    {analysis.toUpload.map((item: any) => (
+                                    {plan.toUpload.map((item: any) => (
                                         <li key={item.filePath} title={item.reason}>
                                             {item.filePath}
                                         </li>
@@ -585,13 +622,13 @@ function SyncAnalysisCard() {
                             </details>
                         )}
 
-                        {analysis.toDownload.length > 0 && (
+                        {plan.toDownload.length > 0 && (
                             <details className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                                 <summary className="cursor-pointer font-semibold text-blue-800 dark:text-blue-200">
-                                    📥 Para Descargar ({analysis.toDownload.length})
+                                    📥 Para Descargar ({plan.toDownload.length})
                                 </summary>
                                 <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-blue-700 dark:text-blue-300">
-                                    {analysis.toDownload.map((item: any) => (
+                                    {plan.toDownload.map((item: any) => (
                                         <li key={item.filePath} title={item.reason}>
                                             {item.filePath}
                                         </li>
@@ -600,20 +637,25 @@ function SyncAnalysisCard() {
                             </details>
                         )}
 
-                        {analysis.conflicts.length > 0 && (
+                        {plan.conflicts.length > 0 && (
                             <details className="bg-yellow-50 dark:bg-yellow-950/30 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                 <summary className="cursor-pointer font-semibold text-yellow-800 dark:text-yellow-200">
-                                    ⚠️ Conflictos ({analysis.conflicts.length})
+                                    ⚠️ Conflictos ({plan.conflicts.length})
                                 </summary>
                                 <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-yellow-700 dark:text-yellow-300">
-                                    {analysis.conflicts.map((item: any) => (
+                                    {plan.conflicts.map((item: any) => (
                                         <li
                                             key={item.filePath}
-                                            title="Click para ver detalles"
+                                            title="Click para ver detalles y resolver"
                                             className="cursor-pointer hover:underline hover:text-yellow-600 dark:hover:text-yellow-400"
                                             onClick={() => setSelectedConflict(item)}
                                         >
-                                            {item.filePath} - Local gana
+                                            {item.filePath} - {
+                                                item.decision === 'local-wins' ? '💻 Local gana' :
+                                                item.decision === 'remote-wins' ? '☁️ Remoto gana' :
+                                                item.decision === 'skip' ? '🚫 Omitir' :
+                                                '❓ Sin resolver'
+                                            }
                                         </li>
                                     ))}
                                 </ul>
@@ -630,47 +672,47 @@ function SyncAnalysisCard() {
                                     <AlertDialogDescription asChild>
                                         <div>
                                             <p className="mb-4 text-yellow-700 dark:text-yellow-300">
-                                                Ambas versiones han cambiado desde la última sincronización. La versión local ganará y la remota se respaldará.
+                                                Ambas versiones han cambiado desde la última sincronización. Elegí qué versión debe ganar o omitir el archivo.
                                             </p>
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 {/* Local Version */}
                                                 <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
                                                     <h4 className="font-semibold mb-3 text-green-800 dark:text-green-200 flex items-center gap-2">
-                                                        <span className="text-lg">💻</span> Versión Local (Gana)
+                                                        <span className="text-lg">💻</span> Versión Local
                                                     </h4>
-                                                    {selectedConflict?.localVersion && (
+                                                    {selectedConflict?.localMetadata && (
                                                         <dl className="space-y-2 text-sm">
                                                             <div>
                                                                 <dt className="font-semibold text-green-700 dark:text-green-300">Hash:</dt>
                                                                 <dd className="font-mono text-xs text-green-600 dark:text-green-400 break-all">
-                                                                    {selectedConflict.localVersion.hash}
+                                                                    {selectedConflict.localMetadata.hash}
                                                                 </dd>
                                                             </div>
                                                             <div>
                                                                 <dt className="font-semibold text-green-700 dark:text-green-300">Última modificación:</dt>
                                                                 <dd className="text-green-600 dark:text-green-400">
-                                                                    {new Date(selectedConflict.localVersion.lastModified).toLocaleString()}
+                                                                    {new Date(selectedConflict.localMetadata.lastModified).toLocaleString()}
                                                                 </dd>
                                                             </div>
                                                             <div>
                                                                 <dt className="font-semibold text-green-700 dark:text-green-300">Tamaño:</dt>
                                                                 <dd className="text-green-600 dark:text-green-400">
-                                                                    {selectedConflict.localVersion.size} bytes
+                                                                    {selectedConflict.localMetadata.size} bytes
                                                                 </dd>
                                                             </div>
-                                                            {selectedConflict.localVersion.previousVersion && (
+                                                            {selectedConflict.localMetadata.previousVersion && (
                                                                 <div className="mt-3 pt-3 border-t border-green-300 dark:border-green-700">
                                                                     <dt className="font-semibold text-green-700 dark:text-green-300 mb-2">Versión anterior:</dt>
                                                                     <dd className="text-xs space-y-1">
                                                                         <div>
                                                                             <span className="text-green-600 dark:text-green-400">Hash: </span>
                                                                             <span className="font-mono text-green-500 dark:text-green-500 break-all">
-                                                                                {selectedConflict.localVersion.previousVersion.hash}
+                                                                                {selectedConflict.localMetadata.previousVersion.hash}
                                                                             </span>
                                                                         </div>
                                                                         <div className="text-green-600 dark:text-green-400">
-                                                                            Modificado: {new Date(selectedConflict.localVersion.previousVersion.lastModified).toLocaleString()}
+                                                                            Modificado: {new Date(selectedConflict.localMetadata.previousVersion.lastModified).toLocaleString()}
                                                                         </div>
                                                                     </dd>
                                                                 </div>
@@ -682,40 +724,40 @@ function SyncAnalysisCard() {
                                                 {/* Remote Version */}
                                                 <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                                                     <h4 className="font-semibold mb-3 text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                                                        <span className="text-lg">☁️</span> Versión Remota (Respaldo)
+                                                        <span className="text-lg">☁️</span> Versión Remota
                                                     </h4>
-                                                    {selectedConflict?.remoteVersion && (
+                                                    {selectedConflict?.remoteMetadata && (
                                                         <dl className="space-y-2 text-sm">
                                                             <div>
                                                                 <dt className="font-semibold text-blue-700 dark:text-blue-300">Hash:</dt>
                                                                 <dd className="font-mono text-xs text-blue-600 dark:text-blue-400 break-all">
-                                                                    {selectedConflict.remoteVersion.hash}
+                                                                    {selectedConflict.remoteMetadata.hash}
                                                                 </dd>
                                                             </div>
                                                             <div>
                                                                 <dt className="font-semibold text-blue-700 dark:text-blue-300">Última modificación:</dt>
                                                                 <dd className="text-blue-600 dark:text-blue-400">
-                                                                    {new Date(selectedConflict.remoteVersion.lastModified).toLocaleString()}
+                                                                    {new Date(selectedConflict.remoteMetadata.lastModified).toLocaleString()}
                                                                 </dd>
                                                             </div>
                                                             <div>
                                                                 <dt className="font-semibold text-blue-700 dark:text-blue-300">Tamaño:</dt>
                                                                 <dd className="text-blue-600 dark:text-blue-400">
-                                                                    {selectedConflict.remoteVersion.size} bytes
+                                                                    {selectedConflict.remoteMetadata.size} bytes
                                                                 </dd>
                                                             </div>
-                                                            {selectedConflict.remoteVersion.previousVersion && (
+                                                            {selectedConflict.remoteMetadata.previousVersion && (
                                                                 <div className="mt-3 pt-3 border-t border-blue-300 dark:border-blue-700">
                                                                     <dt className="font-semibold text-blue-700 dark:text-blue-300 mb-2">Versión anterior:</dt>
                                                                     <dd className="text-xs space-y-1">
                                                                         <div>
                                                                             <span className="text-blue-600 dark:text-blue-400">Hash: </span>
                                                                             <span className="font-mono text-blue-500 dark:text-blue-500 break-all">
-                                                                                {selectedConflict.remoteVersion.previousVersion.hash}
+                                                                                {selectedConflict.remoteMetadata.previousVersion.hash}
                                                                             </span>
                                                                         </div>
                                                                         <div className="text-blue-600 dark:text-blue-400">
-                                                                            Modificado: {new Date(selectedConflict.remoteVersion.previousVersion.lastModified).toLocaleString()}
+                                                                            Modificado: {new Date(selectedConflict.remoteMetadata.previousVersion.lastModified).toLocaleString()}
                                                                         </div>
                                                                     </dd>
                                                                 </div>
@@ -727,8 +769,28 @@ function SyncAnalysisCard() {
                                         </div>
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <AlertDialogFooter>
+                                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                                     <AlertDialogCancel>Cerrar</AlertDialogCancel>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={() => handleResolveConflict(selectedConflict?.filePath, 'local-wins')}
+                                            className="bg-green-600 hover:bg-green-700"
+                                        >
+                                            💻 Local Gana
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleResolveConflict(selectedConflict?.filePath, 'remote-wins')}
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            ☁️ Remoto Gana
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleResolveConflict(selectedConflict?.filePath, 'skip')}
+                                            variant="outline"
+                                        >
+                                            🚫 Omitir
+                                        </Button>
+                                    </div>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>

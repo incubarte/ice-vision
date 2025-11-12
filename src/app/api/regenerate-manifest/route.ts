@@ -63,10 +63,12 @@ export async function POST() {
         // List all JSON files
         const allFiles = await listFilesRecursively(dataDir, dataDir);
 
-        // Filter out the manifest itself
-        const files = allFiles.filter(f => f !== 'sync-manifest.json');
+        // Filter: Include tournaments.json and files inside tournaments/ directory
+        // Exclude: sync-manifest.json, sync-plan.json, sync-logs.json, sync-errors.json,
+        //          sync-snapshots/, merge-conflict-backups/, config.json, live.json, etc.
+        const files = allFiles.filter(f => f === 'tournaments.json' || f.startsWith('tournaments/'));
 
-        console.log('[Regenerate Manifest] Found', files.length, 'files');
+        console.log('[Regenerate Manifest] Found', files.length, 'files (tournaments.json + tournaments/)');
 
         // Create new manifest
         const manifest: SyncManifest = {

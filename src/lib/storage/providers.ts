@@ -74,6 +74,12 @@ export class LocalFileStorageProvider implements StorageProvider {
         const resolvedPath = this.resolvePath(filePath);
         await fs.mkdir(path.dirname(resolvedPath), { recursive: true });
         await fs.writeFile(resolvedPath, content, 'utf-8');
+
+        // Update manifest for tournament files only (not config/live/sync files)
+        if (filePath === 'tournaments.json' || filePath.startsWith('tournaments/')) {
+            const { updateManifestEntry } = await import('../sync-manifest');
+            await updateManifestEntry(filePath, content);
+        }
     }
 
     async deleteFile(filePath: string): Promise<void> {

@@ -245,8 +245,7 @@ export interface ConfigFields { // Interface for easier picking of fields
   autoSyncEnabled: boolean;
   autoSyncResolveConflicts: boolean;
   autoSyncSkipDuringMatch: boolean;
-  autoSyncAfterMatch: boolean;
-  autoSyncAfterSummaryEdit: boolean;
+  autoSyncAfterSummaryEdit: boolean; // Triggers after saving tournament (includes match finish + summary edits)
 }
 
 // Separate type for tournaments data (stored in tournaments.json)
@@ -278,16 +277,10 @@ export interface SyncManifest {
 // Sync logs
 export interface SyncLogEntry {
   timestamp: string; // ISO 8601
-  action: 'analyze' | 'sync' | 'upload' | 'download' | 'conflict-resolve';
-  trigger?: 'manual' | 'auto-interval' | 'after-match' | 'after-summary-edit';
-  analysis?: {
-    uploadCount: number;
-    downloadCount: number;
-    conflictCount: number;
-    unchangedCount: number;
-  };
+  action: 'sync';
+  trigger?: 'manual' | 'auto-interval' | 'after-summary-edit';
   result: 'success' | 'partial' | 'error';
-  filesAffected?: string[];
+  files: SyncLogFileEntry[]; // Detailed info per file
   errorCount?: number;
   message?: string;
 }
@@ -298,6 +291,48 @@ export interface SyncErrorLogEntry {
   action: 'upload' | 'download' | 'conflict-resolve';
   error: string;
   attempt: number; // Which attempt number failed
+}
+
+// Sync plan (stored temporarily on server)
+export interface SyncPlanConflict {
+  filePath: string;
+  localHash: string;
+  remoteHash: string;
+  localMetadata: FileMetadata;
+  remoteMetadata: FileMetadata;
+  decision?: 'local-wins' | 'remote-wins' | 'skip';
+}
+
+export interface SyncPlan {
+  timestamp: string; // When plan was created
+  status: 'pending' | 'ready' | 'invalid' | 'executing';
+  toUpload: { filePath: string; hash: string }[];
+  toDownload: { filePath: string; hash: string }[];
+  conflicts: SyncPlanConflict[];
+  summary: {
+    uploadCount: number;
+    downloadCount: number;
+    conflictCount: number;
+    unchangedCount: number;
+  };
+}
+
+// Sync snapshot metadata
+export interface SyncSnapshotMetadata {
+  timestamp: string; // Snapshot ID
+  filePath: string;
+  winner: 'local' | 'remote';
+  localHash: string;
+  remoteHash: string;
+}
+
+// Updated sync log entry with conflict info
+export interface SyncLogFileEntry {
+  filePath: string;
+  action: 'uploaded' | 'downloaded' | 'conflict-resolved';
+  hadConflict?: boolean;
+  conflictWinner?: 'local' | 'remote';
+  snapshotId?: string; // timestamp of snapshot if conflict
 }
 
 export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'name'>, ConfigFields {

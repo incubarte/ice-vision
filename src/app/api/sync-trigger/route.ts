@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const trigger: 'after-match' | 'after-summary-edit' = body.trigger;
+        const trigger: 'after-summary-edit' = body.trigger;
 
         if (!trigger) {
             return NextResponse.json(

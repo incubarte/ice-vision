@@ -9,32 +9,45 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
     try {
-        console.log('[Sync API] Starting sync analysis (dry-run)...');
+        console.log('[Sync API] Creating sync plan...');
 
-        const analysis = await analyzeSync();
+        const plan = await analyzeSync();
 
-        console.log('[Sync API] Analysis complete:', {
-            toUpload: analysis.summary.uploadCount,
-            toDownload: analysis.summary.downloadCount,
-            conflicts: analysis.summary.conflictCount,
-            unchanged: analysis.summary.unchangedCount
+        console.log('[Sync API] Plan created:', {
+            status: plan.status,
+            toUpload: plan.summary.uploadCount,
+            toDownload: plan.summary.downloadCount,
+            conflicts: plan.summary.conflictCount,
+            unchanged: plan.summary.unchangedCount
         });
 
         return NextResponse.json({
             success: true,
-            analysis,
-            message: `Analysis complete: ${analysis.summary.uploadCount} to upload, ${analysis.summary.downloadCount} to download, ${analysis.summary.conflictCount} conflicts`
+            plan,
+            message: `Plan created: ${plan.summary.uploadCount} to upload, ${plan.summary.downloadCount} to download, ${plan.summary.conflictCount} conflicts${plan.status === 'ready' ? ' (ready to execute)' : ' (needs conflict resolution)'}`
         });
 
     } catch (error) {
         console.error('[Sync API] Error analyzing sync:', error);
+
+        // Check if it's a network/timeout error
+        const isNetworkError = error instanceof Error && (
+            error.message.includes('fetch failed') ||
+            error.message.includes('timeout') ||
+            error.message.includes('ECONNREFUSED') ||
+            error.message.includes('ETIMEDOUT')
+        );
+
         return NextResponse.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: isNetworkError
+                    ? 'No se pudo conectar a Supabase. Verifica tu conexión a internet.'
+                    : (error instanceof Error ? error.message : 'Unknown error'),
+                isNetworkError,
                 details: error instanceof Error ? error.stack : undefined
             },
-            { status: 500 }
+            { status: isNetworkError ? 503 : 500 }
         );
     }
 }

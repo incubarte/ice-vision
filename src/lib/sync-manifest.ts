@@ -5,6 +5,29 @@ import type { SyncManifest, FileMetadata, FileVersion } from '@/types';
 
 const MANIFEST_FILE = 'sync-manifest.json';
 
+// Simple in-memory lock to prevent concurrent manifest updates
+let manifestLock: Promise<void> = Promise.resolve();
+
+/**
+ * Acquire a lock for manifest operations
+ * This prevents race conditions when multiple files are written simultaneously
+ */
+async function withManifestLock<T>(operation: () => Promise<T>): Promise<T> {
+    const previousLock = manifestLock;
+    let releaseLock: () => void;
+
+    manifestLock = new Promise<void>(resolve => {
+        releaseLock = resolve;
+    });
+
+    try {
+        await previousLock;
+        return await operation();
+    } finally {
+        releaseLock!();
+    }
+}
+
 // Get the data directory path (same logic as LocalFileStorageProvider)
 function getDataDir(): string {
     const storagePath = process.env.STORAGE_PATH;
@@ -51,6 +74,26 @@ export async function readManifest(): Promise<SyncManifest> {
                 files: {}
             };
         }
+
+        // If JSON is corrupted, log error and return empty manifest
+        if (error instanceof SyntaxError) {
+            console.error('[Manifest] Corrupted manifest detected, returning empty manifest. Error:', error.message);
+            // Backup corrupted file
+            try {
+                const manifestPath = getManifestPath();
+                const backupPath = manifestPath.replace('.json', `.corrupted.${Date.now()}.json`);
+                await fs.copyFile(manifestPath, backupPath);
+                console.error(`[Manifest] Backed up corrupted manifest to: ${backupPath}`);
+            } catch (backupError) {
+                console.error('[Manifest] Failed to backup corrupted manifest:', backupError);
+            }
+
+            return {
+                lastSync: getGMTTimestamp(),
+                files: {}
+            };
+        }
+
         throw error;
     }
 }
@@ -59,9 +102,11 @@ export async function readManifest(): Promise<SyncManifest> {
  * Write sync manifest to storage
  */
 export async function writeManifest(manifest: SyncManifest): Promise<void> {
-    const manifestPath = getManifestPath();
-    await fs.mkdir(path.dirname(manifestPath), { recursive: true });
-    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    return withManifestLock(async () => {
+        const manifestPath = getManifestPath();
+        await fs.mkdir(path.dirname(manifestPath), { recursive: true });
+        await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    });
 }
 
 /**
@@ -72,24 +117,30 @@ export async function updateManifestEntry(
     filePath: string,
     content: string
 ): Promise<void> {
-    const manifest = await readManifest();
+    return withManifestLock(async () => {
+        const manifest = await readManifest();
 
-    const currentMetadata = manifest.files[filePath];
+        const currentMetadata = manifest.files[filePath];
 
-    const newMetadata: FileMetadata = {
-        lastModified: getGMTTimestamp(),
-        hash: hashContent(content),
-        size: Buffer.byteLength(content, 'utf8')
-    };
+        const newMetadata: FileMetadata = {
+            lastModified: getGMTTimestamp(),
+            hash: hashContent(content),
+            size: Buffer.byteLength(content, 'utf8')
+        };
 
-    // PRESERVE previousVersion from current metadata
-    // previousVersion only gets updated after successful sync
-    if (currentMetadata?.previousVersion) {
-        newMetadata.previousVersion = currentMetadata.previousVersion;
-    }
+        // PRESERVE previousVersion from current metadata
+        // previousVersion only gets updated after successful sync
+        if (currentMetadata?.previousVersion) {
+            newMetadata.previousVersion = currentMetadata.previousVersion;
+        }
 
-    manifest.files[filePath] = newMetadata;
-    await writeManifest(manifest);
+        manifest.files[filePath] = newMetadata;
+
+        // Write directly without calling writeManifest to avoid double-locking
+        const manifestPath = getManifestPath();
+        await fs.mkdir(path.dirname(manifestPath), { recursive: true });
+        await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    });
 }
 
 /**
@@ -100,23 +151,35 @@ export async function updatePreviousVersionAfterSync(
     filePath: string,
     syncedVersion: FileVersion
 ): Promise<void> {
-    const manifest = await readManifest();
-    const currentMetadata = manifest.files[filePath];
+    return withManifestLock(async () => {
+        const manifest = await readManifest();
+        const currentMetadata = manifest.files[filePath];
 
-    if (currentMetadata) {
-        currentMetadata.previousVersion = syncedVersion;
-        manifest.files[filePath] = currentMetadata;
-        await writeManifest(manifest);
-    }
+        if (currentMetadata) {
+            currentMetadata.previousVersion = syncedVersion;
+            manifest.files[filePath] = currentMetadata;
+
+            // Write directly without calling writeManifest to avoid double-locking
+            const manifestPath = getManifestPath();
+            await fs.mkdir(path.dirname(manifestPath), { recursive: true });
+            await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+        }
+    });
 }
 
 /**
  * Remove file from manifest (when deleted)
  */
 export async function removeManifestEntry(filePath: string): Promise<void> {
-    const manifest = await readManifest();
-    delete manifest.files[filePath];
-    await writeManifest(manifest);
+    return withManifestLock(async () => {
+        const manifest = await readManifest();
+        delete manifest.files[filePath];
+
+        // Write directly without calling writeManifest to avoid double-locking
+        const manifestPath = getManifestPath();
+        await fs.mkdir(path.dirname(manifestPath), { recursive: true });
+        await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    });
 }
 
 /**

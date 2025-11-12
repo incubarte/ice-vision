@@ -7,19 +7,14 @@ import type { ConfigState } from '@/types';
  */
 export async function triggerSync(
     config: ConfigState,
-    trigger: 'after-match' | 'after-summary-edit',
+    trigger: 'after-summary-edit',
     isMatchInProgress?: boolean
 ): Promise<{ executed: boolean; message: string; filesSync: number }> {
     try {
         // Check if this trigger is enabled
-        if (trigger === 'after-match' && !config.autoSyncAfterMatch) {
-            console.log('[Sync Trigger] After-match sync disabled in config');
-            return { executed: false, message: 'Sync tras partido desactivado', filesSync: 0 };
-        }
-
         if (trigger === 'after-summary-edit' && !config.autoSyncAfterSummaryEdit) {
             console.log('[Sync Trigger] After-summary-edit sync disabled in config');
-            return { executed: false, message: 'Sync tras edición de summary desactivado', filesSync: 0 };
+            return { executed: false, message: 'Sync tras guardar torneo desactivado', filesSync: 0 };
         }
 
         // Check if we should skip during match
