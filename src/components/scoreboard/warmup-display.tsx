@@ -102,7 +102,7 @@ export function WarmupDisplay({
 
       {/* Home logo - LEFT SIDE, HIGHER UP - BIGGER SIZE */}
       {homeLogoDataUrl && (
-        <div className="absolute left-[18%] top-[20%] -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] z-10">
+        <div className="absolute left-[18%] top-[25%] -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] z-10">
           {/* Pulsing glow background - REDUCED INTENSITY */}
           <motion.div
             className="absolute inset-0 rounded-full blur-3xl"
@@ -148,7 +148,7 @@ export function WarmupDisplay({
 
       {/* Away logo - RIGHT SIDE, LOWER DOWN - BIGGER SIZE */}
       {awayLogoDataUrl && (
-        <div className="absolute right-[18%] bottom-[15%] translate-x-1/2 translate-y-1/2 w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] z-10">
+        <div className="absolute right-[18%] bottom-[25%] translate-x-1/2 translate-y-1/2 w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] z-10">
           {/* Pulsing glow background - REDUCED INTENSITY - offset timing */}
           <motion.div
             className="absolute inset-0 rounded-full blur-3xl"

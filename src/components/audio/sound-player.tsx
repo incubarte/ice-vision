@@ -97,10 +97,12 @@ export function SoundPlayer() {
         break;
     }
 
-    console.error(`Error de Audio (${soundName}):`, error.message, e.currentTarget.src);
-
-    // No mostrar toasts en la página de scoreboard
-    if (!isScoreboardPage) {
+    // Usar console.warn en lugar de console.error en la página del scoreboard
+    // para evitar que Next.js muestre el overlay de error
+    if (isScoreboardPage) {
+      console.warn(`Error de Audio (${soundName}):`, error.message, e.currentTarget.src);
+    } else {
+      console.error(`Error de Audio (${soundName}):`, error.message, e.currentTarget.src);
       toast({
           title: `Error de Sonido (${soundName})`,
           description: errorMessage,
