@@ -163,6 +163,9 @@ const parseUserAgent = (uaString?: string): string => {
 };
 
 
+// TEMPORARILY DISABLED: AccessRequestManager to reduce server polling
+// Uncomment this component if you need the access request approval feature
+/*
 const AccessRequestManager = () => {
     const [requests, setRequests] = useState<AccessRequest[]>([]);
     const { toast } = useToast();
@@ -270,6 +273,7 @@ const AccessRequestManager = () => {
         </Popover>
     );
 };
+*/
 
 
 export default function ControlsPage() {
@@ -887,7 +891,7 @@ export default function ControlsPage() {
 
       {/* Connection Status Indicators */}
       <div className="fixed bottom-4 right-4 flex flex-col items-end gap-2 z-50">
-          <AccessRequestManager />
+          {/* <AccessRequestManager /> */}
            <TooltipProvider delayDuration={100}>
               <Tooltip>
                  <TooltipTrigger asChild>

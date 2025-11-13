@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { GameStateProvider } from '@/contexts/game-state-context';
-import { Toaster } from "@/components/ui/toaster";
+import { ConditionalToaster } from "@/components/ui/conditional-toaster";
 import { cn } from '@/lib/utils';
 import { PageShell } from '@/components/layout/page-shell';
 
@@ -26,7 +26,7 @@ export default function RootLayout({
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
         <GameStateProvider>
           <PageShell>{children}</PageShell>
-          <Toaster />
+          <ConditionalToaster />
         </GameStateProvider>
       </body>
     </html>

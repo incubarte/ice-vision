@@ -13,7 +13,7 @@ import { useStandings } from '@/hooks/use-standings';
 export function StandingsDisplay() {
   const { state } = useGameState();
   const { tournaments, selectedTournamentId, selectedMatchCategory, scoreboardLayout } = state.config;
-  const { matchId } = state.live;
+  const { matchId, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName } = state.live;
 
   const currentTournament = useMemo(() => {
     return (tournaments || []).find(t => t.id === selectedTournamentId);
@@ -23,20 +23,44 @@ export function StandingsDisplay() {
     if (!currentTournament || !matchId || !currentTournament.matches) return null;
     return currentTournament.matches.find(m => m.id === matchId);
   }, [currentTournament, matchId]);
+
+  // Find team IDs from team names (fallback when currentMatch is not found)
+  const teamIds = useMemo(() => {
+    if (currentMatch) {
+      return { homeTeamId: currentMatch.homeTeamId, awayTeamId: currentMatch.awayTeamId };
+    }
+
+    if (!currentTournament?.teams) return null;
+
+    const homeTeam = currentTournament.teams.find(t =>
+      t.name === homeTeamName &&
+      (t.subName || undefined) === (homeTeamSubName || undefined) &&
+      t.category === selectedMatchCategory
+    );
+
+    const awayTeam = currentTournament.teams.find(t =>
+      t.name === awayTeamName &&
+      (t.subName || undefined) === (awayTeamSubName || undefined) &&
+      t.category === selectedMatchCategory
+    );
+
+    if (!homeTeam || !awayTeam) return null;
+
+    return { homeTeamId: homeTeam.id, awayTeamId: awayTeam.id };
+  }, [currentMatch, currentTournament, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName, selectedMatchCategory]);
   
   const standings = useStandings(currentTournament, selectedMatchCategory);
 
   const displayedStandings = useMemo(() => {
-    if (!currentMatch) {
+    if (!teamIds) {
       return standings;
     }
-    
+
     if (standings.length <= 5) {
       return standings;
     }
 
-    const homeTeamId = currentMatch.homeTeamId;
-    const awayTeamId = currentMatch.awayTeamId;
+    const { homeTeamId, awayTeamId } = teamIds;
 
     const homeIndex = standings.findIndex(s => s.id === homeTeamId);
     const awayIndex = standings.findIndex(s => s.id === awayTeamId);
@@ -70,12 +94,18 @@ export function StandingsDisplay() {
 
     return finalRows;
 
-  }, [standings, currentMatch]);
+  }, [standings, teamIds]);
 
 
-  if (!currentMatch || !scoreboardLayout) return null;
-  const homeTeamId = currentMatch.homeTeamId;
-  const awayTeamId = currentMatch.awayTeamId;
+  if (!scoreboardLayout) {
+    return null;
+  }
+
+  if (!teamIds) {
+    return null;
+  }
+
+  const { homeTeamId, awayTeamId } = teamIds;
 
   // Base font size from config
   const baseFontSizeRem = scoreboardLayout.standingsTableFontSize || 1;
@@ -92,7 +122,7 @@ export function StandingsDisplay() {
   const statColumnWidth = `${baseFontSizeRem * 5}rem`;
 
   return (
-    <Card className="bg-card shadow-lg flex flex-col h-full">
+    <Card className="bg-card/60 backdrop-blur-md shadow-lg flex flex-col" style={{ maxHeight: '80vh' }}>
       <CardHeader>
         <CardTitle 
           className="flex items-center gap-3"

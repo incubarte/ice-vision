@@ -3,16 +3,19 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useGameState, type GameAction } from '@/contexts/game-state-context';
-import { CompactHeaderScoreboard } from './compact-header-scoreboard';
+import { CompactHeaderScoreboard, useTeamLogos } from './compact-header-scoreboard';
 import { PenaltiesDisplay } from './penalties-display';
 import { ShootoutDisplay, MAX_DISPLAY_SLOTS } from './shootout-display';
 import { StandingsDisplay } from './standings-display';
+import { WarmupDisplay } from './warmup-display';
 import { GoalCelebrationOverlay } from './goal-celebration-overlay';
 import { ReplayOverlay } from './replay-overlay';
+import { OlympiaTransition } from './olympia-transition';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { RemoteCommand } from '@/types';
 import { HockeyPuckSpinner } from '../ui/hockey-puck-spinner';
+import Image from 'next/image';
 
 const ValentinoCaffeAd = () => {
     return (
@@ -44,10 +47,14 @@ export function FullScoreboard({ className }: { className?: string }) {
   const { state, dispatch, isLoading } = useGameState();
   const [showOverlay, setShowOverlay] = useState(false);
   const [overlayText, setOverlayText] = useState('');
-  
+  const [isOlympiaTransitioning, setIsOlympiaTransitioning] = useState(false);
+  const [frozenWarmupContent, setFrozenWarmupContent] = useState<React.ReactNode>(null);
+  const [wasWarmup, setWasWarmup] = useState(false);
+  const { homeLogoDataUrl, awayLogoDataUrl } = useTeamLogos();
+
   const { config, live } = state;
   const scoreboardLayout = config?.scoreboardLayout;
-  
+
   const videoPreloaderRef = useRef<HTMLVideoElement>(null);
   
   // Listen for remote commands specifically for this scoreboard component
@@ -133,6 +140,57 @@ export function FullScoreboard({ className }: { className?: string }) {
     return () => clearTimeout(timer);
   }, [live?.goalCelebration, dispatch]);
 
+  // Detectar cuando el período cambia de Warmup a otro período y activar transición de Olympia
+  useEffect(() => {
+    if (!config || !live) return;
+
+    const isWarmup = live.clock.periodDisplayOverride === 'Warm-up';
+    const isFixtureMatch = !!live.matchId;
+
+    // Detectar transición de warmup a otro período
+    if (wasWarmup && !isWarmup && isFixtureMatch && !isOlympiaTransitioning) {
+      console.log('Period changed from Warmup! Capturing warmup content and starting Olympia transition...');
+
+      // Determinar qué se estaba mostrando antes del cambio de período
+      // Usar el estado previo del warmup
+      const wasShowingStandings = config.showStandingsInWarmup;
+
+      // Capturar el contenido COMPLETO de warmup estático para la transición
+      const warmupContent = wasShowingStandings ? (
+        <div className="w-full h-screen" style={{ pointerEvents: 'none' }}>
+          <WarmupDisplay
+            homeLogoDataUrl={homeLogoDataUrl}
+            awayLogoDataUrl={awayLogoDataUrl}
+            clockPosition="top"
+            showClock={true}
+          >
+            <StandingsDisplay />
+          </WarmupDisplay>
+        </div>
+      ) : (
+        <div className="w-full h-screen" style={{ pointerEvents: 'none' }}>
+          <WarmupDisplay
+            homeLogoDataUrl={homeLogoDataUrl}
+            awayLogoDataUrl={awayLogoDataUrl}
+            clockPosition="center"
+            showClock={true}
+          />
+        </div>
+      );
+
+      setFrozenWarmupContent(warmupContent);
+
+      // Iniciar transición inmediatamente
+      setIsOlympiaTransitioning(true);
+    }
+
+    // Actualizar el estado de wasWarmup
+    if (isWarmup && isFixtureMatch) {
+      setWasWarmup(true);
+    } else if (!isFixtureMatch) {
+      setWasWarmup(false);
+    }
+  }, [config, live, wasWarmup, isOlympiaTransitioning, homeLogoDataUrl, awayLogoDataUrl]);
 
   if (isLoading || !config || !live || !scoreboardLayout) {
     return null;
@@ -150,22 +208,34 @@ export function FullScoreboard({ className }: { className?: string }) {
     ? Math.max(homeAttempts.length, awayAttempts.length) + (homeAttempts.length === awayAttempts.length ? 1 : 0)
     : 1;
 
-  const showMainScoreboard = clock.periodDisplayOverride !== 'Shootout';
+  const showMainScoreboard = clock.periodDisplayOverride !== 'Shootout' && clock.periodDisplayOverride !== 'Warm-up';
 
-  // Determinar si mostrar la tabla de posiciones
+  // Determinar qué vista mostrar durante warm-up
   const isWarmup = clock.periodDisplayOverride === 'Warm-up';
   const isFixtureMatch = !!matchId;
-  const showStandings = config.showStandingsInWarmup && isWarmup && isFixtureMatch;
+  const warmupRemainingCs = isWarmup ? clock.currentTime : 0;
+  const warmupRemainingSeconds = warmupRemainingCs / 100;
+
+  // Si showStandingsInWarmup está activado Y quedan menos de 90 segundos, mostrar tabla
+  // Si está desactivado, siempre mostrar warmup display especial
+  const shouldShowStandings = config.showStandingsInWarmup && isWarmup && isFixtureMatch && warmupRemainingSeconds <= 90;
+  const shouldShowWarmupDisplay = isWarmup && isFixtureMatch && !shouldShowStandings;
+
+  const handleTransitionComplete = () => {
+    setIsOlympiaTransitioning(false);
+    setWasWarmup(false);
+    setFrozenWarmupContent(null);
+  };
 
   return (
-    <div 
-      className={cn("w-full h-screen grid grid-rows-[auto_1fr] relative", className)}
+    <div
+      className={cn("w-full h-screen relative", className)}
       style={{
         transform: `translateX(${scoreboardLayout.scoreboardHorizontalPosition}rem)`
       }}
     >
        <video ref={videoPreloaderRef} style={{ display: 'none' }} muted playsInline />
-       
+
        {/* --- TEMPORARY LOADING INDICATOR --- */}
        {replayLoadRequest && !replayOverlay && (
            <div className="absolute top-4 left-4 z-50 flex items-center gap-2 p-2 bg-blue-900/50 text-white rounded-lg backdrop-blur-sm">
@@ -175,22 +245,52 @@ export function FullScoreboard({ className }: { className?: string }) {
        )}
        {/* --- END TEMPORARY --- */}
 
-      <div 
-        className="relative z-10" // Header container
-        style={{
-            paddingTop: `${scoreboardLayout.scoreboardVerticalPosition}rem`,
-        }}
-      >
-        {showMainScoreboard && <CompactHeaderScoreboard />}
-      </div>
+      {isOlympiaTransitioning ? (
+        <OlympiaTransition
+          onComplete={handleTransitionComplete}
+          oldContent={frozenWarmupContent}
+          newContent={
+            <div className="w-full h-screen grid grid-rows-[auto_1fr]">
+              <div
+                className="relative z-10"
+                style={{
+                  paddingTop: `${scoreboardLayout.scoreboardVerticalPosition}rem`,
+                }}
+              >
+                <CompactHeaderScoreboard />
+              </div>
+              <div
+                className="relative"
+                style={{
+                  marginTop: `${scoreboardLayout.mainContentGap}rem`,
+                }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10 xl:gap-12 h-full">
+                  <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} />
+                  <PenaltiesDisplay teamDisplayType="Visitante" teamName={awayTeamName} penalties={penalties.away} />
+                </div>
+              </div>
+            </div>
+          }
+        />
+      ) : (
+        <div className="w-full h-screen grid grid-rows-[auto_1fr]">
+          <div
+            className="relative z-10" // Header container
+            style={{
+                paddingTop: `${scoreboardLayout.scoreboardVerticalPosition}rem`,
+            }}
+          >
+            {showMainScoreboard && <CompactHeaderScoreboard />}
+          </div>
 
-      {/* Transparent container that takes all remaining space */}
-      <div 
-        className="relative" // Content container
-        style={{
-            marginTop: `${scoreboardLayout.mainContentGap}rem`,
-        }}
-      >
+          {/* Transparent container that takes all remaining space */}
+          <div
+            className="relative" // Content container
+            style={{
+                marginTop: `${scoreboardLayout.mainContentGap}rem`,
+            }}
+          >
         <AnimatePresence>
           {replayOverlay && (
             <motion.div
@@ -246,10 +346,16 @@ export function FullScoreboard({ className }: { className?: string }) {
                         transition={{ duration: 0.5, delay: 0.3 }}
                         className="h-full"
                     >
-                        {showStandings ? (
-                            <div className="px-4 sm:px-8 md:px-12 lg:px-16 h-full">
+                        {shouldShowWarmupDisplay ? (
+                            <WarmupDisplay homeLogoDataUrl={homeLogoDataUrl} awayLogoDataUrl={awayLogoDataUrl} />
+                        ) : shouldShowStandings ? (
+                            <WarmupDisplay
+                                homeLogoDataUrl={homeLogoDataUrl}
+                                awayLogoDataUrl={awayLogoDataUrl}
+                                clockPosition="top"
+                            >
                                 <StandingsDisplay />
-                            </div>
+                            </WarmupDisplay>
                         ) : clock.periodDisplayOverride !== 'Shootout' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10 xl:gap-12 h-full">
                                 <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} />
@@ -257,12 +363,12 @@ export function FullScoreboard({ className }: { className?: string }) {
                             </div>
                         ) : clock.periodDisplayOverride === 'Shootout' && shootout?.isActive ? (
                             <div className="flex flex-col items-center gap-4">
-                            <h1 
+                            <h1
                                 className="text-accent font-bold uppercase tracking-widest flex items-baseline gap-x-3"
                                 style={{ fontSize: `${scoreboardLayout.periodSize * 1.5}rem` }}
                             >
                                 <span>Penales</span>
-                                <span 
+                                <span
                                     className="text-foreground/80 font-normal"
                                     style={{ fontSize: `${scoreboardLayout.periodSize * 1.5 * 0.5}rem` }}
                                 >
@@ -279,7 +385,9 @@ export function FullScoreboard({ className }: { className?: string }) {
                 )}
             </AnimatePresence>
         </div>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

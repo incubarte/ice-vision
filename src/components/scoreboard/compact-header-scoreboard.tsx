@@ -7,6 +7,46 @@ import { TeamScoreDisplay } from './team-score-display';
 import { ListFilter } from 'lucide-react'; // Icon for category
 import { useMemo } from 'react';
 
+// Hook to get team logos for use in other components
+export function useTeamLogos() {
+  const { state } = useGameState();
+
+  if (!state.config || !state.live) {
+    return { homeLogoDataUrl: null, awayLogoDataUrl: null };
+  }
+
+  const { config, live } = state;
+  const { tournaments, selectedTournamentId, selectedMatchCategory } = config;
+  const { homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName } = live;
+
+  const selectedTournament = useMemo(() => {
+    return (tournaments || []).find(t => t.id === selectedTournamentId);
+  }, [tournaments, selectedTournamentId]);
+
+  const homeTeamData = useMemo(() => {
+    if (!selectedTournament || !selectedTournament.teams) return null;
+    return selectedTournament.teams.find(t =>
+      t.name === homeTeamName &&
+      (t.subName || undefined) === (homeTeamSubName || undefined) &&
+      t.category === selectedMatchCategory
+    );
+  }, [selectedTournament, homeTeamName, homeTeamSubName, selectedMatchCategory]);
+
+  const awayTeamData = useMemo(() => {
+    if (!selectedTournament || !selectedTournament.teams) return null;
+    return selectedTournament.teams.find(t =>
+      t.name === awayTeamName &&
+      (t.subName || undefined) === (awayTeamSubName || undefined) &&
+      t.category === selectedMatchCategory
+    );
+  }, [selectedTournament, awayTeamName, awayTeamSubName, selectedMatchCategory]);
+
+  return {
+    homeLogoDataUrl: homeTeamData?.logoDataUrl || null,
+    awayLogoDataUrl: awayTeamData?.logoDataUrl || null,
+  };
+}
+
 export function CompactHeaderScoreboard() {
   const { state } = useGameState();
 

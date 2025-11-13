@@ -4,10 +4,13 @@
 import React, { useEffect, useRef } from 'react';
 import { useGameState, DEFAULT_HORN_SOUND_PATH, DEFAULT_PENALTY_BEEP_PATH } from '@/contexts/game-state-context';
 import { useToast } from '@/hooks/use-toast';
+import { usePathname } from 'next/navigation';
 
 export function SoundPlayer() {
   const { state, isLoading } = useGameState();
   const { toast } = useToast();
+  const pathname = usePathname();
+  const isScoreboardPage = pathname === '/' || pathname === '/scoreboard';
 
   const hornAudioRef = useRef<HTMLAudioElement | null>(null);
   const penaltyAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -30,11 +33,13 @@ export function SoundPlayer() {
         hornAudioRef.current.currentTime = 0;
         hornAudioRef.current.play().catch(error => {
           console.warn("Playback prevented for horn sound:", error);
-          toast({
-            title: "Error de Sonido de Bocina",
-            description: "El navegador impidió la reproducción automática del sonido.",
-            variant: "destructive"
-          });
+          if (!isScoreboardPage) {
+            toast({
+              title: "Error de Sonido de Bocina",
+              description: "El navegador impidió la reproducción automática del sonido.",
+              variant: "destructive"
+            });
+          }
         });
       }
     }
@@ -45,11 +50,13 @@ export function SoundPlayer() {
             penaltyAudioRef.current.currentTime = 0;
             penaltyAudioRef.current.play().catch(error => {
                 console.warn("Playback prevented for penalty beep:", error);
-                 toast({
-                  title: "Error de Sonido de Beep",
-                  description: "El navegador impidió la reproducción automática del sonido.",
-                  variant: "destructive"
-                });
+                if (!isScoreboardPage) {
+                  toast({
+                    title: "Error de Sonido de Beep",
+                    description: "El navegador impidió la reproducción automática del sonido.",
+                    variant: "destructive"
+                  });
+                }
             });
         }
     }
@@ -70,7 +77,7 @@ export function SoundPlayer() {
   const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement, Event>, soundName: string) => {
     const error = e.currentTarget.error;
     if (!error) return;
-    
+
     let errorMessage = `Código de error: ${error.code}.`;
     switch (error.code) {
       case error.MEDIA_ERR_ABORTED:
@@ -91,11 +98,15 @@ export function SoundPlayer() {
     }
 
     console.error(`Error de Audio (${soundName}):`, error.message, e.currentTarget.src);
-    toast({
-        title: `Error de Sonido (${soundName})`,
-        description: errorMessage,
-        variant: "destructive"
-    });
+
+    // No mostrar toasts en la página de scoreboard
+    if (!isScoreboardPage) {
+      toast({
+          title: `Error de Sonido (${soundName})`,
+          description: errorMessage,
+          variant: "destructive"
+      });
+    }
   };
 
   if (isLoading || !state.config) {
