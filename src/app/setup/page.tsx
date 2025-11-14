@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import type { TeamData, MatchData } from '@/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, CalendarCheck, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Check, ChevronsUpDown, CalendarCheck, ArrowLeft, AlertTriangle, Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -20,9 +20,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DurationSettingsCard } from '@/components/config/duration-settings-card';
 import { PenaltySettingsCard } from '@/components/config/penalty-settings-card';
 import { StoppedTimeAlertCard } from '@/components/config/stopped-time-alert-card';
-import { isToday, format } from 'date-fns';
+import { isToday, format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { safeUUID } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
 
 const TeamSelector = ({
     label,
@@ -110,9 +111,10 @@ function SetupPageContent() {
     const [awayTeamId, setAwayTeamId] = useState('');
     
     const [tempFormatSettings, setTempFormatSettings] = useState<Partial<FormatAndTimingsProfileData>>({});
-    
+
     const [todaysMatches, setTodaysMatches] = useState<MatchData[]>([]);
     const [pendingMatchConfig, setPendingMatchConfig] = useState<{ matchId: string } | null>(null);
+    const [selectedMatchDate, setSelectedMatchDate] = useState<Date>(new Date());
 
 
     const availableCategories = useMemo(() => selectedTournament?.categories || [], [selectedTournament]);
@@ -129,9 +131,11 @@ function SetupPageContent() {
             return;
         }
 
-        const todayMatches = selectedTournament.matches.filter(match => isToday(new Date(match.date)));
-        setTodaysMatches(todayMatches);
-    }, [state.config.tournaments, state.config.selectedTournamentId]);
+        const matchesForDate = selectedTournament.matches.filter(match =>
+            isSameDay(new Date(match.date), selectedMatchDate)
+        );
+        setTodaysMatches(matchesForDate);
+    }, [state.config.tournaments, state.config.selectedTournamentId, selectedMatchDate]);
 
      useEffect(() => {
         setLocalCategoryId(state.config.selectedMatchCategory || availableCategories[0]?.id || '');
@@ -273,14 +277,27 @@ function SetupPageContent() {
                     </TabsList>
                     
                     <TabsContent value="teams" className="py-4 space-y-6">
-                         {todaysMatches.length > 0 && (
-                            <div className="space-y-3 p-4 border-2 border-dashed rounded-lg bg-muted/30">
+                        <div className="space-y-3 p-4 border-2 border-dashed rounded-lg bg-muted/30">
+                            <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold flex items-center gap-2">
                                     <CalendarCheck className="h-5 w-5 text-primary"/>
-                                    Cargar Partido Programado
+                                    Partidos de la Fecha
                                 </h3>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className={cn("text-xs", !selectedMatchDate && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-1 h-3 w-3" />
+                                            {selectedMatchDate ? format(selectedMatchDate, "dd/MM/yy", { locale: es }) : <span>Seleccionar</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="end">
+                                        <Calendar mode="single" selected={selectedMatchDate} onSelect={(date) => date && setSelectedMatchDate(date)} initialFocus locale={es} />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            {todaysMatches.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-2">
-                                     {todaysMatches.map(match => {
+                                    {todaysMatches.map(match => {
                                         const homeTeam = selectedTournament?.teams.find(t => t.id === match.homeTeamId);
                                         const awayTeam = selectedTournament?.teams.find(t => t.id === match.awayTeamId);
 
@@ -299,8 +316,12 @@ function SetupPageContent() {
                                         )
                                     })}
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <div className="text-center py-6 text-muted-foreground text-sm">
+                                    No hay partidos programados para el {format(selectedMatchDate, "dd/MM/yyyy", { locale: es })}
+                                </div>
+                            )}
+                        </div>
                         
                         <Separator />
                         
