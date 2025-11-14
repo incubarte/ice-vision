@@ -78,13 +78,10 @@ export function ClockDisplay({ className }: ClockDisplayProps) {
         </div>
       </div>
       {clock.preTimeoutState && clock.periodDisplayOverride !== "End of Game" && (
-        <div className={cn(
-            "text-xs mt-1 normal-case tracking-normal",
-            isPreTimeoutLastMinute ? "text-orange-500/80" : "text-muted-foreground"
-          )}
+        <div className="text-xs mt-1 normal-case tracking-normal text-white"
           style={{ fontSize: `${scoreboardLayout.periodSize * 0.45}rem` }}
           >
-          Retornando a: {getPeriodText(clock.preTimeoutState.period, state.config.numberOfRegularPeriods)} - {formatTime(clock.preTimeoutState.time, { showTenths: isPreTimeoutLastMinute, includeMinutesForTenths: false })}
+          Retornando a: <span style={{ fontSize: '1.2em' }}>{getPeriodText(clock.preTimeoutState.period, state.config.numberOfRegularPeriods)} - {formatTime(clock.preTimeoutState.time, { showTenths: isPreTimeoutLastMinute, includeMinutesForTenths: false })}</span>
           {clock.preTimeoutState.override ? ` (${clock.preTimeoutState.override})` : ''}
         </div>
       )}

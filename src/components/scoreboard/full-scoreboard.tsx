@@ -8,6 +8,7 @@ import { PenaltiesDisplay } from './penalties-display';
 import { ShootoutDisplay, MAX_DISPLAY_SLOTS } from './shootout-display';
 import { StandingsDisplay } from './standings-display';
 import { WarmupDisplay } from './warmup-display';
+import { EndOfGameDisplay } from './end-of-game-display';
 import { GoalCelebrationOverlay } from './goal-celebration-overlay';
 import { ReplayOverlay } from './replay-overlay';
 import { OlympiaTransition } from './olympia-transition';
@@ -50,6 +51,8 @@ export function FullScoreboard({ className }: { className?: string }) {
   const [isOlympiaTransitioning, setIsOlympiaTransitioning] = useState(false);
   const [frozenWarmupContent, setFrozenWarmupContent] = useState<React.ReactNode>(null);
   const [wasWarmup, setWasWarmup] = useState(false);
+  const [wasEndOfGame, setWasEndOfGame] = useState(false);
+  const [frozenGameContent, setFrozenGameContent] = useState<React.ReactNode>(null);
   const { homeLogoDataUrl, awayLogoDataUrl } = useTeamLogos();
 
   const { config, live } = state;
@@ -192,6 +195,54 @@ export function FullScoreboard({ className }: { className?: string }) {
     }
   }, [config, live, wasWarmup, isOlympiaTransitioning, homeLogoDataUrl, awayLogoDataUrl]);
 
+  // Detectar cuando el partido termina y activar transición de Olympia hacia pantalla de fin de partido
+  useEffect(() => {
+    if (!config || !live) return;
+
+    const isEndOfGame = live.clock.periodDisplayOverride === 'End of Game';
+    const isFixtureMatch = !!live.matchId;
+
+    // Detectar transición hacia "End of Game"
+    if (!wasEndOfGame && isEndOfGame && isFixtureMatch && !isOlympiaTransitioning) {
+      console.log('Game ended! Capturing current scoreboard and starting Olympia transition to end screen...');
+
+      // Capturar el contenido del scoreboard actual (penalties)
+      const gameContent = (
+        <div className="w-full h-screen grid grid-rows-[auto_1fr]" style={{ pointerEvents: 'none' }}>
+          <div
+            className="relative z-10"
+            style={{
+              paddingTop: `${scoreboardLayout.scoreboardVerticalPosition}rem`,
+            }}
+          >
+            <CompactHeaderScoreboard />
+          </div>
+          <div
+            className="relative"
+            style={{
+              marginTop: `${scoreboardLayout.mainContentGap}rem`,
+            }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10 xl:gap-12 h-full">
+              <PenaltiesDisplay teamDisplayType="Local" teamName={live.homeTeamName} penalties={live.penalties.home} />
+              <PenaltiesDisplay teamDisplayType="Visitante" teamName={live.awayTeamName} penalties={live.penalties.away} />
+            </div>
+          </div>
+        </div>
+      );
+
+      setFrozenGameContent(gameContent);
+      setIsOlympiaTransitioning(true);
+    }
+
+    // Actualizar el estado de wasEndOfGame
+    if (isEndOfGame && isFixtureMatch) {
+      setWasEndOfGame(true);
+    } else if (!isFixtureMatch) {
+      setWasEndOfGame(false);
+    }
+  }, [config, live, wasEndOfGame, isOlympiaTransitioning, scoreboardLayout, homeLogoDataUrl, awayLogoDataUrl]);
+
   if (isLoading || !config || !live || !scoreboardLayout) {
     return null;
   }
@@ -225,6 +276,7 @@ export function FullScoreboard({ className }: { className?: string }) {
     setIsOlympiaTransitioning(false);
     setWasWarmup(false);
     setFrozenWarmupContent(null);
+    setFrozenGameContent(null);
   };
 
   return (
@@ -248,31 +300,50 @@ export function FullScoreboard({ className }: { className?: string }) {
       {isOlympiaTransitioning ? (
         <OlympiaTransition
           onComplete={handleTransitionComplete}
-          oldContent={frozenWarmupContent}
+          oldContent={frozenWarmupContent || frozenGameContent}
           newContent={
-            <div className="w-full h-screen grid grid-rows-[auto_1fr]">
-              <div
-                className="relative z-10"
-                style={{
-                  paddingTop: `${scoreboardLayout.scoreboardVerticalPosition}rem`,
-                }}
-              >
-                <CompactHeaderScoreboard />
+            frozenGameContent ? (
+              // Transition to End of Game screen
+              <div className="w-full h-screen">
+                <EndOfGameDisplay
+                  homeLogoDataUrl={homeLogoDataUrl}
+                  awayLogoDataUrl={awayLogoDataUrl}
+                />
               </div>
-              <div
-                className="relative"
-                style={{
-                  marginTop: `${scoreboardLayout.mainContentGap}rem`,
-                }}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10 xl:gap-12 h-full">
-                  <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} />
-                  <PenaltiesDisplay teamDisplayType="Visitante" teamName={awayTeamName} penalties={penalties.away} />
+            ) : (
+              // Transition from Warmup to Game
+              <div className="w-full h-screen grid grid-rows-[auto_1fr]">
+                <div
+                  className="relative z-10"
+                  style={{
+                    paddingTop: `${scoreboardLayout.scoreboardVerticalPosition}rem`,
+                  }}
+                >
+                  <CompactHeaderScoreboard />
+                </div>
+                <div
+                  className="relative"
+                  style={{
+                    marginTop: `${scoreboardLayout.mainContentGap}rem`,
+                  }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10 xl:gap-12 h-full">
+                    <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} />
+                    <PenaltiesDisplay teamDisplayType="Visitante" teamName={awayTeamName} penalties={penalties.away} />
+                  </div>
                 </div>
               </div>
-            </div>
+            )
           }
         />
+      ) : clock.periodDisplayOverride === 'End of Game' && isFixtureMatch ? (
+        // Show End of Game screen (after transition has completed)
+        <div className="w-full h-screen">
+          <EndOfGameDisplay
+            homeLogoDataUrl={homeLogoDataUrl}
+            awayLogoDataUrl={awayLogoDataUrl}
+          />
+        </div>
       ) : (
         <div className="w-full h-screen grid grid-rows-[auto_1fr]">
           <div

@@ -167,7 +167,19 @@ export function StandingsDisplay() {
                 const isMatchTeam = teamStat.id === homeTeamId || teamStat.id === awayTeamId;
                 
                 return (
-                    <TableRow key={teamStat.id} className={cn(isMatchTeam ? "bg-primary/20 font-bold" : "text-muted-foreground/80 opacity-80")} style={{ fontSize: `${cellSize}rem`, height: `${rowHeightRem}rem`}}>
+                    <TableRow
+                      key={teamStat.id}
+                      className={cn(isMatchTeam ? "bg-primary/20 font-bold" : "")}
+                      style={{
+                        fontSize: `${cellSize}rem`,
+                        height: `${rowHeightRem}rem`,
+                        ...(isMatchTeam ? {} : {
+                          color: 'hsl(var(--muted-foreground))',
+                          textShadow: '0 1px 3px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6)',
+                          opacity: 0.85
+                        })
+                      }}
+                    >
                         <TableCell className="text-center font-bold">{teamStat.rank}</TableCell>
                         <TableCell className="font-medium">{teamStat.name}</TableCell>
                         <TableCell className="text-center">{teamStat.pj}</TableCell>
