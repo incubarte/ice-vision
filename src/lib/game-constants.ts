@@ -38,7 +38,7 @@ export const IN_CODE_INITIAL_CUSTOM_PENALTY_BEEP_SOUND_DATA_URL = null;
 export const IN_CODE_INITIAL_ENABLE_DEBUG_MODE = false;
 export const IN_CODE_INITIAL_CHROME_BINARY_PATH = "/opt/google/chrome/google-chrome";
 export const IN_CODE_INITIAL_SHOW_STANDINGS_IN_WARMUP = true;
-export const IN_CODE_INITIAL_SHOW_SHOTS_DATA = true;
+export const IN_CODE_INITIAL_SHOW_SHOTS_DATA = process.env.NEXT_PUBLIC_SHOW_PLAYER_STATS === 'false' ? false : true;
 
 export const IN_CODE_INITIAL_TUNNEL_STATE: TunnelState = {
   subdomain: defaultSettings.tunnel.subdomainPrefix,

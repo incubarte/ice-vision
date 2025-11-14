@@ -3,8 +3,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { useGameState, getCategoryNameById } from '@/contexts/game-state-context';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, ChevronLeft, ChevronRight, FileText, ListFilter, Search, X } from 'lucide-react';
+import { Edit, Trash2, ChevronLeft, ChevronRight, FileText, ListFilter, Search, X, Play } from 'lucide-react';
 import { addMonths, subMonths, format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddEditMatchDialog } from './add-edit-match-dialog';
@@ -23,6 +24,7 @@ import { Input } from '../ui/input';
 export function FixtureCalendarView() {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
+  const router = useRouter();
   const { selectedTournamentId, tournaments } = state.config;
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
@@ -89,6 +91,13 @@ export function FixtureCalendarView() {
     dispatch({ type: 'DELETE_MATCH_FROM_TOURNAMENT', payload: { tournamentId: selectedTournamentId, matchId: matchToDelete.id }});
     toast({ title: 'Partido Eliminado', description: 'El partido ha sido eliminado del fixture.' });
     setMatchToDelete(null);
+  };
+
+  const handlePlayMatch = (match: MatchData) => {
+    if (isReadOnly) return;
+    setSelectedMatch(null);
+    // Navigate to setup page with step 2 and match ID
+    router.push(`/setup?step=2&matchId=${match.id}`);
   };
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -293,6 +302,14 @@ export function FixtureCalendarView() {
                 )}
                 {!isReadOnly && (
                   <>
+                    <Button
+                      variant="default"
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => handlePlayMatch(selectedMatch)}
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      Jugar Partido
+                    </Button>
                     <Button
                       variant="outline"
                       className="w-full"

@@ -3,10 +3,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useGameState, getCategoryNameById } from '@/contexts/game-state-context';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Edit, Trash2, FileText, Search, ListFilter, Calendar as CalendarIcon, X, Check as CheckIcon } from 'lucide-react';
+import { Edit, Trash2, FileText, Search, ListFilter, Calendar as CalendarIcon, X, Check as CheckIcon, Play } from 'lucide-react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddEditMatchDialog } from './add-edit-match-dialog';
@@ -25,6 +25,7 @@ export function FixtureListView() {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { selectedTournamentId, tournaments } = state.config;
 
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
@@ -91,6 +92,12 @@ export function FixtureListView() {
     dispatch({ type: 'DELETE_MATCH_FROM_TOURNAMENT', payload: { tournamentId: selectedTournamentId, matchId: matchToDelete.id }});
     toast({ title: 'Partido Eliminado', description: 'El partido ha sido eliminado del fixture.' });
     setMatchToDelete(null);
+  };
+
+  const handlePlayMatch = (match: MatchData) => {
+    if (isReadOnly) return;
+    // Navigate to setup page with step 2 and match ID
+    router.push(`/setup?step=2&matchId=${match.id}`);
   };
 
   const clearFilters = () => {
@@ -201,6 +208,9 @@ export function FixtureListView() {
                         )}
                         {!isReadOnly && (
                           <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => handlePlayMatch(match)} title="Jugar partido">
+                              <Play className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMatch(match)}>
                               <Edit className="h-4 w-4" />
                             </Button>

@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameState, type FormatAndTimingsProfileData } from '@/contexts/game-state-context';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -91,11 +91,12 @@ const TeamSelector = ({
     );
 };
 
-export default function SetupPage() {
+function SetupPageContent() {
     const { state, dispatch } = useGameState();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
-    
+
     const [activeTab, setActiveTab] = useState('teams');
     
     const { selectedTournamentId, tournaments } = state.config;
@@ -138,15 +139,42 @@ export default function SetupPage() {
         setTempFormatSettings(currentProfile);
     }, [state.config.selectedTournamentId, state.config.selectedMatchCategory, state.config.formatAndTimingsProfiles, state.config.selectedFormatAndTimingsProfileId, availableCategories]);
 
-    const handleLoadMatchConfig = (match: MatchData) => {
+    const handleLoadMatchConfig = useCallback((match: MatchData) => {
         // Al cargar un partido existente, siempre es de torneo
-        setIsTournamentMatch(true); 
+        setIsTournamentMatch(true);
         setLocalCategoryId(match.categoryId);
         setHomeTeamId(match.homeTeamId);
         setAwayTeamId(match.awayTeamId);
-        setPendingMatchConfig({ matchId: match.id }); 
+        setPendingMatchConfig({ matchId: match.id });
         setActiveTab('rules');
-    };
+    }, []);
+
+    // Handle URL parameters for direct match loading
+    useEffect(() => {
+        const matchId = searchParams.get('matchId');
+        const step = searchParams.get('step');
+
+        // If matchId is provided, load that match
+        if (matchId && selectedTournament?.matches) {
+            const match = selectedTournament.matches.find(m => m.id === matchId);
+            if (match) {
+                handleLoadMatchConfig(match);
+
+                // If step is provided, navigate to that step after loading
+                if (step === '2') {
+                    // Step 2 = rules tab
+                    setActiveTab('rules');
+                } else if (step === '3') {
+                    setActiveTab('summary');
+                }
+            }
+        } else if (step === '2') {
+            // If only step is provided without matchId, just navigate to that step
+            setActiveTab('rules');
+        } else if (step === '3') {
+            setActiveTab('summary');
+        }
+    }, [searchParams, selectedTournament?.matches, handleLoadMatchConfig]);
     
     const handleNextStep = (nextTab: 'rules' | 'summary') => {
         if (activeTab === 'teams') {
@@ -330,6 +358,58 @@ export default function SetupPage() {
 
                     <TabsContent value="rules" className="py-4 max-h-[60vh] overflow-y-auto">
                         <div className="space-y-6">
+                            {/* Match Info Summary - Readonly */}
+                            <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+                                <h3 className="text-lg font-semibold">Información del Partido</h3>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span className="text-muted-foreground font-medium">Equipo Local:</span>
+                                        <p className="font-semibold">
+                                            {!isTournamentMatch
+                                                ? manualHomeTeamName
+                                                : (teamsInCategory.find(t => t.id === homeTeamId)?.name || 'N/A')}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground font-medium">Equipo Visitante:</span>
+                                        <p className="font-semibold">
+                                            {!isTournamentMatch
+                                                ? manualAwayTeamName
+                                                : (teamsInCategory.find(t => t.id === awayTeamId)?.name || 'N/A')}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground font-medium">Tipo de Partido:</span>
+                                        <p className="font-semibold">{isTournamentMatch ? 'Partido de Torneo' : 'Partido Amistoso'}</p>
+                                    </div>
+                                    {isTournamentMatch && (
+                                        <div>
+                                            <span className="text-muted-foreground font-medium">Categoría:</span>
+                                            <p className="font-semibold">{availableCategories.find(c => c.id === localCategoryId)?.name || 'N/A'}</p>
+                                        </div>
+                                    )}
+                                    {pendingMatchConfig && (
+                                        <>
+                                            <div>
+                                                <span className="text-muted-foreground font-medium">ID del Partido:</span>
+                                                <p className="font-mono text-xs">{pendingMatchConfig.matchId}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted-foreground font-medium">Fecha:</span>
+                                                <p className="font-semibold">
+                                                    {(() => {
+                                                        const match = selectedTournament?.matches?.find(m => m.id === pendingMatchConfig.matchId);
+                                                        return match ? format(new Date(match.date), "PPP 'a las' HH:mm", { locale: es }) : 'N/A';
+                                                    })()}
+                                                </p>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            <Separator />
+
                             <DurationSettingsCard isDialogMode={true} tempSettings={tempFormatSettings} onSettingsChange={setTempFormatSettings} />
                             <Separator />
                             <div className="flex flex-col gap-6">
@@ -391,6 +471,14 @@ export default function SetupPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function SetupPage() {
+    return (
+        <Suspense fallback={<div className="w-full max-w-4xl mx-auto py-8 text-center">Cargando...</div>}>
+            <SetupPageContent />
+        </Suspense>
     );
 }
 

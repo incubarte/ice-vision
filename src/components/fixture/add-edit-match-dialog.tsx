@@ -152,14 +152,14 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="date" className="text-right">Fecha</Label>
-                        <Popover>
+                        <Popover modal={true}>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" className={cn("col-span-3 justify-start text-left font-normal", !date && "text-muted-foreground")}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {date ? format(date, "PPP", { locale: es }) : <span>Seleccionar fecha</span>}
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
+                            <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar mode="single" selected={date} onSelect={setDate} initialFocus locale={es} />
                             </PopoverContent>
                         </Popover>
