@@ -36,6 +36,7 @@ export const SoundSettingsCard = forwardRef<SoundSettingsCardRef, SoundSettingsC
   const [localPlaySound, setLocalPlaySound] = useState(state.config.playSoundAtPeriodEnd);
   const [localCustomSoundDataUrl, setLocalCustomSoundDataUrl] = useState(state.config.customHornSoundDataUrl);
   const [customSoundFileName, setCustomSoundFileName] = useState<string | null>(null);
+  const [localEnableOlympiaTransition, setLocalEnableOlympiaTransition] = useState(state.config.enableOlympiaTransition);
   const [isDirtyLocal, setIsDirtyLocal] = useState(false);
 
   useEffect(() => {
@@ -46,9 +47,10 @@ export const SoundSettingsCard = forwardRef<SoundSettingsCardRef, SoundSettingsC
      if (!isDirtyLocal) {
       setLocalPlaySound(state.config.playSoundAtPeriodEnd);
       setLocalCustomSoundDataUrl(state.config.customHornSoundDataUrl);
-      setCustomSoundFileName(null); 
+      setCustomSoundFileName(null);
+      setLocalEnableOlympiaTransition(state.config.enableOlympiaTransition);
     }
-  }, [state.config.playSoundAtPeriodEnd, state.config.customHornSoundDataUrl, isDirtyLocal]);
+  }, [state.config.playSoundAtPeriodEnd, state.config.customHornSoundDataUrl, state.config.enableOlympiaTransition, isDirtyLocal]);
 
   const markDirty = () => setIsDirtyLocal(true);
 
@@ -56,21 +58,23 @@ export const SoundSettingsCard = forwardRef<SoundSettingsCardRef, SoundSettingsC
     handleSave: () => {
       if (!isDirtyLocal) return true;
 
-      dispatch({ 
-        type: "UPDATE_CONFIG_FIELDS", 
+      dispatch({
+        type: "UPDATE_CONFIG_FIELDS",
         payload: {
           playSoundAtPeriodEnd: localPlaySound,
           customHornSoundDataUrl: localCustomSoundDataUrl,
+          enableOlympiaTransition: localEnableOlympiaTransition,
         }
       });
-      
+
       setIsDirtyLocal(false);
-      return true; 
+      return true;
     },
     handleDiscard: () => {
       setLocalPlaySound(state.config.playSoundAtPeriodEnd);
       setLocalCustomSoundDataUrl(state.config.customHornSoundDataUrl);
       setCustomSoundFileName(null);
+      setLocalEnableOlympiaTransition(state.config.enableOlympiaTransition);
       setIsDirtyLocal(false);
     },
     getIsDirty: () => isDirtyLocal,
@@ -130,7 +134,7 @@ export const SoundSettingsCard = forwardRef<SoundSettingsCardRef, SoundSettingsC
       : `Predeterminado (${DEFAULT_HORN_SOUND_PATH.split('/').pop() || 'default-horn.wav'})`;
 
   return (
-    <ControlCardWrapper title="Configuración de Sonido de Bocina">
+    <ControlCardWrapper title="Configuración de Sonido y Display">
       <div className="space-y-6">
         <div className="flex items-center justify-between p-4 border rounded-md bg-muted/20">
           <Label htmlFor="playSoundSwitch" className="flex flex-col space-y-1">
@@ -143,6 +147,20 @@ export const SoundSettingsCard = forwardRef<SoundSettingsCardRef, SoundSettingsC
             id="playSoundSwitch"
             checked={localPlaySound}
             onCheckedChange={(checked) => { setLocalPlaySound(checked); markDirty(); }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-4 border rounded-md bg-muted/20">
+          <Label htmlFor="olympiaTransitionSwitch" className="flex flex-col space-y-1">
+            <span>Transición del Olympia</span>
+            <span className="font-normal leading-snug text-muted-foreground text-xs">
+              Muestra la animación del Olympia al terminar el warmup. Desactiva si hay problemas de rendimiento.
+            </span>
+          </Label>
+          <Switch
+            id="olympiaTransitionSwitch"
+            checked={localEnableOlympiaTransition}
+            onCheckedChange={(checked) => { setLocalEnableOlympiaTransition(checked); markDirty(); }}
           />
         </div>
 

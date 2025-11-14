@@ -8,6 +8,7 @@ import { PenaltiesDisplay } from './penalties-display';
 import { ShootoutDisplay, MAX_DISPLAY_SLOTS } from './shootout-display';
 import { StandingsDisplay } from './standings-display';
 import { WarmupDisplay } from './warmup-display';
+import { WarmupDisplayStatic } from './warmup-display-static';
 import { EndOfGameDisplay } from './end-of-game-display';
 import { GoalCelebrationOverlay } from './goal-celebration-overlay';
 import { ReplayOverlay } from './replay-overlay';
@@ -151,27 +152,36 @@ export function FullScoreboard({ className }: { className?: string }) {
 
     // Detectar transición de warmup a otro período
     if (wasWarmup && !isWarmup && isFixtureMatch && !isOlympiaTransitioning) {
-      console.log('Period changed from Warmup! Capturing warmup content and starting Olympia transition...');
+      console.log('Period changed from Warmup!');
+
+      // Si el Olympia está desactivado, no hacer transición
+      if (!config.enableOlympiaTransition) {
+        console.log('Olympia transition disabled, skipping...');
+        setWasWarmup(false);
+        return;
+      }
+
+      console.log('Capturing warmup content and starting Olympia transition...');
 
       // Determinar qué se estaba mostrando antes del cambio de período
       // Usar el estado previo del warmup
       const wasShowingStandings = config.showStandingsInWarmup;
 
-      // Capturar el contenido COMPLETO de warmup estático para la transición
+      // Capturar el contenido COMPLETO de warmup ESTÁTICO (sin animaciones) para la transición
       const warmupContent = wasShowingStandings ? (
         <div className="w-full h-screen" style={{ pointerEvents: 'none' }}>
-          <WarmupDisplay
+          <WarmupDisplayStatic
             homeLogoDataUrl={homeLogoDataUrl}
             awayLogoDataUrl={awayLogoDataUrl}
             clockPosition="top"
             showClock={true}
           >
             <StandingsDisplay />
-          </WarmupDisplay>
+          </WarmupDisplayStatic>
         </div>
       ) : (
         <div className="w-full h-screen" style={{ pointerEvents: 'none' }}>
-          <WarmupDisplay
+          <WarmupDisplayStatic
             homeLogoDataUrl={homeLogoDataUrl}
             awayLogoDataUrl={awayLogoDataUrl}
             clockPosition="center"

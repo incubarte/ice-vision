@@ -35,6 +35,7 @@ import {
   IN_CODE_INITIAL_ENABLE_DEBUG_MODE,
   IN_CODE_INITIAL_SHOW_STANDINGS_IN_WARMUP,
   IN_CODE_INITIAL_SHOW_SHOTS_DATA,
+  IN_CODE_INITIAL_ENABLE_OLYMPIA_TRANSITION,
   IN_CODE_INITIAL_TUNNEL_STATE,
   INITIAL_LAYOUT_SETTINGS,
   IN_CODE_INITIAL_REPLAYS_SETTINGS,
@@ -154,6 +155,7 @@ const getInitialState = (): GameState => {
       enableDebugMode: IN_CODE_INITIAL_ENABLE_DEBUG_MODE,
       showStandingsInWarmup: IN_CODE_INITIAL_SHOW_STANDINGS_IN_WARMUP,
       showShotsData: IN_CODE_INITIAL_SHOW_SHOTS_DATA,
+      enableOlympiaTransition: IN_CODE_INITIAL_ENABLE_OLYMPIA_TRANSITION,
       tickIntervalMs: 200,
       scoreboardLayout: INITIAL_LAYOUT_SETTINGS,
       scoreboardLayoutProfiles: [defaultInitialLayoutProfile],
@@ -1524,6 +1526,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           enableDebugMode: IN_CODE_INITIAL_ENABLE_DEBUG_MODE,
           showStandingsInWarmup: IN_CODE_INITIAL_SHOW_STANDINGS_IN_WARMUP,
           showShotsData: IN_CODE_INITIAL_SHOW_SHOTS_DATA,
+          enableOlympiaTransition: IN_CODE_INITIAL_ENABLE_OLYMPIA_TRANSITION,
           selectedMatchCategory: '', // Resets match category
           tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
           replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,

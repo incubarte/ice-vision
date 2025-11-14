@@ -240,6 +240,7 @@ export interface ConfigFields { // Interface for easier picking of fields
   replays: ReplaySettings;
   showStandingsInWarmup: boolean;
   showShotsData: boolean;
+  enableOlympiaTransition: boolean;
   // Auto-sync configuration
   autoSyncAnalysisIntervalMinutes: number;
   autoSyncEnabled: boolean;

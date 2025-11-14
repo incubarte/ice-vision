@@ -2,7 +2,7 @@
 
 import { motion, useAnimation } from 'framer-motion';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface OlympiaTransitionProps {
   onComplete: () => void;
@@ -12,7 +12,7 @@ interface OlympiaTransitionProps {
 
 export function OlympiaTransition({ onComplete, oldContent, newContent }: OlympiaTransitionProps) {
   const controls = useAnimation();
-  const [olympiaX, setOlympiaX] = useState(-150);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const runAnimation = async () => {
@@ -27,7 +27,10 @@ export function OlympiaTransition({ onComplete, oldContent, newContent }: Olympi
         y: '-50%',
       });
 
-      setOlympiaX(startX);
+      // Inicializar CSS variable
+      if (containerRef.current) {
+        containerRef.current.style.setProperty('--olympia-x', String(startX));
+      }
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -40,14 +43,18 @@ export function OlympiaTransition({ onComplete, oldContent, newContent }: Olympi
         }
       });
 
-      // Actualizar posición X mientras la Olympia se mueve - MÁS SUAVE con requestAnimationFrame
+      // Actualizar CSS variable mientras la Olympia se mueve - SIN causar re-renders
       const startTime = Date.now();
 
       const updatePosition = () => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / (duration * 1000), 1);
         const currentX = startX + (endX - startX) * progress;
-        setOlympiaX(currentX);
+
+        // Actualizar CSS variable directamente - NO causa re-render
+        if (containerRef.current) {
+          containerRef.current.style.setProperty('--olympia-x', String(currentX));
+        }
 
         if (progress < 1) {
           requestAnimationFrame(updatePosition);
@@ -64,28 +71,8 @@ export function OlympiaTransition({ onComplete, oldContent, newContent }: Olympi
     runAnimation();
   }, [controls, onComplete]);
 
-  // Calcular el clip-path basado en la posición del Olympia
-  const getClipPath = () => {
-    // El Olympia mide 60vw de ancho, así que su centro está a 30vw de su posición X
-    // Ajustamos para que el "corte" esté en el centro del Olympia
-    const olympiaWidthVw = 60;
-    const olympiaCenterOffsetVw = olympiaWidthVw / 2;
-
-    // Convertir 30vw a porcentaje del viewport width (30vw = 30% del viewport)
-    const centerOffsetPercent = olympiaCenterOffsetVw;
-
-    // Posición del centro del Olympia
-    const clipPositionX = olympiaX + centerOffsetPercent;
-
-    // Normalizar a 0-100
-    const normalizedX = Math.max(0, Math.min(100, clipPositionX));
-
-    // El Olympia "se lleva" el warmup: mantiene visible lo que está a la DERECHA del centro del Olympia
-    return `polygon(${normalizedX}% 0%, 100% 0%, 100% 100%, ${normalizedX}% 100%)`;
-  };
-
   return (
-    <div className="relative w-full h-full overflow-hidden bg-background">
+    <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-background" style={{ '--olympia-x': '-150' } as React.CSSProperties}>
       {/* New content que se va revelando (DEBAJO - z-0) */}
       <div className="absolute inset-0 z-0">
         {newContent}
@@ -95,7 +82,7 @@ export function OlympiaTransition({ onComplete, oldContent, newContent }: Olympi
       <div
         className="absolute inset-0 z-10"
         style={{
-          clipPath: getClipPath(),
+          clipPath: 'polygon(clamp(0%, calc((var(--olympia-x) + 30) * 1%), 100%) 0%, 100% 0%, 100% 100%, clamp(0%, calc((var(--olympia-x) + 30) * 1%), 100%) 100%)',
           willChange: 'clip-path',
         }}
       >

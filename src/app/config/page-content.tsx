@@ -80,7 +80,7 @@ type ExportableSoundAndDisplayConfig = Pick<ConfigFields,
   | 'enablePenaltyCountdownSound' | 'penaltyCountdownStartTime' | 'customPenaltyBeepSoundDataUrl'
   | 'enableTeamSelectionInMiniScoreboard' | 'enablePlayerSelectionForPenalties'
   | 'showAliasInPenaltyPlayerSelector' | 'showAliasInControlsPenaltyList' | 'showAliasInScoreboardPenalties'
-  | 'scoreboardLayoutProfiles' | 'enableDebugMode' | 'tunnel' | 'showStandingsInWarmup' | 'showShotsData'
+  | 'scoreboardLayoutProfiles' | 'enableDebugMode' | 'tunnel' | 'showStandingsInWarmup' | 'showShotsData' | 'enableOlympiaTransition'
 >;
 
 
@@ -335,6 +335,7 @@ export default function ConfigPage() {
       tunnel: state.config.tunnel,
       showStandingsInWarmup: state.config.showStandingsInWarmup,
       showShotsData: state.config.showShotsData,
+      enableOlympiaTransition: state.config.enableOlympiaTransition,
     };
     exportSection("Configuración de Sonido y Display", configToExport, "icevision_sonido_display");
   };
