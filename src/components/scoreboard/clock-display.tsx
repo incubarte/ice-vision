@@ -42,9 +42,13 @@ export function ClockDisplay({ className }: ClockDisplayProps) {
   const formattedTime = clock.isFlashingZero ? "00:00" : formatTime(clock.currentTime, { showTenths: isMainClockLastMinute, includeMinutesForTenths: false });
   const showClock = !isWinnerState && clock.periodDisplayOverride !== 'AwaitingDecision' && clock.periodDisplayOverride !== "End of Game";
 
+  // Split time into main part and tenths for different sizing
+  const timeHasTenths = isMainClockLastMinute && !clock.isFlashingZero && formattedTime.includes('.');
+  const [mainTime, tenths] = timeHasTenths ? formattedTime.split('.') : [formattedTime, null];
+
   return (
     <div className={cn("text-center", className)}>
-      <div 
+      <div
         className={cn(
           "font-bold font-headline tabular-nums tracking-tighter transition-opacity duration-300 flex items-center justify-center",
           isWinnerState ? "text-accent" : (isMainClockLastMinute ? "text-orange-500" : "text-accent"),
@@ -55,7 +59,16 @@ export function ClockDisplay({ className }: ClockDisplayProps) {
         {isWinnerState ? (
             <Trophy className="w-[0.75em] h-[0.75em]" />
         ) : (
-            showClock && formattedTime
+            showClock && (
+              timeHasTenths ? (
+                <>
+                  {mainTime}
+                  <span style={{ fontSize: '0.75em', alignSelf: 'flex-end' }}>.{tenths}</span>
+                </>
+              ) : (
+                formattedTime
+              )
+            )
         )}
       </div>
       
