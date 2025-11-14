@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Sparkles } from 'lucide-react';
+import { StandingsDisplayWithChanges } from './standings-display-with-changes';
 
 interface EndOfGameDisplayProps {
   homeLogoDataUrl?: string | null;
@@ -15,6 +17,7 @@ export function EndOfGameDisplay({
   awayLogoDataUrl,
 }: EndOfGameDisplayProps) {
   const { state } = useGameState();
+  const [showStandings, setShowStandings] = useState(false);
 
   if (!state.config || !state.live) {
     return null;
@@ -30,6 +33,32 @@ export function EndOfGameDisplay({
 
   const winnerTeamName = homeWon ? homeTeamName : awayTeamName;
   const winnerLogoDataUrl = homeWon ? homeLogoDataUrl : awayLogoDataUrl;
+
+  // Alternate standings: hide 10s, show 15s, hide 10s, show 15s...
+  useEffect(() => {
+    let currentTimer: NodeJS.Timeout;
+
+    const scheduleToggle = (show: boolean, delay: number) => {
+      currentTimer = setTimeout(() => {
+        setShowStandings(show);
+        // Schedule next toggle
+        if (show) {
+          // Currently showing, hide after 15s
+          scheduleToggle(false, 15000);
+        } else {
+          // Currently hiding, show after 10s
+          scheduleToggle(true, 10000);
+        }
+      }, delay);
+    };
+
+    // Start: hide for 10s, then show
+    scheduleToggle(true, 10000);
+
+    return () => {
+      clearTimeout(currentTimer);
+    };
+  }, []);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-background via-slate-900 to-background">
@@ -477,6 +506,30 @@ export function EndOfGameDisplay({
           </div>
         </div>
       </motion.div>
+
+      {/* Standings overlay - alternates every 10 seconds */}
+      <AnimatePresence>
+        {showStandings && (
+          <motion.div
+            className="absolute inset-0 z-30 flex items-center justify-center px-4 sm:px-8 md:px-12 lg:px-16 py-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <motion.div
+              className="w-full max-w-7xl"
+              style={{ maxHeight: '85vh' }}
+              initial={{ scale: 0.9, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 50 }}
+              transition={{ duration: 0.6, delay: 0.2, type: "spring", bounce: 0.3 }}
+            >
+              <StandingsDisplayWithChanges />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
