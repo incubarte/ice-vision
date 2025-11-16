@@ -112,7 +112,7 @@ export function StandingsDisplay() {
   const rowHeightRem = scoreboardLayout.standingsTableRowHeight || 3;
 
   // Proportional sizes based on the base
-  const titleSize = baseFontSizeRem * 2;
+  const titleSize = baseFontSizeRem * 2 * 0.85; // 15% más chico
   const headerSize = baseFontSizeRem * 1.1;
   const cellSize = baseFontSizeRem;
   const pointsSize = baseFontSizeRem * 1.25;

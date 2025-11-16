@@ -53,6 +53,7 @@ export function FullScoreboard({ className }: { className?: string }) {
   const [frozenWarmupContent, setFrozenWarmupContent] = useState<React.ReactNode>(null);
   const [wasWarmup, setWasWarmup] = useState(false);
   const [wasEndOfGame, setWasEndOfGame] = useState(false);
+  const [showStandingsInWarmup, setShowStandingsInWarmup] = useState(false);
   const { homeLogoDataUrl, awayLogoDataUrl } = useTeamLogos();
 
   const { config, live } = state;
@@ -219,6 +220,43 @@ export function FullScoreboard({ className }: { className?: string }) {
     }
   }, [config, live, wasEndOfGame]);
 
+  // Efecto para alternar entre tabla y warmup display durante el warmup
+  // 20 segundos CON tabla, 30 segundos SIN tabla
+  useEffect(() => {
+    if (!config || !live) return;
+
+    const isWarmup = live.clock.periodDisplayOverride === 'Warm-up';
+    const isFixtureMatch = !!live.matchId;
+
+    if (isWarmup && isFixtureMatch && config.showStandingsInWarmup) {
+      // Empezar mostrando la tabla
+      setShowStandingsInWarmup(true);
+
+      let currentTimeout: NodeJS.Timeout;
+
+      const scheduleNextToggle = (showStandings: boolean) => {
+        // Si vamos a mostrar tabla, esperar 30 segundos (tiempo sin tabla)
+        // Si vamos a ocultar tabla, esperar 20 segundos (tiempo con tabla)
+        const delay = showStandings ? 30000 : 20000;
+
+        currentTimeout = setTimeout(() => {
+          setShowStandingsInWarmup(showStandings);
+          scheduleNextToggle(!showStandings);
+        }, delay);
+      };
+
+      // Iniciar el ciclo: después de 20 segundos (mostrando tabla), ocultar
+      scheduleNextToggle(false);
+
+      return () => {
+        clearTimeout(currentTimeout);
+      };
+    } else {
+      // Si no estamos en warmup, resetear a false
+      setShowStandingsInWarmup(false);
+    }
+  }, [config, live]);
+
   if (isLoading || !config || !live || !scoreboardLayout) {
     return null;
   }
@@ -240,12 +278,9 @@ export function FullScoreboard({ className }: { className?: string }) {
   // Determinar qué vista mostrar durante warm-up
   const isWarmup = clock.periodDisplayOverride === 'Warm-up';
   const isFixtureMatch = !!matchId;
-  const warmupRemainingCs = isWarmup ? clock.currentTime : 0;
-  const warmupRemainingSeconds = warmupRemainingCs / 100;
 
-  // Si showStandingsInWarmup está activado Y quedan menos de 90 segundos, mostrar tabla
-  // Si está desactivado, siempre mostrar warmup display especial
-  const shouldShowStandings = config.showStandingsInWarmup && isWarmup && isFixtureMatch && warmupRemainingSeconds <= 90;
+  // Mostrar tabla si estamos en warmup, es partido de fixture, la opción está activada Y el estado indica mostrar
+  const shouldShowStandings = config.showStandingsInWarmup && isWarmup && isFixtureMatch && showStandingsInWarmup;
   const shouldShowWarmupDisplay = isWarmup && isFixtureMatch && !shouldShowStandings;
 
   const handleTransitionComplete = () => {
@@ -390,7 +425,9 @@ export function FullScoreboard({ className }: { className?: string }) {
                                 awayLogoDataUrl={awayLogoDataUrl}
                                 clockPosition="top"
                             >
-                                <StandingsDisplay />
+                                <div style={{ transform: 'scale(1.1)', transformOrigin: 'center center' }}>
+                                    <StandingsDisplay />
+                                </div>
                             </WarmupDisplay>
                         ) : clock.periodDisplayOverride !== 'Shootout' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10 xl:gap-12 h-full">
