@@ -83,6 +83,25 @@ export function EditTeamPlayersDialog({
       );
     }
   };
+
+  // Detect duplicate numbers
+  const duplicateNumbers = useMemo(() => {
+    const numberCount = new Map<string, number>();
+    editablePlayers.forEach(p => {
+      const num = p.localNumber.trim();
+      if (num) {
+        numberCount.set(num, (numberCount.get(num) || 0) + 1);
+      }
+    });
+
+    const duplicates = new Set<string>();
+    numberCount.forEach((count, number) => {
+      if (count > 1) {
+        duplicates.add(number);
+      }
+    });
+    return duplicates;
+  }, [editablePlayers]);
   
   const handleAttendanceChange = (playerId: string, isAttending: boolean) => {
     setAttendedPlayerIds(prevIds => {
@@ -252,7 +271,7 @@ export function EditTeamPlayersDialog({
                     value={player.localNumber}
                     onChange={(e) => handlePlayerNumberChange(player.id, e.target.value)}
                     placeholder="S/N"
-                    className="h-8 px-1 py-0 text-sm"
+                    className={`h-8 px-1 py-0 text-sm ${duplicateNumbers.has(player.localNumber.trim()) && player.localNumber.trim() ? 'border-red-500 border-2' : ''}`}
                     maxLength={3}
                   />
                 </div>

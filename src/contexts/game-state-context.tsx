@@ -250,6 +250,12 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             _initialConfigLoadComplete: true,
         };
 
+        // Auto-select first tournament if none is selected but tournaments exist
+        if (!finalState.config.selectedTournamentId && finalState.config.tournaments && finalState.config.tournaments.length > 0) {
+            console.log('[Reducer] No tournament selected, auto-selecting first tournament:', finalState.config.tournaments[0].id);
+            finalState.config.selectedTournamentId = finalState.config.tournaments[0].id;
+        }
+
         if (serverState.live && serverState.live.clock) {
             finalState.live = serverState.live;
         }
@@ -1626,13 +1632,20 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
   const fetchTournamentDetails = useCallback(async (tournamentId: string) => {
     try {
         const res = await fetch(`/api/tournaments/${tournamentId}`);
-        if (!res.ok) throw new Error(`Failed to fetch details for tournament ${tournamentId}`);
+        if (!res.ok) {
+            console.warn(`[GameState] Tournament ${tournamentId} not found, clearing selectedTournamentId`);
+            // If tournament not found, clear the selectedTournamentId
+            dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
+            return;
+        }
         const data = await res.json();
         if (data.tournament) {
             dispatch({ type: 'HYDRATE_TOURNAMENT_DETAILS', payload: { tournamentData: data.tournament }});
         }
     } catch (error) {
         console.error("Error fetching tournament details:", error);
+        // On error, also clear the selectedTournamentId to prevent repeated errors
+        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
     }
   }, [dispatch]);
 
@@ -1667,9 +1680,17 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     const { selectedTournamentId, tournaments } = state.config;
     if (selectedTournamentId) {
         const tournament = tournaments.find(t => t.id === selectedTournamentId);
+
+        // If tournament not found in the array, clear the selectedTournamentId
+        if (!tournament) {
+            console.warn('[GameState] Selected tournament not found in tournaments array, clearing selectedTournamentId');
+            dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
+            return;
+        }
+
         console.log('[GameState] Selected tournament:', selectedTournamentId, 'Has teams?', !!tournament?.teams);
         // Fetch details only if we don't have them (i.e., no teams or matches array)
-        if (tournament && !tournament.teams) {
+        if (!tournament.teams) {
             console.log('[GameState] Fetching tournament details for', selectedTournamentId);
             fetchTournamentDetails(selectedTournamentId);
         }

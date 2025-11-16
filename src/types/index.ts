@@ -140,8 +140,8 @@ export interface ReplaySettings {
 export interface GoalLog {
   id: string;
   team: Team;
-  timestamp: number; 
-  gameTime: number; 
+  timestamp: number;
+  gameTime: number;
   periodText: string;
   scorer?: {
     playerNumber: string;
@@ -151,6 +151,18 @@ export interface GoalLog {
     playerNumber: string;
     playerName?: string;
   };
+  assist2?: {
+    playerNumber: string;
+    playerName?: string;
+  };
+  positives?: Array<{
+    playerNumber: string;
+    playerName?: string;
+  } | null>;
+  negatives?: Array<{
+    playerNumber: string;
+    playerName?: string;
+  } | null>;
 }
 
 export interface PenaltyLog {

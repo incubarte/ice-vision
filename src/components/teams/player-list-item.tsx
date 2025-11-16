@@ -14,9 +14,10 @@ interface PlayerListItemProps {
   player: PlayerData;
   teamId: string;
   onRemovePlayer: (playerId: string) => void;
+  allPlayers?: PlayerData[];
 }
 
-export function PlayerListItem({ player, teamId, onRemovePlayer }: PlayerListItemProps) {
+export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = [] }: PlayerListItemProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
 
@@ -25,6 +26,9 @@ export function PlayerListItem({ player, teamId, onRemovePlayer }: PlayerListIte
   const [editableName, setEditableName] = useState(player.name);
 
   const numberInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if current player's number is duplicated
+  const hasDuplicateNumber = allPlayers.filter(p => p.number && p.number.trim() === player.number?.trim()).length > 1;
 
   useEffect(() => {
     if (!isEditing) {
@@ -120,7 +124,7 @@ export function PlayerListItem({ player, teamId, onRemovePlayer }: PlayerListIte
                       }
                     }}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSave(); } if (e.key === 'Escape') handleCancel();}}
-                    className="h-7 px-1 py-0 w-16 text-sm"
+                    className={`h-7 px-1 py-0 w-16 text-sm ${hasDuplicateNumber && player.number ? 'border-red-500 border-2' : ''}`}
                     placeholder="S/N"
                   />
                 </div>
@@ -134,7 +138,7 @@ export function PlayerListItem({ player, teamId, onRemovePlayer }: PlayerListIte
                 />
               </div>
             ) : (
-              <p className="font-semibold text-card-foreground truncate">
+              <p className={`font-semibold truncate ${hasDuplicateNumber && player.number ? 'text-red-500' : 'text-card-foreground'}`}>
                 {displayPlayerNumber} - {player.name}
               </p>
             )}

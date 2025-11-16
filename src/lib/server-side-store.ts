@@ -90,7 +90,7 @@ export async function reloadCacheFromDisk() {
         storedConfig = config as ConfigState;
         storedGameState = liveState as LiveGameState;
         storedTournaments = tournaments as TournamentsData;
-        console.log('[Cache] Reload complete.');
+        console.log('[Cache] Reload complete. Tournaments count:', storedTournaments?.tournaments?.length || 0);
     } catch (error) {
         console.error('[Cache] Failed to reload cache from disk:', error);
     }

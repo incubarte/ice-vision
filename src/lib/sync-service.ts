@@ -4,6 +4,7 @@ import type { SyncManifest, FileMetadata, SyncPlan, SyncPlanConflict, SyncLogFil
 import { storageProvider } from './storage';
 import { addSyncLog, addSyncError } from './sync-logs';
 import { writePlan, deletePlan, readPlan, updatePlanStatus } from './sync-plan';
+import { systemEmitter } from './server-side-store';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -801,10 +802,19 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
                 });
                 console.log(`[Sync] Uploaded: ${item.filePath}`);
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 result.errors.push({
                     filePath: item.filePath,
-                    error: error instanceof Error ? error.message : 'Unknown error'
+                    error: errorMessage
                 });
+                // Log individual error for detailed tracking
+                await addSyncError({
+                    timestamp: new Date().toISOString(),
+                    filePath: item.filePath,
+                    operation: 'upload',
+                    error: errorMessage
+                });
+                console.error(`[Sync] Failed to upload: ${item.filePath} - ${errorMessage}`);
             }
         }
 
@@ -826,10 +836,18 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
                 });
                 console.log(`[Sync] Downloaded: ${item.filePath}`);
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 result.errors.push({
                     filePath: item.filePath,
-                    error: error instanceof Error ? error.message : 'Unknown error'
+                    error: errorMessage
                 });
+                await addSyncError({
+                    timestamp: new Date().toISOString(),
+                    filePath: item.filePath,
+                    operation: 'download',
+                    error: errorMessage
+                });
+                console.error(`[Sync] Failed to download: ${item.filePath} - ${errorMessage}`);
             }
         }
 
@@ -846,10 +864,18 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
                 });
                 console.log(`[Sync] Deleted locally: ${item.filePath} (${item.reason})`);
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 result.errors.push({
                     filePath: item.filePath,
-                    error: error instanceof Error ? error.message : 'Unknown error'
+                    error: errorMessage
                 });
+                await addSyncError({
+                    timestamp: new Date().toISOString(),
+                    filePath: item.filePath,
+                    operation: 'delete-local',
+                    error: errorMessage
+                });
+                console.error(`[Sync] Failed to delete locally: ${item.filePath} - ${errorMessage}`);
             }
         }
 
@@ -868,10 +894,18 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
                 });
                 console.log(`[Sync] Deleted remotely: ${item.filePath} (${item.reason})`);
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 result.errors.push({
                     filePath: item.filePath,
-                    error: error instanceof Error ? error.message : 'Unknown error'
+                    error: errorMessage
                 });
+                await addSyncError({
+                    timestamp: new Date().toISOString(),
+                    filePath: item.filePath,
+                    operation: 'delete-remote',
+                    error: errorMessage
+                });
+                console.error(`[Sync] Failed to delete remotely: ${item.filePath} - ${errorMessage}`);
             }
         }
 
@@ -929,15 +963,39 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
                     console.log(`[Sync] Conflict resolved (remote-wins): ${conflict.filePath}`);
                 }
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 result.errors.push({
                     filePath: conflict.filePath,
-                    error: error instanceof Error ? error.message : 'Unknown error'
+                    error: errorMessage
                 });
+                await addSyncError({
+                    timestamp: new Date().toISOString(),
+                    filePath: conflict.filePath,
+                    operation: `conflict-${conflict.decision}`,
+                    error: errorMessage
+                });
+                console.error(`[Sync] Failed to resolve conflict (${conflict.decision}): ${conflict.filePath} - ${errorMessage}`);
             }
         }
 
-        // 8. Update manifests
-        await updateManifestsAfterSync();
+        // 8. Update manifests for successfully synced files
+        // Build list of successfully synced files
+        const successfulFiles = new Set<string>();
+
+        // Add all files that were processed WITHOUT errors
+        for (const file of logFiles) {
+            successfulFiles.add(file.filePath);
+        }
+
+        if (successfulFiles.size > 0) {
+            await updateManifestsForSuccessfulFiles(Array.from(successfulFiles));
+            console.log(`[Sync] Manifest updated for ${successfulFiles.size} successfully synced files`);
+        }
+
+        if (result.errors.length > 0) {
+            console.warn(`[Sync] ${result.errors.length} files failed and will be retried in next sync:`,
+                result.errors.map(e => e.filePath).join(', '));
+        }
 
         // 9. Add log entry
         result.success = result.errors.length === 0;
@@ -955,6 +1013,13 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
 
         // 10. Delete the plan
         await deletePlan();
+
+        // 11. Reload cache from disk and emit sync-complete event
+        console.log('[Sync] Reloading cache from disk...');
+        const { reloadCacheFromDisk } = await import('./server-side-store');
+        await reloadCacheFromDisk();
+        console.log('[Sync] Cache reloaded, emitting sync-complete event');
+        systemEmitter.emit('sync-complete');
 
         console.log('[Sync] Plan executed successfully');
         return result;
@@ -982,37 +1047,34 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
 }
 
 /**
- * Helper: Update both local and remote manifests after sync
- * CRITICAL: After sync, all 4 timestamps must be identical:
- * - local.lastModified
- * - local.previousVersion.lastModified
- * - remote.lastModified
- * - remote.previousVersion.lastModified
- *
- * Note: The manifest is already up-to-date because storageProvider.writeFile()
- * automatically updates it when files are downloaded. This function just marks
- * previousVersion to indicate everything is now synced.
+ * Helper: Update both local and remote manifests for ONLY successfully synced files
+ * This ensures that:
+ * 1. Files that synced successfully are marked as "synced baseline" (previousVersion = current)
+ * 2. Files that failed to sync remain unchanged in manifest (will retry in next sync)
+ * 3. Conflicts that were skipped remain unchanged (correct behavior)
  */
-async function updateManifestsAfterSync(): Promise<void> {
+async function updateManifestsForSuccessfulFiles(successfulFilePaths: string[]): Promise<void> {
     const syncTime = new Date().toISOString();
 
     // Read current local manifest (already updated by writeFile() calls during sync)
     const localManifest = await readManifest();
     localManifest.lastSync = syncTime;
 
-    // For each file in the manifest: update previousVersion to match current version
-    // This marks the current state as the new "synced baseline"
-    for (const filePath in localManifest.files) {
+    // Update ONLY the files that were successfully synced
+    for (const filePath of successfulFilePaths) {
         const metadata = localManifest.files[filePath];
 
-        // Clear error/conflict flags
+        // Skip if file no longer exists in manifest (could have been deleted)
+        if (!metadata) continue;
+
+        // Clear error/conflict flags for this file
         delete metadata.hasConflict;
         delete metadata.conflictDetectedAt;
         delete metadata.syncAttempts;
         delete metadata.lastSyncError;
 
         // Update previousVersion to current version
-        // This is the KEY: after sync, current = previous = synced baseline
+        // This marks this file as "synced baseline"
         metadata.previousVersion = {
             hash: metadata.hash,
             lastModified: metadata.lastModified
@@ -1021,13 +1083,14 @@ async function updateManifestsAfterSync(): Promise<void> {
         localManifest.files[filePath] = metadata;
     }
 
-    console.log('[Sync] Updated manifest with', Object.keys(localManifest.files).length, 'files');
+    console.log(`[Sync] Updated manifest for ${successfulFilePaths.length} successfully synced files`);
 
     // Save updated local manifest
     await writeManifest(localManifest);
 
     // Upload the SAME manifest to remote
-    // This ensures local and remote have identical timestamps
+    // This ensures local and remote have identical state for successful files
+    // Failed files remain out of sync and will be detected in next analysis
     const supabaseUrl = process.env.SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
     const bucket = process.env.SUPABASE_BUCKET!;
@@ -1045,5 +1108,5 @@ async function updateManifestsAfterSync(): Promise<void> {
         throw error;
     }
 
-    console.log('[Sync] Manifests updated - all timestamps synchronized');
+    console.log('[Sync] Manifest uploaded - successful files synchronized');
 }

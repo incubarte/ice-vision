@@ -102,6 +102,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
             if (scorerId && currentTeamMap.has(scorerId)) currentTeamMap.get(scorerId)!.goals++;
             const assistId = currentTeamRoster.find(p => p.number === goal.assist?.playerNumber)?.id;
             if (assistId && currentTeamMap.has(assistId)) currentTeamMap.get(assistId)!.assists++;
+            const assist2Id = currentTeamRoster.find(p => p.number === goal.assist2?.playerNumber)?.id;
+            if (assist2Id && currentTeamMap.has(assist2Id)) currentTeamMap.get(assist2Id)!.assists++;
         });
 
          (period.stats.playerStats[team] || []).forEach(pStat => {

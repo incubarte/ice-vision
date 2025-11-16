@@ -27,7 +27,64 @@ import { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { sendRemoteCommand } from '@/app/actions';
 import { cn } from "@/lib/utils";
+import type { Tournament } from "@/types";
+import { format as formatDate } from "date-fns";
+import { es } from "date-fns/locale";
 
+/**
+ * Extract match information from a file path
+ * Pattern: tournaments/{tournamentId}/summaries/{matchId}.json
+ */
+function extractMatchInfoFromPath(filePath: string, tournaments: Tournament[]) {
+    // Check if it's a summary file
+    const summaryMatch = filePath.match(/tournaments\/([^/]+)\/summaries\/([^/]+)\.json/);
+    if (!summaryMatch) return null;
+
+    const [, tournamentId, matchId] = summaryMatch;
+
+    // Early return if no tournaments
+    if (!tournaments || tournaments.length === 0) return null;
+
+    // Find the tournament
+    let tournament = tournaments.find(t => t.id === tournamentId);
+
+    // If tournament not found, search all tournaments for the match
+    if (!tournament) {
+        for (const t of tournaments) {
+            if (t.matches?.find(m => m.id === matchId)) {
+                tournament = t;
+                break;
+            }
+        }
+    }
+
+    // If still no tournament or tournament doesn't have matches loaded, return null
+    if (!tournament || !tournament.matches || tournament.matches.length === 0) return null;
+
+    // Find the match
+    const match = tournament.matches.find(m => m.id === matchId);
+    if (!match) return null;
+
+    // If tournament doesn't have teams/categories loaded, return null
+    if (!tournament.teams || !tournament.categories) return null;
+
+    // Get team names
+    const homeTeam = tournament.teams.find(t => t.id === match.homeTeamId);
+    const awayTeam = tournament.teams.find(t => t.id === match.awayTeamId);
+
+    // Get category name
+    const category = tournament.categories.find(c => c.id === match.categoryId);
+
+    // Format date
+    const dateStr = formatDate(new Date(match.date), "dd/MM/yy", { locale: es });
+
+    return {
+        homeTeam: homeTeam?.name || '?',
+        awayTeam: awayTeam?.name || '?',
+        category: category?.name || '?',
+        date: dateStr
+    };
+}
 
 function PerformanceSettingsCard() {
     const { state, dispatch, isLoading } = useGameState();
@@ -164,6 +221,7 @@ function SyncAnalysisCard() {
     const { state, dispatch } = useGameState();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isReloadingContext, setIsReloadingContext] = useState(false);
     const [plan, setPlan] = useState<any>(null);
     const [selectedConflict, setSelectedConflict] = useState<any>(null);
 
@@ -280,6 +338,50 @@ function SyncAnalysisCard() {
         }
     };
 
+    const handleReloadContext = async () => {
+        setIsReloadingContext(true);
+        try {
+            console.log('[Admin] Reloading context from server...');
+
+            // First, reload cache on server
+            const reloadResponse = await fetch('/api/sync/reload-cache', {
+                method: 'POST',
+            });
+
+            if (!reloadResponse.ok) {
+                throw new Error('Failed to reload server cache');
+            }
+
+            console.log('[Admin] Server cache reloaded, fetching fresh data...');
+
+            // Then fetch fresh data
+            const res = await fetch('/api/db');
+            if (!res.ok) throw new Error('Failed to fetch initial data');
+            const data = await res.json();
+
+            console.log('[Admin] Fresh data received, hydrating state...');
+            console.log('[Admin] Tournaments count:', data.config?.tournaments?.length || 0);
+
+            // Hydrate the state with fresh data
+            dispatch({ type: 'HYDRATE_FROM_SERVER', payload: data });
+
+            toast({
+                title: "✅ Contexto Recargado",
+                description: `Datos actualizados. Torneos: ${data.config?.tournaments?.length || 0}`,
+                className: "bg-green-600 text-white border-green-700",
+            });
+        } catch (error) {
+            console.error('Error reloading context:', error);
+            toast({
+                title: "❌ Error al Recargar",
+                description: error instanceof Error ? error.message : "No se pudo recargar el contexto",
+                variant: "destructive",
+            });
+        } finally {
+            setIsReloadingContext(false);
+        }
+    };
+
     const handleResolveConflict = async (filePath: string, decision: 'local-wins' | 'remote-wins' | 'skip') => {
         try {
             const response = await fetch('/api/sync/plan', {
@@ -357,6 +459,7 @@ function SyncAnalysisCard() {
 
                 // Reload page if files were downloaded
                 if (data.filesDownloaded > 0) {
+                    console.log('[Sync] Files downloaded, reloading page in 3 seconds...');
                     setTimeout(() => {
                         if (typeof window !== 'undefined') {
                             if (typeof localStorage !== 'undefined') {
@@ -368,11 +471,12 @@ function SyncAnalysisCard() {
                                     }
                                 });
                             }
+                            console.log('[Sync] Reloading page now...');
                             const currentUrl = new URL(window.location.href);
                             currentUrl.searchParams.set('_t', Date.now().toString());
                             window.location.href = currentUrl.toString();
                         }
-                    }, 2000);
+                    }, 3000);
                 }
 
             } else {
@@ -518,23 +622,44 @@ function SyncAnalysisCard() {
                     </div>
                 </div>
 
-                <Button
-                    onClick={handleAnalyze}
-                    disabled={isAnalyzing || isSyncing}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                >
-                    {isAnalyzing ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Analizando...
-                        </>
-                    ) : (
-                        <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Analizar Diferencias
-                        </>
-                    )}
-                </Button>
+                <div className="space-y-2">
+                    <Button
+                        onClick={handleAnalyze}
+                        disabled={isAnalyzing || isSyncing || isReloadingContext}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                        {isAnalyzing ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Analizando...
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Analizar Diferencias
+                            </>
+                        )}
+                    </Button>
+
+                    <Button
+                        onClick={handleReloadContext}
+                        disabled={isAnalyzing || isSyncing || isReloadingContext}
+                        variant="outline"
+                        className="w-full"
+                    >
+                        {isReloadingContext ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Recargando...
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Recargar Contexto Desde Disco
+                            </>
+                        )}
+                    </Button>
+                </div>
 
                 {plan && (
                     <>
@@ -626,12 +751,20 @@ function SyncAnalysisCard() {
                                 <summary className="cursor-pointer font-semibold text-green-800 dark:text-green-200">
                                     📤 Para Subir ({plan.toUpload.length})
                                 </summary>
-                                <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-green-700 dark:text-green-300">
-                                    {plan.toUpload.map((item: any) => (
-                                        <li key={item.filePath} title={item.reason}>
-                                            {item.filePath}
-                                        </li>
-                                    ))}
+                                <ul className="mt-2 space-y-1 text-xs max-h-40 overflow-y-auto text-green-700 dark:text-green-300">
+                                    {plan.toUpload.map((item: any) => {
+                                        const matchInfo = extractMatchInfoFromPath(item.filePath, state?.config?.tournaments || []);
+                                        return (
+                                            <li key={item.filePath} title={item.reason}>
+                                                <span className="font-mono">{item.filePath}</span>
+                                                {matchInfo && (
+                                                    <span className="ml-2 text-orange-600 dark:text-orange-400 font-semibold">
+                                                        ({matchInfo.homeTeam} vs {matchInfo.awayTeam}, {matchInfo.category}, {matchInfo.date})
+                                                    </span>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </details>
                         )}
@@ -641,12 +774,20 @@ function SyncAnalysisCard() {
                                 <summary className="cursor-pointer font-semibold text-blue-800 dark:text-blue-200">
                                     📥 Para Descargar ({plan.toDownload.length})
                                 </summary>
-                                <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-blue-700 dark:text-blue-300">
-                                    {plan.toDownload.map((item: any) => (
-                                        <li key={item.filePath} title={item.reason}>
-                                            {item.filePath}
-                                        </li>
-                                    ))}
+                                <ul className="mt-2 space-y-1 text-xs max-h-40 overflow-y-auto text-blue-700 dark:text-blue-300">
+                                    {plan.toDownload.map((item: any) => {
+                                        const matchInfo = extractMatchInfoFromPath(item.filePath, state?.config?.tournaments || []);
+                                        return (
+                                            <li key={item.filePath} title={item.reason}>
+                                                <span className="font-mono">{item.filePath}</span>
+                                                {matchInfo && (
+                                                    <span className="ml-2 text-orange-600 dark:text-orange-400 font-semibold">
+                                                        ({matchInfo.homeTeam} vs {matchInfo.awayTeam}, {matchInfo.category}, {matchInfo.date})
+                                                    </span>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </details>
                         )}
@@ -657,11 +798,20 @@ function SyncAnalysisCard() {
                                     🗑️ Para Eliminar Localmente ({plan.toDeleteLocally.length})
                                 </summary>
                                 <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-red-700 dark:text-red-300">
-                                    {plan.toDeleteLocally.map((item: any) => (
-                                        <li key={item.filePath} title={item.reason}>
-                                            {item.filePath} <span className="text-red-500">({item.reason})</span>
-                                        </li>
-                                    ))}
+                                    {plan.toDeleteLocally.map((item: any) => {
+                                        const matchInfo = extractMatchInfoFromPath(item.filePath, state?.config?.tournaments || []);
+                                        return (
+                                            <li key={item.filePath} title={item.reason}>
+                                                <span className="font-mono">{item.filePath}</span>
+                                                {matchInfo && (
+                                                    <span className="ml-2 text-orange-600 dark:text-orange-400 font-semibold">
+                                                        ({matchInfo.homeTeam} vs {matchInfo.awayTeam}, {matchInfo.category}, {matchInfo.date})
+                                                    </span>
+                                                )}
+                                                {' '}<span className="text-red-500">({item.reason})</span>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </details>
                         )}
@@ -672,11 +822,20 @@ function SyncAnalysisCard() {
                                     🗑️ Para Eliminar Remotamente ({plan.toDeleteRemotely.length})
                                 </summary>
                                 <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-red-700 dark:text-red-300">
-                                    {plan.toDeleteRemotely.map((item: any) => (
-                                        <li key={item.filePath} title={item.reason}>
-                                            {item.filePath} <span className="text-red-500">({item.reason})</span>
-                                        </li>
-                                    ))}
+                                    {plan.toDeleteRemotely.map((item: any) => {
+                                        const matchInfo = extractMatchInfoFromPath(item.filePath, state?.config?.tournaments || []);
+                                        return (
+                                            <li key={item.filePath} title={item.reason}>
+                                                <span className="font-mono">{item.filePath}</span>
+                                                {matchInfo && (
+                                                    <span className="ml-2 text-orange-600 dark:text-orange-400 font-semibold">
+                                                        ({matchInfo.homeTeam} vs {matchInfo.awayTeam}, {matchInfo.category}, {matchInfo.date})
+                                                    </span>
+                                                )}
+                                                {' '}<span className="text-red-500">({item.reason})</span>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </details>
                         )}
@@ -687,21 +846,30 @@ function SyncAnalysisCard() {
                                     ⚠️ Conflictos ({plan.conflicts.length})
                                 </summary>
                                 <ul className="mt-2 space-y-1 text-xs font-mono max-h-40 overflow-y-auto text-yellow-700 dark:text-yellow-300">
-                                    {plan.conflicts.map((item: any) => (
-                                        <li
-                                            key={item.filePath}
-                                            title="Click para ver detalles y resolver"
-                                            className="cursor-pointer hover:underline hover:text-yellow-600 dark:hover:text-yellow-400"
-                                            onClick={() => setSelectedConflict(item)}
-                                        >
-                                            {item.filePath} - {
-                                                item.decision === 'local-wins' ? '💻 Local gana' :
-                                                item.decision === 'remote-wins' ? '☁️ Remoto gana' :
-                                                item.decision === 'skip' ? '🚫 Omitir' :
-                                                '❓ Sin resolver'
-                                            }
-                                        </li>
-                                    ))}
+                                    {plan.conflicts.map((item: any) => {
+                                        const matchInfo = extractMatchInfoFromPath(item.filePath, state?.config?.tournaments || []);
+                                        return (
+                                            <li
+                                                key={item.filePath}
+                                                title="Click para ver detalles y resolver"
+                                                className="cursor-pointer hover:underline hover:text-yellow-600 dark:hover:text-yellow-400"
+                                                onClick={() => setSelectedConflict(item)}
+                                            >
+                                                <span className="font-mono">{item.filePath}</span>
+                                                {matchInfo && (
+                                                    <span className="ml-2 text-orange-600 dark:text-orange-400 font-semibold">
+                                                        ({matchInfo.homeTeam} vs {matchInfo.awayTeam}, {matchInfo.category}, {matchInfo.date})
+                                                    </span>
+                                                )}
+                                                {' '}- {
+                                                    item.decision === 'local-wins' ? '💻 Local gana' :
+                                                    item.decision === 'remote-wins' ? '☁️ Remoto gana' :
+                                                    item.decision === 'skip' ? '🚫 Omitir' :
+                                                    '❓ Sin resolver'
+                                                }
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </details>
                         )}
@@ -845,7 +1013,7 @@ function SyncAnalysisCard() {
     );
 }
 
-function SyncHistoryCard() {
+function SyncHistoryCard({ tournaments }: { tournaments: Tournament[] }) {
     const [syncLogs, setSyncLogs] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [expandedLogs, setExpandedLogs] = useState<Record<number, boolean>>({});
@@ -966,7 +1134,7 @@ function SyncHistoryCard() {
                                 >
                                     <div className="flex items-center justify-between gap-2 mb-1">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="text-xs font-medium">
+                                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                                                 {new Date(log.timestamp).toLocaleString('es-AR', {
                                                     day: '2-digit',
                                                     month: '2-digit',
@@ -975,16 +1143,16 @@ function SyncHistoryCard() {
                                                 })}
                                             </span>
                                             {log.trigger && (
-                                                <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700">
+                                                <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium">
                                                     {log.trigger === 'manual' ? '👆 Manual' :
                                                      log.trigger === 'after-summary-edit' ? '💾 Auto' :
                                                      log.trigger}
                                                 </span>
                                             )}
                                             <span className={`text-xs font-semibold ${
-                                                log.result === 'success' ? 'text-green-600' :
-                                                log.result === 'partial' ? 'text-amber-600' :
-                                                'text-red-600'
+                                                log.result === 'success' ? 'text-green-700 dark:text-green-400' :
+                                                log.result === 'partial' ? 'text-amber-700 dark:text-amber-400' :
+                                                'text-red-700 dark:text-red-400'
                                             }`}>
                                                 {log.result === 'success' ? '✅ Exitoso' :
                                                  log.result === 'partial' ? '⚠️ Parcial' :
@@ -996,7 +1164,7 @@ function SyncHistoryCard() {
                                         </span>
                                     </div>
 
-                                    <div className="text-xs text-muted-foreground font-medium">
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">
                                         {uploadCount > 0 && `↑ ${uploadCount} subidos`}
                                         {downloadCount > 0 && (uploadCount > 0 ? ', ' : '') + `↓ ${downloadCount} descargados`}
                                         {deleteLocalCount > 0 && (uploadCount > 0 || downloadCount > 0 ? ', ' : '') + `🗑️ ${deleteLocalCount} eliminados local`}
@@ -1009,7 +1177,11 @@ function SyncHistoryCard() {
                                 {isExpanded && log.files && log.files.length > 0 && (
                                     <div className="px-3 pb-3 border-t border-gray-200 dark:border-gray-700 pt-2 mt-1">
                                         <div className="space-y-1 max-h-48 overflow-y-auto">
-                                            {log.files.map((file: any, fileIndex: number) => (
+                                            {log.files.map((file: any, fileIndex: number) => {
+                                                // Extract match info from filepath if it's a summary
+                                                const matchInfo = extractMatchInfoFromPath(file.filePath, tournaments);
+
+                                                return (
                                                 <div key={fileIndex} className="text-xs flex items-start gap-2 py-1">
                                                     <span className={`font-mono flex-shrink-0 ${
                                                         file.action === 'deleted-locally' || file.action === 'deleted-remotely'
@@ -1022,13 +1194,20 @@ function SyncHistoryCard() {
                                                          file.action === 'deleted-remotely' ? '🗑️' :
                                                          file.hadConflict ? '⚔️' : '·'}
                                                     </span>
-                                                    <span className={`font-mono flex-1 break-all ${
-                                                        file.action === 'deleted-locally' || file.action === 'deleted-remotely'
-                                                            ? 'text-red-700 dark:text-red-300 line-through'
-                                                            : 'text-gray-800 dark:text-gray-200'
-                                                    }`}>
-                                                        {file.filePath}
-                                                    </span>
+                                                    <div className="flex-1 break-all">
+                                                        <span className={`font-mono ${
+                                                            file.action === 'deleted-locally' || file.action === 'deleted-remotely'
+                                                                ? 'text-red-700 dark:text-red-300 line-through'
+                                                                : 'text-gray-800 dark:text-gray-200'
+                                                        }`}>
+                                                            {file.filePath}
+                                                        </span>
+                                                        {matchInfo && (
+                                                            <span className="ml-2 text-orange-600 dark:text-orange-400 font-semibold">
+                                                                ({matchInfo.homeTeam} vs {matchInfo.awayTeam}, {matchInfo.category}, {matchInfo.date})
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {file.action === 'deleted-locally' && (
                                                         <span className="text-xs px-1.5 py-0.5 rounded bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100 flex-shrink-0">
                                                             Eliminado Local
@@ -1045,7 +1224,8 @@ function SyncHistoryCard() {
                                                         </span>
                                                     )}
                                                 </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -1363,7 +1543,7 @@ function SupabaseSyncCard() {
 export default function AdminPage() {
   const { toast } = useToast();
   const { authStatus } = useAuth();
-  const { dispatch } = useGameState();
+  const { state, dispatch } = useGameState();
   const router = useRouter();
 
   const handleClearConfigOnly = () => {
@@ -1459,7 +1639,7 @@ export default function AdminPage() {
             {/* SYNC TAB */}
             <TabsContent value="sync" className="space-y-6 mt-6">
                 <SyncAnalysisCard />
-                <SyncHistoryCard />
+                <SyncHistoryCard tournaments={state?.config?.tournaments || []} />
                 <SupabaseSyncCard />
             </TabsContent>
 

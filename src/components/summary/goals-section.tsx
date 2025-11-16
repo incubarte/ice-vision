@@ -29,46 +29,124 @@ interface EditableGoalRowProps {
 const EditableGoalRow = ({ goal, players, onSave, onCancel, onDelete }: EditableGoalRowProps) => {
     const [scorerNumber, setScorerNumber] = useState(goal.scorer?.playerNumber || '');
     const [assistNumber, setAssistNumber] = useState(goal.assist?.playerNumber || '');
-    
+    const [assist2Number, setAssist2Number] = useState(goal.assist2?.playerNumber || '');
+
+    const posArray = goal.positives?.map(p => p?.playerNumber || '') || [];
+    while (posArray.length < 5) posArray.push('');
+    const [positives, setPositives] = useState<string[]>(posArray);
+
+    const negArray = goal.negatives?.map(n => n?.playerNumber || '') || [];
+    while (negArray.length < 5) negArray.push('');
+    const [negatives, setNegatives] = useState<string[]>(negArray);
+
     const validPlayers = useMemo(() => players.filter(p => p.number && p.number.trim() !== ''), [players]);
 
     const handleSave = () => {
         const scorer = players.find(p => p.number === scorerNumber);
         const assist = players.find(p => p.number === assistNumber);
-        
+        const assist2 = players.find(p => p.number === assist2Number);
+
+        const positivesData = positives
+            .map((num, idx) => num.trim() ? { playerNumber: num.trim(), playerName: players.find(p => p.number === num.trim())?.name } : null)
+            .filter(p => p !== null);
+
+        const negativesData = negatives
+            .map((num, idx) => num.trim() ? { playerNumber: num.trim(), playerName: players.find(p => p.number === num.trim())?.name } : null)
+            .filter(p => p !== null);
+
         onSave({
             ...goal,
             scorer: scorer ? { playerNumber: scorer.number, playerName: scorer.name } : { playerNumber: scorerNumber },
-            assist: assist ? { playerNumber: assist.number, playerName: assist.name } : (assistNumber ? { playerNumber: assistNumber } : undefined)
+            assist: assist ? { playerNumber: assist.number, playerName: assist.name } : (assistNumber ? { playerNumber: assistNumber } : undefined),
+            assist2: assist2 ? { playerNumber: assist2.number, playerName: assist2.name } : (assist2Number ? { playerNumber: assist2Number } : undefined),
+            positives: positivesData.length > 0 ? positivesData : undefined,
+            negatives: negativesData.length > 0 ? negativesData : undefined
         });
     };
 
     return (
-        <TableRow>
-            <TableCell>{goal.periodText} {formatTime(goal.gameTime)}</TableCell>
-            <TableCell>
-                <Select value={scorerNumber} onValueChange={setScorerNumber}>
-                    <SelectTrigger><SelectValue placeholder="Goleador" /></SelectTrigger>
-                    <SelectContent>
-                        {validPlayers.map(p => <SelectItem key={p.id} value={p.number}>#{p.number} {p.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </TableCell>
-            <TableCell>
-                <Select value={assistNumber} onValueChange={(value) => setAssistNumber(value === "no-assist" ? "" : value)}>
-                    <SelectTrigger><SelectValue placeholder="Asistente" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="no-assist">-- Sin Asistencia --</SelectItem>
-                        {validPlayers.map(p => <SelectItem key={p.id} value={p.number} disabled={p.number === scorerNumber}>#{p.number} {p.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </TableCell>
-            <TableCell className="text-right">
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-500" onClick={handleSave}><Check className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={onCancel}><XCircle className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(goal.id)}><Trash2 className="h-4 w-4" /></Button>
-            </TableCell>
-        </TableRow>
+        <>
+            <TableRow>
+                <TableCell rowSpan={2}>{goal.periodText} {formatTime(goal.gameTime)}</TableCell>
+                <TableCell>
+                    <Select value={scorerNumber} onValueChange={setScorerNumber}>
+                        <SelectTrigger><SelectValue placeholder="Goleador" /></SelectTrigger>
+                        <SelectContent>
+                            {validPlayers.map(p => <SelectItem key={p.id} value={p.number}>#{p.number} {p.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </TableCell>
+                <TableCell>
+                    <Select value={assistNumber} onValueChange={(value) => setAssistNumber(value === "no-assist" ? "" : value)}>
+                        <SelectTrigger><SelectValue placeholder="Asistente 1" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="no-assist">-- Sin Asistencia --</SelectItem>
+                            {validPlayers.map(p => <SelectItem key={p.id} value={p.number} disabled={p.number === scorerNumber}>#{p.number} {p.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </TableCell>
+                <TableCell>
+                    <Select value={assist2Number} onValueChange={(value) => setAssist2Number(value === "no-assist" ? "" : value)}>
+                        <SelectTrigger><SelectValue placeholder="Asistente 2" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="no-assist">-- Sin Asistencia --</SelectItem>
+                            {validPlayers.map(p => <SelectItem key={p.id} value={p.number} disabled={p.number === scorerNumber || p.number === assistNumber}>#{p.number} {p.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </TableCell>
+                <TableCell className="text-right" rowSpan={2}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-green-500" onClick={handleSave}><Check className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={onCancel}><XCircle className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(goal.id)}><Trash2 className="h-4 w-4" /></Button>
+                </TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell colSpan={3}>
+                    <div className="space-y-2">
+                        <div>
+                            <label className="text-xs font-semibold">Positivas:</label>
+                            <div className="flex gap-1 mt-1">
+                                {positives.map((pos, idx) => (
+                                    <Input
+                                        key={idx}
+                                        value={pos}
+                                        onChange={(e) => {
+                                            if (/^\d*$/.test(e.target.value)) {
+                                                const newPositives = [...positives];
+                                                newPositives[idx] = e.target.value;
+                                                setPositives(newPositives);
+                                            }
+                                        }}
+                                        placeholder={`#${idx + 1}`}
+                                        className="w-14 h-7 text-xs text-center"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-xs font-semibold">Negativas:</label>
+                            <div className="flex gap-1 mt-1">
+                                {negatives.map((neg, idx) => (
+                                    <Input
+                                        key={idx}
+                                        value={neg}
+                                        onChange={(e) => {
+                                            if (/^\d*$/.test(e.target.value)) {
+                                                const newNegatives = [...negatives];
+                                                newNegatives[idx] = e.target.value;
+                                                setNegatives(newNegatives);
+                                            }
+                                        }}
+                                        placeholder={`#${idx + 1}`}
+                                        className="w-14 h-7 text-xs text-center"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </TableCell>
+            </TableRow>
+        </>
     );
 };
 
@@ -113,7 +191,8 @@ export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players 
                         <TableRow>
                             <TableHead className="w-[80px]">Tiempo</TableHead>
                             <TableHead>Gol</TableHead>
-                            <TableHead>Asistencia</TableHead>
+                            <TableHead>Asist 1</TableHead>
+                            <TableHead>Asist 2</TableHead>
                             {editable && <TableHead className="text-right">Acciones</TableHead>}
                         </TableRow>
                     </TableHeader>
@@ -133,12 +212,30 @@ export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players 
                                     <TableCell>
                                         <div className="font-semibold">#{goal.scorer?.playerNumber || 'S/N'}</div>
                                         <div className="text-xs text-muted-foreground">{goal.scorer?.playerName || '---'}</div>
+                                        {goal.positives && goal.positives.length > 0 && (
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                                <span className="font-semibold">+:</span> {goal.positives.map(p => `#${p?.playerNumber}`).join(', ')}
+                                            </div>
+                                        )}
+                                        {goal.negatives && goal.negatives.length > 0 && (
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                                <span className="font-semibold">-:</span> {goal.negatives.map(n => `#${n?.playerNumber}`).join(', ')}
+                                            </div>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         {goal.assist?.playerNumber ? (
                                         <>
                                             <div className="font-semibold">#{goal.assist.playerNumber}</div>
                                             <div className="text-xs text-muted-foreground">{goal.assist.playerName || '---'}</div>
+                                        </>
+                                        ) : <span className="text-muted-foreground">---</span>}
+                                    </TableCell>
+                                    <TableCell>
+                                        {goal.assist2?.playerNumber ? (
+                                        <>
+                                            <div className="font-semibold">#{goal.assist2.playerNumber}</div>
+                                            <div className="text-xs text-muted-foreground">{goal.assist2.playerName || '---'}</div>
                                         </>
                                         ) : <span className="text-muted-foreground">---</span>}
                                     </TableCell>
@@ -152,14 +249,14 @@ export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players 
                             )
                         )) : !isAdding && (
                             <TableRow>
-                                <TableCell colSpan={editable ? 4 : 3} className="h-16 text-center text-sm text-muted-foreground">Sin goles registrados.</TableCell>
+                                <TableCell colSpan={editable ? 5 : 4} className="h-16 text-center text-sm text-muted-foreground">Sin goles registrados.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                     {safeGoals.length > 0 && (
                         <UiTableFooter>
                             <TableRow>
-                                <TableCell colSpan={editable ? 4 : 3} className="text-right font-bold">Total Goles: {safeGoals.length}</TableCell>
+                                <TableCell colSpan={editable ? 5 : 4} className="text-right font-bold">Total Goles: {safeGoals.length}</TableCell>
                             </TableRow>
                         </UiTableFooter>
                     )}
