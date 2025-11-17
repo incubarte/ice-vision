@@ -7,6 +7,7 @@ import { PenaltyControlCard } from '@/components/controls/penalty-control-card';
 import { GoalManagementDialog } from '@/components/controls/goal-management-dialog';
 import { GoldenGoalDialog } from '@/components/controls/golden-goal-dialog';
 import { ShootoutControl } from '@/components/controls/shootout-control';
+import { PenaltyNotifications } from '@/components/scoreboard/penalty-notifications';
 import { useGameState, type Team, type GoalLog, type PenaltyLog, getCategoryNameById, getActualPeriodText, formatTime, type GameState } from '@/contexts/game-state-context';
 import type { PlayerData, RemoteCommand, AccessRequest, TunnelState, MatchData } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -1258,7 +1259,9 @@ export default function ControlsPage() {
           </div>
       )}
       <MiniScoreboard onScoreClick={handleScoreClick} />
-      
+
+      <PenaltyNotifications />
+
       {finishedFixtureMatch && (
         <div className="my-4 flex justify-center">
             <Button
