@@ -455,7 +455,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
      case 'EDIT_GOAL': {
       const { goalId, updates } = action.payload;
-      const newLiveGoals = { ...state.live.goals };
+      const newLiveGoals = {
+        home: [...state.live.goals.home],
+        away: [...state.live.goals.away]
+      };
       let goalFoundAndUpdated = false;
 
       for (const team of ['home', 'away'] as const) {
@@ -466,10 +469,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
               break;
           }
       }
-      
+
       if (goalFoundAndUpdated) {
         const newScore = { ...state.live.score, home: newLiveGoals.home.length, away: newLiveGoals.away.length };
-        newState = { ...state, live: { ...state.live, 
+        newState = { ...state, live: { ...state.live,
           score: newScore,
           goals: newLiveGoals,
         }};

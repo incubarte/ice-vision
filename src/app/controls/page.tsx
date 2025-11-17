@@ -10,9 +10,11 @@ import { ShootoutControl } from '@/components/controls/shootout-control';
 import { useGameState, type Team, type GoalLog, type PenaltyLog, getCategoryNameById, getActualPeriodText, formatTime, type GameState } from '@/contexts/game-state-context';
 import type { PlayerData, RemoteCommand, AccessRequest, TunnelState, MatchData } from '@/types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, AlertTriangle, PlayCircle, Trophy, Wifi, Power, PowerOff, Loader2, Copy, ShieldAlert, LogIn, Swords, PlusCircle, Check, X, Fingerprint, FileText, Flag, MessageSquare, CalendarCheck } from 'lucide-react';
+import { RefreshCw, AlertTriangle, PlayCircle, Trophy, Wifi, Power, PowerOff, Loader2, Copy, ShieldAlert, LogIn, Swords, PlusCircle, Check, X, Fingerprint, FileText, Flag, MessageSquare, CalendarCheck, Trash2, Info, Edit3, CheckCircle, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 import { safeUUID } from '@/lib/utils';
@@ -23,11 +25,467 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '@/hooks/use-auth';
 import { format as formatDate } from 'date-fns';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const CONTROLS_LOCK_KEY = 'icevision-controls-lock-id';
 const CONTROLS_CHANNEL_NAME = 'icevision-controls-channel';
 
 type PageDisplayState = 'Checking' | 'Primary' | 'Secondary';
+
+// Component to display goals for a team
+const GoalsDisplayCard = ({ team, teamName, goals, onAddGoal }: { team: Team; teamName: string; goals: GoalLog[]; onAddGoal: () => void }) => {
+  const { state, dispatch } = useGameState();
+  const { toast } = useToast();
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [goalToDelete, setGoalToDelete] = useState<string | null>(null);
+
+  // Sort goals by timestamp, newest first
+  const sortedGoals = useMemo(() => {
+    return [...goals].sort((a, b) => b.timestamp - a.timestamp);
+  }, [goals]);
+
+  const handleDeleteGoal = (goalId: string) => {
+    dispatch({ type: 'DELETE_GOAL', payload: { goalId } });
+    toast({ title: "Gol Eliminado", description: "El gol ha sido eliminado." });
+    setGoalToDelete(null);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Goles - {teamName}</CardTitle>
+          <Button variant="outline" size="sm" onClick={onAddGoal}>
+            <PlusCircle className="mr-1 h-4 w-4" /> Agregar Gol
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {sortedGoals.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Info className="mx-auto h-12 w-12 mb-2 opacity-50" />
+            <p>No hay goles registrados</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sortedGoals.map((goal, index) => {
+              // Calculate goal number (reversed, so newest is #1, #2, etc.)
+              const goalNumber = sortedGoals.length - index;
+
+              if (editingGoalId === goal.id) {
+                return (
+                  <div key={`${goal.id}-editing`} className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-bold text-lg text-primary">
+                      {goalNumber}
+                    </div>
+                    <div className="flex-1">
+                      <EditableGoalRow
+                        key={`edit-${goal.id}-${goal.scorer?.playerNumber}-${goal.assist?.playerNumber}`}
+                        goal={goal}
+                        onCancel={() => setEditingGoalId(null)}
+                        onSave={() => setEditingGoalId(null)}
+                      />
+                    </div>
+                  </div>
+                );
+              }
+
+              const timestamp = new Date(goal.timestamp);
+              const displayTime = formatDate(timestamp, 'HH:mm:ss');
+
+              return (
+                <div key={goal.id} className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-bold text-lg text-primary">
+                    {goalNumber}
+                  </div>
+                  <Card className="bg-muted/30 flex-1">
+                    <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-bold">#{goal.scorer?.playerNumber || 'S/N'}</span>
+                          {goal.scorer?.playerName && (
+                            <span className="text-sm text-muted-foreground truncate">
+                              {goal.scorer.playerName}
+                            </span>
+                          )}
+                        </div>
+
+                        {(goal.assist || goal.assist2) && (
+                          <div className="text-sm text-muted-foreground space-y-1 ml-6">
+                            {goal.assist && (
+                              <div>Asist. 1: #{goal.assist.playerNumber} {goal.assist.playerName}</div>
+                            )}
+                            {goal.assist2 && (
+                              <div>Asist. 2: #{goal.assist2.playerNumber} {goal.assist2.playerName}</div>
+                            )}
+                          </div>
+                        )}
+
+                        {goal.positives && goal.positives.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-2 ml-6">
+                            <span className="font-semibold">Positivas:</span>{' '}
+                            {goal.positives.map(p => `#${p?.playerNumber}${p?.playerName ? ` ${p.playerName}` : ''}`).join(', ')}
+                          </div>
+                        )}
+
+                        {goal.negatives && goal.negatives.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-1 ml-6">
+                            <span className="font-semibold">Negativas:</span>{' '}
+                            {goal.negatives.map(n => `#${n?.playerNumber}${n?.playerName ? ` ${n.playerName}` : ''}`).join(', ')}
+                          </div>
+                        )}
+
+                        <div className="text-xs text-muted-foreground mt-2">
+                          <div>{goal.periodText} - {formatTime(goal.gameTime)}</div>
+                          <div className="opacity-70">{displayTime}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-primary hover:text-primary/80 h-8 w-8"
+                          onClick={() => setEditingGoalId(goal.id)}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive/80 h-8 w-8"
+                          onClick={() => setGoalToDelete(goal.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!goalToDelete} onOpenChange={(open) => !open && setGoalToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Eliminación</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que quieres eliminar este gol? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => goalToDelete && handleDeleteGoal(goalToDelete)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Eliminar Gol
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+};
+
+// Editable goal row component
+const EditableGoalRow = ({ goal, onCancel, onSave }: { goal: GoalLog; onCancel: () => void; onSave: () => void; }) => {
+  const { state, dispatch } = useGameState();
+  const { toast } = useToast();
+
+  const [scorerNumber, setScorerNumber] = useState(goal.scorer?.playerNumber || '');
+  const [assistNumber, setAssistNumber] = useState(goal.assist?.playerNumber || '');
+  const [assist2Number, setAssist2Number] = useState(goal.assist2?.playerNumber || '');
+  const [positives, setPositives] = useState<string[]>(
+    goal.positives?.map(p => p?.playerNumber || '') || ['', '', '', '', '']
+  );
+  const [negatives, setNegatives] = useState<string[]>(
+    goal.negatives?.map(n => n?.playerNumber || '') || ['', '', '', '', '']
+  );
+
+  // Ensure arrays have 5 elements
+  while (positives.length < 5) positives.push('');
+  while (negatives.length < 5) negatives.push('');
+
+  // Get team data
+  const teamData = useMemo(() => {
+    if (!state.config || !state.live || !state.config.tournaments) return null;
+    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
+    if (!selectedTournament || !selectedTournament.teams) return null;
+
+    const teamName = goal.team === 'home' ? state.live.homeTeamName : state.live.awayTeamName;
+    const teamSubName = goal.team === 'home' ? state.live.homeTeamSubName : state.live.awayTeamSubName;
+    return selectedTournament.teams.find(t => t.name === teamName && (t.subName || undefined) === (teamSubName || undefined) && t.category === state.config.selectedMatchCategory);
+  }, [goal.team, state.live, state.config]);
+
+  const opposingTeamData = useMemo(() => {
+    if (!state.config || !state.live || !state.config.tournaments) return null;
+    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
+    if (!selectedTournament || !selectedTournament.teams) return null;
+
+    const opposingTeamName = goal.team === 'home' ? state.live.awayTeamName : state.live.homeTeamName;
+    const opposingTeamSubName = goal.team === 'home' ? state.live.awayTeamSubName : state.live.homeTeamSubName;
+    return selectedTournament.teams.find(t => t.name === opposingTeamName && (t.subName || undefined) === (opposingTeamSubName || undefined) && t.category === state.config.selectedMatchCategory);
+  }, [goal.team, state.live, state.config]);
+
+  // Get selected players
+  const selectedPlayer = useMemo(() =>
+    teamData?.players.find(p => p.number === scorerNumber.trim()),
+    [teamData, scorerNumber]
+  );
+
+  const selectedAssistPlayer = useMemo(() =>
+    teamData?.players.find(p => p.number === assistNumber.trim()),
+    [teamData, assistNumber]
+  );
+
+  const selectedAssist2Player = useMemo(() =>
+    teamData?.players.find(p => p.number === assist2Number.trim()),
+    [teamData, assist2Number]
+  );
+
+  const selectedPositivePlayers = useMemo(() =>
+    positives.map(num => num.trim() ? teamData?.players.find(p => p.number === num.trim()) : null),
+    [teamData, positives]
+  );
+
+  const selectedNegativePlayers = useMemo(() =>
+    negatives.map(num => num.trim() ? opposingTeamData?.players.find(p => p.number === num.trim()) : null),
+    [opposingTeamData, negatives]
+  );
+
+  // Auto-sync positives when goleador/asistentes change
+  useEffect(() => {
+    setPositives(prev => {
+      const newPositives = [...prev];
+      if (scorerNumber.trim()) {
+        newPositives[0] = scorerNumber.trim();
+      } else {
+        newPositives[0] = '';
+      }
+      if (assistNumber.trim()) {
+        newPositives[1] = assistNumber.trim();
+      } else {
+        newPositives[1] = '';
+      }
+      if (assist2Number.trim()) {
+        newPositives[2] = assist2Number.trim();
+      } else {
+        newPositives[2] = '';
+      }
+      return newPositives;
+    });
+  }, [scorerNumber, assistNumber, assist2Number]);
+
+  // Detect duplicates
+  const duplicateChecker = useMemo(() => {
+    const goleadorAsistentes = [scorerNumber.trim(), assistNumber.trim(), assist2Number.trim()].filter(n => n);
+    const hasDuplicateGA = goleadorAsistentes.length !== new Set(goleadorAsistentes).size;
+
+    const positivesNumbers = positives.map(p => p.trim()).filter(n => n);
+    const hasDuplicatePositives = positivesNumbers.length !== new Set(positivesNumbers).size;
+
+    const negativesNumbers = negatives.map(n => n.trim()).filter(n => n);
+    const hasDuplicateNegatives = negativesNumbers.length !== new Set(negativesNumbers).size;
+
+    return {
+      scorer: scorerNumber.trim() && goleadorAsistentes.filter(n => n === scorerNumber.trim()).length > 1,
+      assist: assistNumber.trim() && goleadorAsistentes.filter(n => n === assistNumber.trim()).length > 1,
+      assist2: assist2Number.trim() && goleadorAsistentes.filter(n => n === assist2Number.trim()).length > 1,
+      positives: positives.map((p) => {
+        const trimmed = p.trim();
+        if (!trimmed) return false;
+        return positivesNumbers.filter(n => n === trimmed).length > 1;
+      }),
+      negatives: negatives.map((n) => {
+        const trimmed = n.trim();
+        if (!trimmed) return false;
+        return negativesNumbers.filter(num => num === trimmed).length > 1;
+      }),
+      hasAnyDuplicate: hasDuplicateGA || hasDuplicatePositives || hasDuplicateNegatives
+    };
+  }, [scorerNumber, assistNumber, assist2Number, positives, negatives]);
+
+  const handleSaveClick = () => {
+    // Validate scorer is required
+    if (!scorerNumber.trim()) {
+      toast({ title: "Goleador Requerido", description: "Debes ingresar el número del jugador que anotó.", variant: "destructive" });
+      return;
+    }
+
+    if (duplicateChecker.hasAnyDuplicate) {
+      toast({ title: "Valores Duplicados", description: "No puedes tener jugadores repetidos.", variant: "destructive" });
+      return;
+    }
+
+    const selectedPlayer = teamData?.players.find(p => p.number === scorerNumber.trim());
+    const selectedAssistPlayer = teamData?.players.find(p => p.number === assistNumber.trim());
+    const selectedAssist2Player = teamData?.players.find(p => p.number === assist2Number.trim());
+
+    const positivesData = positives
+      .map((num, idx) => num.trim() ? { playerNumber: num.trim(), playerName: teamData?.players.find(p => p.number === num.trim())?.name } : null)
+      .filter(p => p !== null);
+
+    const negativesData = negatives
+      .map((num, idx) => num.trim() ? { playerNumber: num.trim(), playerName: opposingTeamData?.players.find(p => p.number === num.trim())?.name } : null)
+      .filter(p => p !== null);
+
+    const updates: Partial<GoalLog> = {
+      scorer: { playerNumber: scorerNumber.trim(), playerName: selectedPlayer?.name },
+      assist: assistNumber.trim() ? { playerNumber: assistNumber.trim(), playerName: selectedAssistPlayer?.name } : undefined,
+      assist2: assist2Number.trim() ? { playerNumber: assist2Number.trim(), playerName: selectedAssist2Player?.name } : undefined,
+      positives: positivesData.length > 0 ? positivesData : undefined,
+      negatives: negativesData.length > 0 ? negativesData : undefined,
+    };
+
+    dispatch({ type: 'EDIT_GOAL', payload: { goalId: goal.id, updates } });
+
+    // Close edit mode after state updates
+    setTimeout(() => {
+      toast({ title: "Gol Actualizado", description: "Los cambios han sido guardados." });
+      onSave();
+    }, 50);
+  };
+
+  return (
+    <Card className="bg-card/80 border-primary/50">
+      <CardContent className="p-4 space-y-3">
+        {/* Goleador y Asistentes */}
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <Label className="text-xs"># Gol (Requerido)</Label>
+            <Input
+              value={scorerNumber}
+              onChange={(e) => { if (/^\d*$/.test(e.target.value)) setScorerNumber(e.target.value); }}
+              className={duplicateChecker.scorer ? "border-red-500 border-2" : (scorerNumber.trim() ? "border-green-500 border-2" : "")}
+              placeholder="Ej: 99"
+              required
+            />
+            {selectedPlayer && (
+              <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedPlayer.name}>
+                {selectedPlayer.name}
+              </p>
+            )}
+          </div>
+          <div>
+            <Label className="text-xs"># Asist 1</Label>
+            <Input
+              value={assistNumber}
+              onChange={(e) => { if (/^\d*$/.test(e.target.value)) setAssistNumber(e.target.value); }}
+              className={duplicateChecker.assist ? "border-red-500 border-2" : (assistNumber.trim() ? "border-green-500 border-2" : "")}
+              placeholder="Opc."
+            />
+            {selectedAssistPlayer && (
+              <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedAssistPlayer.name}>
+                {selectedAssistPlayer.name}
+              </p>
+            )}
+          </div>
+          <div>
+            <Label className="text-xs"># Asist 2</Label>
+            <Input
+              value={assist2Number}
+              onChange={(e) => { if (/^\d*$/.test(e.target.value)) setAssist2Number(e.target.value); }}
+              className={duplicateChecker.assist2 ? "border-red-500 border-2" : (assist2Number.trim() ? "border-green-500 border-2" : "")}
+              placeholder="Opc."
+            />
+            {selectedAssist2Player && (
+              <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedAssist2Player.name}>
+                {selectedAssist2Player.name}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Positivas */}
+        <div>
+          <Label className="text-xs font-semibold">Positivas</Label>
+          <div className="grid grid-cols-5 gap-1 mt-1">
+            {positives.map((pos, idx) => {
+              const isReadonly = (idx === 0 && scorerNumber.trim()) ||
+                               (idx === 1 && assistNumber.trim()) ||
+                               (idx === 2 && assist2Number.trim());
+              const isDuplicate = duplicateChecker.positives[idx];
+              const isComplete = pos.trim();
+
+              let className = "text-xs ";
+              if (isReadonly) className += "bg-muted";
+              else if (isDuplicate) className += "border-red-500 border-2";
+              else if (isComplete) className += "border-green-500 border-2";
+
+              return (
+                <div key={idx}>
+                  <Input
+                    value={pos}
+                    onChange={(e) => {
+                      if (/^\d*$/.test(e.target.value) && !isReadonly) {
+                        const newPositives = [...positives];
+                        newPositives[idx] = e.target.value;
+                        setPositives(newPositives);
+                      }
+                    }}
+                    placeholder={`#${idx + 1}`}
+                    readOnly={isReadonly}
+                    className={className}
+                  />
+                  {selectedPositivePlayers[idx] && (
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate" title={selectedPositivePlayers[idx]?.name}>
+                      {selectedPositivePlayers[idx]?.name}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Negativas */}
+        <div>
+          <Label className="text-xs font-semibold">Negativas</Label>
+          <div className="grid grid-cols-5 gap-1 mt-1">
+            {negatives.map((neg, idx) => (
+              <div key={idx}>
+                <Input
+                  value={neg}
+                  onChange={(e) => {
+                    if (/^\d*$/.test(e.target.value)) {
+                      const newNegatives = [...negatives];
+                      newNegatives[idx] = e.target.value;
+                      setNegatives(newNegatives);
+                    }
+                  }}
+                  placeholder={`#${idx + 1}`}
+                  className={`text-xs ${duplicateChecker.negatives[idx] ? "border-red-500 border-2" : (neg.trim() ? "border-green-500 border-2" : "")}`}
+                />
+                {selectedNegativePlayers[idx] && (
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate" title={selectedNegativePlayers[idx]?.name}>
+                    {selectedNegativePlayers[idx]?.name}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="ghost" size="sm" onClick={handleSaveClick} className="text-green-500 hover:text-green-600">
+            <CheckCircle className="mr-1 h-4 w-4" /> Guardar
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onCancel} className="text-destructive hover:text-destructive/80">
+            <XCircle className="mr-1 h-4 w-4" /> Cancelar
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const QRTooltipContent = ({ title, url, ipAddress, ipLabel, status, isConnecting, onConnect, onDisconnect }: { title: string; url: string; ipAddress?: string; ipLabel?: string; status: TunnelState['status']; isConnecting?: boolean; onConnect?: () => void; onDisconnect?: () => void; }) => {
     const { toast } = useToast();
@@ -510,18 +968,19 @@ export default function ControlsPage() {
 
       if (event.code === 'Space' || event.key === ' ') {
         const activeElement = document.activeElement as HTMLElement;
-        
+
+        // Solo ignorar el espacio en TEXTAREA, SELECT y contentEditable
+        // Los INPUT numéricos ahora permitirán que el espacio controle el reloj
         if (
           activeElement &&
-          (activeElement.tagName === 'INPUT' ||
-            activeElement.tagName === 'TEXTAREA' ||
+          (activeElement.tagName === 'TEXTAREA' ||
             activeElement.tagName === 'SELECT' ||
             activeElement.isContentEditable ||
             activeElement.getAttribute?.('role') === 'button')
         ) {
-          return; 
+          return;
         }
-        
+
         event.preventDefault();
         dispatch({ type: 'TOGGLE_CLOCK' });
       }
@@ -872,10 +1331,37 @@ export default function ControlsPage() {
       )}
 
       {!isShootoutActive && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PenaltyControlCard team="home" teamName={state.live.homeTeamName} />
-            <PenaltyControlCard team="away" teamName={state.live.awayTeamName} />
-        </div>
+        <Tabs defaultValue="penalties" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+            <TabsTrigger value="penalties">Penalidades</TabsTrigger>
+            <TabsTrigger value="goals">Goles</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="penalties">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PenaltyControlCard team="home" teamName={state.live.homeTeamName} />
+              <PenaltyControlCard team="away" teamName={state.live.awayTeamName} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="goals">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Goals display will go here */}
+              <GoalsDisplayCard
+                team="home"
+                teamName={state.live.homeTeamName}
+                goals={state.live.goals.home || []}
+                onAddGoal={() => handleScoreClick('home')}
+              />
+              <GoalsDisplayCard
+                team="away"
+                teamName={state.live.awayTeamName}
+                goals={state.live.goals.away || []}
+                onAddGoal={() => handleScoreClick('away')}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
       )}
 
       <div className="mt-12 pt-8 border-t border-border">

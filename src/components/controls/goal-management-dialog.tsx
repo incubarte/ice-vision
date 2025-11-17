@@ -226,7 +226,7 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
             {/* Goleador y Asistencias */}
             <div className="grid grid-cols-3 gap-4">
                 <div>
-                    <Label htmlFor="new-scorer-number"># Gol</Label>
+                    <Label htmlFor="new-scorer-number"># Goleador</Label>
                     <Input
                         id="new-scorer-number"
                         value={scorerNumber}
@@ -266,78 +266,9 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
                 </div>
             </div>
 
-            {/* Positivas */}
-            <div className="space-y-2">
-                <Label className="text-sm font-semibold">Positivas</Label>
-                <div className="grid grid-cols-5 gap-2">
-                    {positives.map((pos, idx) => {
-                        const isReadonly = (idx === 0 && scorerNumber.trim()) ||
-                                         (idx === 1 && assistNumber.trim()) ||
-                                         (idx === 2 && assist2Number.trim());
-                        const isDuplicate = duplicateChecker.positives[idx];
-                        const isComplete = pos.trim();
-
-                        let className = "";
-                        if (isReadonly) className = "bg-muted";
-                        else if (isDuplicate) className = "border-red-500 border-2";
-                        else if (isComplete) className = "border-green-500 border-2";
-
-                        return (
-                            <div key={idx}>
-                                <Input
-                                    value={pos}
-                                    onChange={(e) => {
-                                        if (/^\d*$/.test(e.target.value) && !isReadonly) {
-                                            const newPositives = [...positives];
-                                            newPositives[idx] = e.target.value;
-                                            setPositives(newPositives);
-                                        }
-                                    }}
-                                    placeholder={`#${idx + 1}`}
-                                    autoComplete="off"
-                                    disabled={disabled}
-                                    readOnly={isReadonly}
-                                    className={className}
-                                />
-                                {selectedPositivePlayers[idx] && <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedPositivePlayers[idx]?.name}>{selectedPositivePlayers[idx]?.name}</p>}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Negativas */}
-            <div className="space-y-2">
-                <Label className="text-sm font-semibold">Negativas</Label>
-                <div className="grid grid-cols-5 gap-2">
-                    {negatives.map((neg, idx) => {
-                        const isDuplicate = duplicateChecker.negatives[idx];
-                        const isComplete = neg.trim();
-
-                        const className = isDuplicate ? "border-red-500 border-2" : (isComplete ? "border-green-500 border-2" : "");
-
-                        return (
-                            <div key={idx}>
-                                <Input
-                                    value={neg}
-                                    onChange={(e) => {
-                                        if (/^\d*$/.test(e.target.value)) {
-                                            const newNegatives = [...negatives];
-                                            newNegatives[idx] = e.target.value;
-                                            setNegatives(newNegatives);
-                                        }
-                                    }}
-                                    placeholder={`#${idx + 1}`}
-                                    autoComplete="off"
-                                    disabled={disabled}
-                                    className={className}
-                                />
-                                {selectedNegativePlayers[idx] && <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedNegativePlayers[idx]?.name}>{selectedNegativePlayers[idx]?.name}</p>}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Las positivas se completarán automáticamente con el goleador y asistentes. Puedes editarlas más tarde desde el tab de Goles.
+            </p>
 
             <Button type="submit" className="w-full" disabled={disabled}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Añadir Gol
@@ -785,12 +716,6 @@ export function GoalManagementDialog({ isOpen, onOpenChange, team }: GoalManagem
   if (!state.live || !state.config) return null;
 
   const teamName = team === 'home' ? state.live.homeTeamName : state.live.awayTeamName;
-  
-  const displayedGoals = useMemo(() => {
-    if (!team || !state.live.goals) return [];
-    const goalsList = (team === 'home' ? state.live.goals.home : state.live.goals.away) || [];
-    return [...goalsList].sort((a, b) => b.timestamp - a.timestamp);
-  }, [state.live.goals, team]);
 
   if (!team) return null;
 
@@ -798,36 +723,19 @@ export function GoalManagementDialog({ isOpen, onOpenChange, team }: GoalManagem
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="max-w-xl h-[90vh] flex flex-col"
-      >
+      <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Gestión de Goles: {teamName}</DialogTitle>
+          <DialogTitle className="text-2xl">Añadir Gol: {teamName}</DialogTitle>
           <DialogDescription>
-            Añade nuevos goles o edita los existentes. Los cambios se guardan automáticamente.
+            Ingresa el goleador y asistentes. Las positivas se completarán automáticamente.
           </DialogDescription>
         </DialogHeader>
 
         <AddGoalForm team={team} onGoalAdded={() => onOpenChange(false)} disabled={isActionDisabled} />
 
-        <Separator className="my-4" />
-        
-        <h3 className="text-lg font-medium text-primary-foreground -mb-2">Goles Registrados ({displayedGoals.length})</h3>
-        <ScrollArea className="flex-grow pr-4 -mr-4">
-          <div className="py-2 space-y-3">
-            {displayedGoals.length > 0 ? displayedGoals.map(goal => (
-              <EditableGoalItem key={goal.id} goal={goal} />
-            )) : (
-              <div className="text-center py-10 text-muted-foreground">
-                <Goal className="mx-auto h-12 w-12 mb-4" />
-                <p>No se han registrado goles para {teamName}.</p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
         <DialogFooter className="border-t pt-4">
           <DialogClose asChild>
-            <Button type="button" variant="outline">Cerrar</Button>
+            <Button type="button" variant="outline">Cancelar</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
