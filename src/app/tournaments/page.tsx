@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Tournament } from "@/types";
 import { cn } from "@/lib/utils";
 import { useRouter } from 'next/navigation';
+import { TournamentLogo } from "@/components/tournaments/tournament-logo";
 
 
 const statusMap: Record<Tournament['status'], { text: string; className: string }> = {
@@ -60,6 +61,9 @@ function CreateEditTournamentDialog({
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [status, setStatus] = useState<Tournament['status']>("inactive");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [removeLogo, setRemoveLogo] = useState(false);
 
   const isEditing = !!tournamentToEdit;
 
@@ -68,14 +72,56 @@ function CreateEditTournamentDialog({
       if (isEditing && tournamentToEdit) {
         setName(tournamentToEdit.name);
         setStatus(tournamentToEdit.status);
+        setLogoFile(null);
+        setLogoPreview(null);
+        setRemoveLogo(false);
+        // Load existing logo
+        fetch(`/api/tournaments/${tournamentToEdit.id}/logo`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.logo) {
+              setLogoPreview(data.logo);
+            }
+          })
+          .catch(console.error);
       } else {
         setName("");
         setStatus("inactive");
+        setLogoFile(null);
+        setLogoPreview(null);
+        setRemoveLogo(false);
       }
     }
   }, [isOpen, tournamentToEdit, isEditing]);
 
-  const handleSubmit = () => {
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'image/png' && file.type !== 'image/jpeg') {
+        toast({
+          title: "Formato Inv\u00e1lido",
+          description: "El logo debe ser una imagen PNG o JPG.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setLogoFile(file);
+      setRemoveLogo(false);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    setRemoveLogo(true);
+  };
+
+  const handleSubmit = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       toast({
@@ -99,16 +145,56 @@ function CreateEditTournamentDialog({
       return;
     }
 
+    let tournamentId: string;
+
     if (isEditing && tournamentToEdit) {
+      tournamentId = tournamentToEdit.id;
       dispatch({
         type: "UPDATE_TOURNAMENT",
-        payload: { id: tournamentToEdit.id, name: trimmedName, status },
+        payload: { id: tournamentId, name: trimmedName, status },
       });
       toast({ title: "Torneo Actualizado", description: `"${trimmedName}" ha sido actualizado.` });
     } else {
-      dispatch({ type: "ADD_TOURNAMENT", payload: { name: trimmedName, status: status || 'inactive' } });
+      const newTournament = { name: trimmedName, status: status || 'inactive' };
+      dispatch({ type: "ADD_TOURNAMENT", payload: newTournament });
+      // Get the tournament ID from the state after it's added
+      const tournaments = state.config.tournaments || [];
+      const addedTournament = tournaments.find(t => t.name === trimmedName);
+      if (addedTournament) {
+        tournamentId = addedTournament.id;
+      } else {
+        toast({ title: "Torneo Creado", description: `"${trimmedName}" ha sido creado.` });
+        onOpenChange(false);
+        return;
+      }
       toast({ title: "Torneo Creado", description: `"${trimmedName}" ha sido creado.` });
     }
+
+    // Handle logo upload/removal
+    if (logoFile) {
+      try {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          await fetch(`/api/tournaments/${tournamentId}/logo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logo: reader.result }),
+          });
+        };
+        reader.readAsDataURL(logoFile);
+      } catch (error) {
+        console.error('Error uploading logo:', error);
+      }
+    } else if (removeLogo) {
+      try {
+        await fetch(`/api/tournaments/${tournamentId}/logo`, {
+          method: 'DELETE',
+        });
+      } catch (error) {
+        console.error('Error removing logo:', error);
+      }
+    }
+
     onOpenChange(false);
   };
 
@@ -139,6 +225,37 @@ function CreateEditTournamentDialog({
                 <SelectItem value="finished">Finalizado</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label htmlFor="logo" className="text-right pt-2">
+              Logo
+            </Label>
+            <div className="col-span-3 space-y-2">
+              {logoPreview && (
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 border rounded flex items-center justify-center bg-muted">
+                    <img src={logoPreview} alt="Logo preview" className="max-w-full max-h-full object-contain" />
+                  </div>
+                  <Button type="button" variant="destructive" size="sm" onClick={handleRemoveLogo}>
+                    Eliminar Logo
+                  </Button>
+                </div>
+              )}
+              {!logoPreview && (
+                <div className="flex items-center gap-4">
+                  <Trophy className="w-16 h-16 text-amber-400" />
+                  <span className="text-sm text-muted-foreground">Sin logo (se mostrará la copa)</span>
+                </div>
+              )}
+              <Input
+                id="logo"
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={handleLogoChange}
+                className="cursor-pointer"
+              />
+              <p className="text-xs text-muted-foreground">Sube una imagen PNG o JPG para el logo del torneo</p>
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -232,11 +349,14 @@ export default function TournamentsPage() {
               onClick={() => handleTournamentClick(tournament.id)}
             >
               <CardContent className="p-4 flex justify-between items-center">
-                <div className="flex flex-col">
-                  <span className="font-semibold text-lg text-card-foreground">{tournament.name}</span>
-                   <Badge className={cn("w-fit", statusMap[tournament.status]?.className)}>
-                    {statusMap[tournament.status]?.text || tournament.status}
-                  </Badge>
+                <div className="flex items-center gap-4">
+                  <TournamentLogo tournamentId={tournament.id} size={96} />
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-lg text-card-foreground">{tournament.name}</span>
+                    <Badge className={cn("w-fit", statusMap[tournament.status]?.className)}>
+                      {statusMap[tournament.status]?.text || tournament.status}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                     {isLoadingTournament === tournament.id && (

@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useGameState } from '@/contexts/game-state-context';
+import { TournamentLogo } from '../tournaments/tournament-logo';
 
 const EXTERNAL_WINDOW_CONFIG_KEY = 'externalWindowConfig';
 
@@ -267,12 +268,12 @@ export function Header() {
                 <Button variant="ghost" className="hidden md:flex items-center gap-2 text-sm text-amber-400 mr-4 hover:text-amber-300 transition-colors">
                   {selectedTournament ? (
                       <>
-                        <Trophy className="h-4 w-4" />
+                        <TournamentLogo tournamentId={selectedTournament.id} size={48} />
                         <span className="font-medium truncate max-w-[200px]">{selectedTournament.name}</span>
                       </>
                   ) : (
                       <>
-                        <Trophy className="h-4 w-4 text-muted-foreground" />
+                        <Trophy className="h-12 w-12 text-muted-foreground" />
                         <span className="text-muted-foreground">Sin Torneo</span>
                       </>
                   )}

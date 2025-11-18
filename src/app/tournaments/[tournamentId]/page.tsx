@@ -15,6 +15,8 @@ import { FixtureListView } from '@/components/fixture/fixture-list-view';
 import { Separator } from '@/components/ui/separator';
 import { StandingsTab } from '@/components/tournaments/standings-tab';
 import { PlayerStatsTab } from '@/components/tournaments/player-stats-tab';
+import { useTournamentLogo } from '@/hooks/use-tournament-logo';
+import Image from 'next/image';
 
 export default function TournamentDetailPage() {
   const params = useParams();
@@ -27,9 +29,11 @@ export default function TournamentDetailPage() {
   const tournamentId = typeof params.tournamentId === 'string' ? params.tournamentId : undefined;
   const initialTab = searchParams.get('tab') || (isReadOnly ? 'fixture' : 'teamsAndCategories');
   const initialFixtureView = searchParams.get('view') === 'list' ? 'list' : 'calendar';
-  
+
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isCategoryDirty, setIsCategoryDirty] = useState(false);
+
+  const { logo } = useTournamentLogo(tournamentId);
   
   const selectedTournament = useMemo(() => {
     if (!tournamentId) return null;
@@ -79,7 +83,11 @@ export default function TournamentDetailPage() {
       </Button>
       
       <div className="flex items-center gap-4">
-        <Trophy className="h-10 w-10 text-amber-400" />
+        {logo ? (
+          <Image src={logo} alt="Tournament logo" width={120} height={120} className="object-contain" />
+        ) : (
+          <Trophy className="h-[120px] w-[120px] text-amber-400" />
+        )}
         <h1 className="text-4xl font-bold text-primary-foreground">{selectedTournament.name}</h1>
       </div>
 

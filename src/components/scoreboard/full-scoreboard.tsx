@@ -18,6 +18,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { RemoteCommand } from '@/types';
 import { HockeyPuckSpinner } from '../ui/hockey-puck-spinner';
 import Image from 'next/image';
+import { TournamentLogo } from '../tournaments/tournament-logo';
+import { PreWarmupIntro } from './pre-warmup-intro';
+import { useTournamentLogo } from '@/hooks/use-tournament-logo';
 
 const ValentinoCaffeAd = () => {
     return (
@@ -54,10 +57,14 @@ export function FullScoreboard({ className }: { className?: string }) {
   const [wasWarmup, setWasWarmup] = useState(false);
   const [wasEndOfGame, setWasEndOfGame] = useState(false);
   const [showStandingsInWarmup, setShowStandingsInWarmup] = useState(false);
+  const [showPreWarmupIntro, setShowPreWarmupIntro] = useState(false);
+  const [hasShownIntro, setHasShownIntro] = useState(false);
   const { homeLogoDataUrl, awayLogoDataUrl } = useTeamLogos();
 
   const { config, live } = state;
   const scoreboardLayout = config?.scoreboardLayout;
+
+  const { logo: tournamentLogo } = useTournamentLogo(config.selectedTournamentId);
 
   const videoPreloaderRef = useRef<HTMLVideoElement>(null);
   
@@ -197,13 +204,19 @@ export function FullScoreboard({ className }: { className?: string }) {
       setIsOlympiaTransitioning(true);
     }
 
-    // Actualizar el estado de wasWarmup
+    // Actualizar el estado de wasWarmup y detectar inicio de warmup para intro
     if (isWarmup && isFixtureMatch) {
+      // Si acabamos de entrar en warmup y no hemos mostrado la intro
+      if (!wasWarmup && !hasShownIntro && tournamentLogo) {
+        setShowPreWarmupIntro(true);
+        setHasShownIntro(true);
+      }
       setWasWarmup(true);
     } else if (!isFixtureMatch) {
       setWasWarmup(false);
+      setHasShownIntro(false); // Reset para el próximo partido
     }
-  }, [config, live, wasWarmup, isOlympiaTransitioning, homeLogoDataUrl, awayLogoDataUrl]);
+  }, [config, live, wasWarmup, isOlympiaTransitioning, homeLogoDataUrl, awayLogoDataUrl, hasShownIntro, tournamentLogo]);
 
   // Detectar cuando el partido termina - ya no usa Olympia, solo marca el estado
   useEffect(() => {
@@ -350,6 +363,12 @@ export function FullScoreboard({ className }: { className?: string }) {
             </div>
           }
         />
+      ) : showPreWarmupIntro ? (
+        // Show Pre-Warmup Intro animation
+        <PreWarmupIntro
+          logo={tournamentLogo}
+          onComplete={() => setShowPreWarmupIntro(false)}
+        />
       ) : clock.periodDisplayOverride === 'End of Game' && isFixtureMatch ? (
         // Show End of Game screen (after transition has completed)
         <div className="w-full h-screen">
@@ -473,6 +492,13 @@ export function FullScoreboard({ className }: { className?: string }) {
             </AnimatePresence>
         </div>
           </div>
+
+          {/* Tournament Logo Watermark */}
+          {config.selectedTournamentId && !isOlympiaTransitioning && (
+            <div className="absolute bottom-8 right-8 z-5 opacity-40 pointer-events-none">
+              <TournamentLogo tournamentId={config.selectedTournamentId} size={400} />
+            </div>
+          )}
         </div>
       )}
     </div>
