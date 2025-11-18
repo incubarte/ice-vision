@@ -38,6 +38,7 @@ const StandingsTable = ({ categoryName, categoryId, tournament }: { categoryName
                             <TableHead className="text-center">PP</TableHead>
                             <TableHead className="text-center border-l">GF</TableHead>
                             <TableHead className="text-center">GC</TableHead>
+                            <TableHead className="text-center">DIF</TableHead>
                             <TableHead className="text-center font-bold border-l">Puntos</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -54,6 +55,7 @@ const StandingsTable = ({ categoryName, categoryId, tournament }: { categoryName
                                 <TableCell className="text-center">{team.pp}</TableCell>
                                 <TableCell className="text-center border-l">{team.gf}</TableCell>
                                 <TableCell className="text-center">{team.gc}</TableCell>
+                                <TableCell className="text-center font-semibold">{team.dif > 0 ? `+${team.dif}` : team.dif}</TableCell>
                                 <TableCell className="text-center font-bold text-lg border-l">{team.puntos}</TableCell>
                             </TableRow>
                         ))}

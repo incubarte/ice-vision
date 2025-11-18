@@ -15,6 +15,7 @@ interface TeamStats {
   pp_ot: number; // Partidos Perdidos en OT/SO
   gf: number; // Goles a Favor
   gc: number; // Goles en Contra
+  dif: number; // Diferencia de Goles
   puntos: number;
 }
 
@@ -29,7 +30,7 @@ export function useStandings(tournament: Tournament | null | undefined, category
         const teamStats: TeamStats = {
           id: team.id,
           name: team.name,
-          pj: 0, pg: 0, pe: 0, pp: 0, pg_ot: 0, pp_ot: 0, gf: 0, gc: 0, puntos: 0
+          pj: 0, pg: 0, pe: 0, pp: 0, pg_ot: 0, pp_ot: 0, gf: 0, gc: 0, dif: 0, puntos: 0
         };
 
         finishedMatches
@@ -64,7 +65,8 @@ export function useStandings(tournament: Tournament | null | undefined, category
               teamStats.pe++;
             }
           });
-        
+
+        teamStats.dif = teamStats.gf - teamStats.gc;
         teamStats.puntos = (teamStats.pg * 3) + (teamStats.pe * 1) + (teamStats.pg_ot * 2) + (teamStats.pp_ot * 1);
         return teamStats;
       });

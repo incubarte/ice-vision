@@ -147,6 +147,7 @@ export function StandingsDisplay() {
                 <TableHead className="text-center" style={{ fontSize: `${headerSize}rem`, width: statColumnWidth }}>PP</TableHead>
                 <TableHead className="text-center border-l" style={{ fontSize: `${headerSize}rem`, width: statColumnWidth }}>GF</TableHead>
                 <TableHead className="text-center" style={{ fontSize: `${headerSize}rem`, width: statColumnWidth }}>GC</TableHead>
+                <TableHead className="text-center" style={{ fontSize: `${headerSize}rem`, width: statColumnWidth }}>DIF</TableHead>
                 <TableHead className="text-center font-bold border-l" style={{ fontSize: `${headerSize}rem`, width: statColumnWidth }}>Puntos</TableHead>
               </TableRow>
             </TableHeader>
@@ -155,7 +156,7 @@ export function StandingsDisplay() {
                 if (teamStat.isEllipsis) {
                     return (
                         <TableRow key={teamStat.id}>
-                            <TableCell colSpan={11} className="p-0" style={{ height: `${ellipsisRowHeight}rem` }}>
+                            <TableCell colSpan={12} className="p-0" style={{ height: `${ellipsisRowHeight}rem` }}>
                                 <div className="relative flex items-center justify-center h-full text-muted-foreground/50 tracking-widest" style={{ fontSize: `${ellipsisFontSize}rem`, bottom: '0.2em' }}>
                                     ...
                                 </div>
@@ -190,13 +191,14 @@ export function StandingsDisplay() {
                         <TableCell className="text-center">{teamStat.pp}</TableCell>
                         <TableCell className="text-center border-l">{teamStat.gf}</TableCell>
                         <TableCell className="text-center">{teamStat.gc}</TableCell>
+                        <TableCell className="text-center font-semibold">{teamStat.dif > 0 ? `+${teamStat.dif}` : teamStat.dif}</TableCell>
                         <TableCell className="text-center font-bold border-l" style={{ fontSize: `${pointsSize}rem`}}>{teamStat.puntos}</TableCell>
                     </TableRow>
                 )
               })}
               {displayedStandings.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-24 text-center">No hay datos de posiciones.</TableCell>
+                  <TableCell colSpan={12} className="h-24 text-center">No hay datos de posiciones.</TableCell>
                 </TableRow>
               )}
             </TableBody>

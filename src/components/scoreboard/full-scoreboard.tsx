@@ -228,34 +228,48 @@ export function FullScoreboard({ className }: { className?: string }) {
     const isWarmup = live.clock.periodDisplayOverride === 'Warm-up';
     const isFixtureMatch = !!live.matchId;
 
+    console.log('[Warmup Toggle] Effect running:', { isWarmup, isFixtureMatch, showStandingsEnabled: config.showStandingsInWarmup });
+
     if (isWarmup && isFixtureMatch && config.showStandingsInWarmup) {
       // Empezar mostrando la tabla
+      console.log('[Warmup Toggle] Starting cycle - showing standings');
       setShowStandingsInWarmup(true);
 
       let currentTimeout: NodeJS.Timeout;
 
-      const scheduleNextToggle = (showStandings: boolean) => {
-        // Si vamos a mostrar tabla, esperar 30 segundos (tiempo sin tabla)
-        // Si vamos a ocultar tabla, esperar 20 segundos (tiempo con tabla)
-        const delay = showStandings ? 30000 : 20000;
-
-        currentTimeout = setTimeout(() => {
-          setShowStandingsInWarmup(showStandings);
-          scheduleNextToggle(!showStandings);
-        }, delay);
+      const scheduleNextToggle = (currentlyShowingStandings: boolean) => {
+        if (currentlyShowingStandings) {
+          // Actualmente mostrando tabla, después de 20s ocultarla
+          console.log('[Warmup Toggle] Scheduling to HIDE standings in 20s');
+          currentTimeout = setTimeout(() => {
+            console.log('[Warmup Toggle] HIDING standings now');
+            setShowStandingsInWarmup(false);
+            scheduleNextToggle(false);
+          }, 20000);
+        } else {
+          // Actualmente SIN tabla, después de 30s mostrarla
+          console.log('[Warmup Toggle] Scheduling to SHOW standings in 30s');
+          currentTimeout = setTimeout(() => {
+            console.log('[Warmup Toggle] SHOWING standings now');
+            setShowStandingsInWarmup(true);
+            scheduleNextToggle(true);
+          }, 30000);
+        }
       };
 
-      // Iniciar el ciclo: después de 20 segundos (mostrando tabla), ocultar
-      scheduleNextToggle(false);
+      // Iniciar el ciclo: actualmente mostrando tabla
+      scheduleNextToggle(true);
 
       return () => {
+        console.log('[Warmup Toggle] Cleaning up timeout');
         clearTimeout(currentTimeout);
       };
     } else {
       // Si no estamos en warmup, resetear a false
+      console.log('[Warmup Toggle] Not in warmup or disabled, resetting');
       setShowStandingsInWarmup(false);
     }
-  }, [config, live]);
+  }, [live.clock.periodDisplayOverride, live.matchId, config.showStandingsInWarmup]);
 
   if (isLoading || !config || !live || !scoreboardLayout) {
     return null;
