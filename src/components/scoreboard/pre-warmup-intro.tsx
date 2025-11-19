@@ -10,12 +10,26 @@ interface PreWarmupIntroProps {
 }
 
 // Generar posiciones de partículas una sola vez (fuera del componente)
-const PARTICLE_POSITIONS = Array.from({ length: 30 }, () => ({
-  left: Math.random() * 100,
-  top: Math.random() * 100,
-  duration: 2.1 + Math.random() * 2,
-  delay: Math.random() * 2,
-}));
+const PARTICLE_POSITIONS = Array.from({ length: 30 }, () => {
+  const rand = Math.random();
+  let colorType: 'whiter' | 'medium' | 'normal';
+
+  if (rand < 0.6) {
+    colorType = 'whiter'; // 60%
+  } else if (rand < 0.8) {
+    colorType = 'medium'; // 20%
+  } else {
+    colorType = 'normal'; // 20%
+  }
+
+  return {
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    duration: 2.1 + Math.random() * 2,
+    delay: Math.random() * 2,
+    colorType,
+  };
+});
 
 export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
   const [phase, setPhase] = useState<'pulsing' | 'explosion'>('pulsing');
@@ -130,28 +144,55 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
 
       {/* Partículas/estrellas de fondo */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {PARTICLE_POSITIONS.map((particle, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-primary/70 rounded-full"
-            style={{
-              left: `${particle.left}%`,
-              top: `${particle.top}%`,
-              boxShadow: '0 0 3px rgba(255,255,255,0.5)',
-              transform: 'translateZ(0)', // Forzar GPU compositing
-            }}
-            animate={{
-              scale: [0, 1.6, 0],
-              opacity: [0, 1, 0],
-            }}
-            transition={{
-              duration: particle.duration,
-              repeat: Infinity,
-              delay: particle.delay,
-              ease: "easeInOut"
-            }}
-          />
-        ))}
+        {PARTICLE_POSITIONS.map((particle, i) => {
+          // Definir estilos según el tipo de color
+          const getParticleStyles = () => {
+            switch (particle.colorType) {
+              case 'whiter':
+                return {
+                  backgroundColor: 'rgba(240, 248, 255, 0.85)', // Blanco-azulado más brillante
+                  boxShadow: '0 0 4px rgba(255,255,255,0.7)',
+                };
+              case 'medium':
+                return {
+                  backgroundColor: 'rgba(200, 220, 240, 0.78)', // Color intermedio
+                  boxShadow: '0 0 3.5px rgba(255,255,255,0.6)',
+                };
+              case 'normal':
+              default:
+                return {
+                  backgroundColor: undefined, // Usa bg-primary/70 del className
+                  boxShadow: '0 0 3px rgba(255,255,255,0.5)',
+                };
+            }
+          };
+
+          const styles = getParticleStyles();
+
+          return (
+            <motion.div
+              key={i}
+              className={particle.colorType === 'normal' ? "absolute w-1 h-1 bg-primary/70 rounded-full" : "absolute w-1 h-1 rounded-full"}
+              style={{
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                backgroundColor: styles.backgroundColor,
+                boxShadow: styles.boxShadow,
+                transform: 'translateZ(0)', // Forzar GPU compositing
+              }}
+              animate={{
+                scale: [0, 1.6, 0],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: particle.duration,
+                repeat: Infinity,
+                delay: particle.delay,
+                ease: "easeInOut"
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* Logo central con animación */}

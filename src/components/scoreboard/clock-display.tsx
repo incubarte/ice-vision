@@ -50,11 +50,11 @@ export function ClockDisplay({ className }: ClockDisplayProps) {
     <div className={cn("text-center", className)}>
       <div
         className={cn(
-          "font-bold font-headline tabular-nums tracking-tighter transition-opacity duration-300 flex items-center justify-center",
+          "font-bold font-headline tabular-nums tracking-tighter transition-opacity duration-300 flex items-center justify-center opacity-100",
           isWinnerState ? "text-accent" : (isMainClockLastMinute ? "text-orange-500" : "text-accent"),
           clock.isFlashingZero && "animate-flashing-clock"
         )}
-        style={{ fontSize: `${scoreboardLayout.clockSize}rem`, lineHeight: 1 }}
+        style={{ fontSize: `${scoreboardLayout.clockSize}rem`, lineHeight: 1, opacity: 1 }}
         >
         {isWinnerState ? (
             <Trophy className="w-[0.75em] h-[0.75em]" />
@@ -72,9 +72,9 @@ export function ClockDisplay({ className }: ClockDisplayProps) {
         )}
       </div>
       
-      <div 
-        className="mt-1 font-semibold text-primary-foreground uppercase tracking-wider relative"
-        style={{ fontSize: `${scoreboardLayout.periodSize}rem`, lineHeight: 1.1 }}
+      <div
+        className="mt-1 font-semibold text-primary-foreground uppercase tracking-wider relative opacity-100"
+        style={{ fontSize: `${scoreboardLayout.periodSize}rem`, lineHeight: 1.1, opacity: 1 }}
       >
         <div className="inline-block relative">
           <span>

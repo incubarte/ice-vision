@@ -3,6 +3,7 @@
 import { useGameState } from '@/contexts/game-state-context';
 import Image from 'next/image';
 import { ClockDisplay } from './clock-display';
+import { TournamentLogo } from '../tournaments/tournament-logo';
 
 interface WarmupDisplayStaticProps {
   homeLogoDataUrl?: string | null;
@@ -10,6 +11,7 @@ interface WarmupDisplayStaticProps {
   clockPosition?: 'center' | 'top';
   showClock?: boolean;
   children?: React.ReactNode;
+  tournamentLogoId?: string | null;
 }
 
 /**
@@ -21,7 +23,8 @@ export function WarmupDisplayStatic({
   awayLogoDataUrl,
   clockPosition = 'center',
   showClock = true,
-  children
+  children,
+  tournamentLogoId
 }: WarmupDisplayStaticProps) {
   const { state } = useGameState();
 
@@ -131,6 +134,16 @@ export function WarmupDisplayStatic({
               priority
             />
           </div>
+        </div>
+      )}
+
+      {/* Tournament Logo - Behind the clock */}
+      {tournamentLogoId && (
+        <div className={clockPosition === 'top'
+          ? "absolute left-1/2 top-8 -translate-x-1/2 z-15 opacity-15 pointer-events-none"
+          : "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-15 opacity-15 pointer-events-none"
+        }>
+          <TournamentLogo tournamentId={tournamentLogoId} size={1200} showFallback={false} />
         </div>
       )}
 

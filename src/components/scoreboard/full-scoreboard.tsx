@@ -59,6 +59,7 @@ export function FullScoreboard({ className }: { className?: string }) {
   const [showStandingsInWarmup, setShowStandingsInWarmup] = useState(false);
   const [showPreWarmupIntro, setShowPreWarmupIntro] = useState(false);
   const [hasShownIntro, setHasShownIntro] = useState(false);
+  const [wasShowingStandingsBeforeTransition, setWasShowingStandingsBeforeTransition] = useState(false);
   const { homeLogoDataUrl, awayLogoDataUrl } = useTeamLogos();
 
   const { config, live } = state;
@@ -171,18 +172,18 @@ export function FullScoreboard({ className }: { className?: string }) {
 
       console.log('Capturing warmup content and starting Olympia transition...');
 
-      // Determinar qué se estaba mostrando antes del cambio de período
-      // Usar el estado previo del warmup
-      const wasShowingStandings = config.showStandingsInWarmup;
+      // Usar el estado guardado de lo que realmente se estaba mostrando
+      console.log('Was showing standings before transition:', wasShowingStandingsBeforeTransition);
 
       // Capturar el contenido COMPLETO de warmup ESTÁTICO (sin animaciones) para la transición
-      const warmupContent = wasShowingStandings ? (
+      const warmupContent = wasShowingStandingsBeforeTransition ? (
         <div className="w-full h-screen" style={{ pointerEvents: 'none' }}>
           <WarmupDisplayStatic
             homeLogoDataUrl={homeLogoDataUrl}
             awayLogoDataUrl={awayLogoDataUrl}
             clockPosition="top"
             showClock={true}
+            tournamentLogoId={config.selectedTournamentId}
           >
             <StandingsDisplay />
           </WarmupDisplayStatic>
@@ -194,6 +195,7 @@ export function FullScoreboard({ className }: { className?: string }) {
             awayLogoDataUrl={awayLogoDataUrl}
             clockPosition="center"
             showClock={true}
+            tournamentLogoId={config.selectedTournamentId}
           />
         </div>
       );
@@ -245,57 +247,83 @@ export function FullScoreboard({ className }: { className?: string }) {
     const isFixtureMatch = !!live.matchId;
 
     if (isWarmup && isFixtureMatch && config.showStandingsInWarmup) {
+      console.log('[Standings] Warmup detected, starting table logic');
+
       // Marcar el tiempo de inicio de la pantalla de warmup
       const warmupStartTime = Date.now();
 
-      // NO empezar mostrando la tabla - esperar el primer minuto
+      // NO empezar mostrando la tabla
       setShowStandingsInWarmup(false);
 
-      let currentTimeout: NodeJS.Timeout;
-
-      const scheduleNextToggle = (currentlyShowingStandings: boolean) => {
-        if (currentlyShowingStandings) {
-          // Actualmente mostrando tabla, después de 20s ocultarla
-          currentTimeout = setTimeout(() => {
-            setShowStandingsInWarmup(false);
-            scheduleNextToggle(false);
-          }, 20000);
-        } else {
-          // Actualmente SIN tabla, después de 30s mostrarla
-          currentTimeout = setTimeout(() => {
-            const elapsedTime = Date.now() - warmupStartTime;
-            const remainingSeconds = live.clock.minutes * 60 + live.clock.seconds;
-
-            // Solo mostrar si han pasado al menos 60 segundos de pantalla Y quedan más de 7 segundos en el reloj
-            if (elapsedTime >= 60000 && remainingSeconds > 7) {
-              setShowStandingsInWarmup(true);
-              scheduleNextToggle(true);
-            } else {
-              // Si no se cumplen las condiciones, seguir esperando
-              scheduleNextToggle(false);
-            }
-          }, 30000);
-        }
-      };
-
-      // Esperar 60 segundos antes de iniciar el ciclo
-      const initialTimeout = setTimeout(() => {
+      // Intervalo para verificar constantemente las condiciones
+      const checkInterval = setInterval(() => {
+        const elapsedTime = Date.now() - warmupStartTime;
         const remainingSeconds = live.clock.minutes * 60 + live.clock.seconds;
-        // Solo iniciar si quedan más de 7 segundos
-        if (remainingSeconds > 7) {
-          scheduleNextToggle(false);
+
+        console.log('[Standings] Check - Elapsed:', Math.floor(elapsedTime / 1000), 's, Remaining:', remainingSeconds, 's');
+
+        // Regla 1: Primeros 30 segundos de pantalla -> NUNCA mostrar
+        if (elapsedTime < 30000) {
+          console.log('[Standings] First 30s of screen time - NEVER show');
+          setShowStandingsInWarmup(false);
+          return;
         }
-      }, 60000);
+
+        // Regla 2: Últimos 20 segundos del reloj -> SIEMPRE mostrar
+        if (remainingSeconds <= 20) {
+          console.log('[Standings] Last 20s of clock - ALWAYS show');
+          setShowStandingsInWarmup(true);
+          return;
+        }
+
+        // Regla 3: Entre esos momentos -> alternar en ciclos de 60s
+        // El ciclo comienza exactamente a los 30s de screen time MOSTRANDO la tabla
+        // Ciclo: 30s con tabla, 30s sin tabla (siempre que no rompa reglas 1 o 2)
+        // Ejemplo timeline desde inicio de warmup:
+        //   0-30s:   NO (regla 1 - primeros 30s de pantalla)
+        //   30-60s:  SÍ (primer ciclo EMPIEZA MOSTRANDO, primeros 30s con tabla)
+        //   60-90s:  NO (primer ciclo, siguientes 30s sin tabla)
+        //   90-120s: SÍ (segundo ciclo, primeros 30s con tabla)
+        //   120-150s: NO (segundo ciclo, siguientes 30s sin tabla)
+        //   etc.
+        const cycleTime = (elapsedTime - 30000) % 60000; // Tiempo dentro del ciclo actual (0-59999ms)
+        const shouldShow = cycleTime < 30000; // Si cycleTime < 30s → mostrar (los 30s iniciales del ciclo)
+
+        console.log('[Standings] Cycle time:', Math.floor(cycleTime / 1000), 's, Should show:', shouldShow);
+
+        // Si estamos por ocultar la tabla pero quedan menos de 40 segundos en el reloj,
+        // NO la ocultamos para que se quede visible hasta que entre en la regla 2
+        if (!shouldShow && remainingSeconds < 40) {
+          console.log('[Standings] Would hide but <40s remaining - keeping visible');
+          setShowStandingsInWarmup(true);
+          return;
+        }
+
+        setShowStandingsInWarmup(shouldShow);
+      }, 1000); // Verificar cada segundo
 
       return () => {
-        clearTimeout(initialTimeout);
-        clearTimeout(currentTimeout);
+        clearInterval(checkInterval);
       };
     } else {
       // Si no estamos en warmup, resetear a false
       setShowStandingsInWarmup(false);
     }
   }, [live.clock.periodDisplayOverride, live.matchId, config.showStandingsInWarmup, live.clock.minutes, live.clock.seconds]);
+
+  // Guardar el estado actual de si se está mostrando la tabla para usarlo en la transición de Olympia
+  useEffect(() => {
+    if (!config || !live) return;
+
+    const isWarmup = live.clock.periodDisplayOverride === 'Warm-up';
+    const isFixtureMatch = !!live.matchId;
+    const shouldShowStandings = config.showStandingsInWarmup && isWarmup && isFixtureMatch && showStandingsInWarmup;
+
+    if (isWarmup && isFixtureMatch) {
+      setWasShowingStandingsBeforeTransition(shouldShowStandings);
+      console.log('[Standings State] shouldShowStandings:', shouldShowStandings, 'config.showStandingsInWarmup:', config.showStandingsInWarmup, 'showStandingsInWarmup (local):', showStandingsInWarmup);
+    }
+  }, [config, live, showStandingsInWarmup]);
 
   if (isLoading || !config || !live || !scoreboardLayout) {
     return null;
@@ -464,12 +492,17 @@ export function FullScoreboard({ className }: { className?: string }) {
                         className="h-full"
                     >
                         {shouldShowWarmupDisplay ? (
-                            <WarmupDisplay homeLogoDataUrl={homeLogoDataUrl} awayLogoDataUrl={awayLogoDataUrl} />
+                            <WarmupDisplay
+                                homeLogoDataUrl={homeLogoDataUrl}
+                                awayLogoDataUrl={awayLogoDataUrl}
+                                tournamentLogoId={config.selectedTournamentId}
+                            />
                         ) : shouldShowStandings ? (
                             <WarmupDisplay
                                 homeLogoDataUrl={homeLogoDataUrl}
                                 awayLogoDataUrl={awayLogoDataUrl}
                                 clockPosition="top"
+                                tournamentLogoId={config.selectedTournamentId}
                             >
                                 <div style={{ transform: 'scale(1.1)', transformOrigin: 'center center' }}>
                                     <StandingsDisplay />
@@ -506,10 +539,14 @@ export function FullScoreboard({ className }: { className?: string }) {
         </div>
           </div>
 
-          {/* Tournament Logo Watermark */}
-          {config.selectedTournamentId && !isOlympiaTransitioning && (
+          {/* Tournament Logo Watermark - Only show when NOT in warmup */}
+          {config.selectedTournamentId && !isOlympiaTransitioning && !isWarmup && (
             <div className="absolute bottom-8 right-8 z-5 opacity-40 pointer-events-none">
-              <TournamentLogo tournamentId={config.selectedTournamentId} size={400} showFallback={false} />
+              <TournamentLogo
+                tournamentId={config.selectedTournamentId}
+                size={400}
+                showFallback={false}
+              />
             </div>
           )}
         </div>
