@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
@@ -8,6 +8,14 @@ interface PreWarmupIntroProps {
   logo: string | null;
   onComplete: () => void;
 }
+
+// Generar posiciones de partículas una sola vez (fuera del componente)
+const PARTICLE_POSITIONS = Array.from({ length: 30 }, () => ({
+  left: Math.random() * 100,
+  top: Math.random() * 100,
+  duration: 2.1 + Math.random() * 2,
+  delay: Math.random() * 2,
+}));
 
 export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
   const [phase, setPhase] = useState<'pulsing' | 'explosion'>('pulsing');
@@ -122,23 +130,24 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
 
       {/* Partículas/estrellas de fondo */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {[...Array(30)].map((_, i) => (
+        {PARTICLE_POSITIONS.map((particle, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 bg-primary/70 rounded-full"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: `${particle.left}%`,
+              top: `${particle.top}%`,
               boxShadow: '0 0 3px rgba(255,255,255,0.5)',
+              transform: 'translateZ(0)', // Forzar GPU compositing
             }}
             animate={{
               scale: [0, 1.6, 0],
               opacity: [0, 1, 0],
             }}
             transition={{
-              duration: 2.1 + Math.random() * 2,
+              duration: particle.duration,
               repeat: Infinity,
-              delay: Math.random() * 2,
+              delay: particle.delay,
               ease: "easeInOut"
             }}
           />
@@ -176,7 +185,9 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
               height: '300px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              transform: 'translateZ(0)', // GPU compositing
+              backfaceVisibility: 'hidden', // Prevenir flickering
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -216,7 +227,9 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
               height: '300px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              transform: 'translateZ(0)', // GPU compositing
+              backfaceVisibility: 'hidden', // Prevenir flickering
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -1,8 +1,8 @@
 "use client";
 
-import { motion, useAnimation } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface OlympiaTransitionProps {
   onComplete: () => void;
@@ -11,63 +11,59 @@ interface OlympiaTransitionProps {
 }
 
 export function OlympiaTransition({ onComplete, oldContent, newContent }: OlympiaTransitionProps) {
-  const controls = useAnimation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const onCompleteRef = useRef(onComplete);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Keep ref updated
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
-    const runAnimation = async () => {
-      // Una sola pasada enorme de izquierda a derecha
-      const startX = -150;
-      const endX = 250;
-      const duration = 4;
+    // Iniciar animación después del mount
+    const timer = setTimeout(() => {
+      setIsAnimating(true);
+    }, 100);
 
-      // Wait for component to mount
-      await new Promise(resolve => setTimeout(resolve, 50));
+    return () => clearTimeout(timer);
+  }, []);
 
-      // Inicializar CSS variable
+  useEffect(() => {
+    if (!isAnimating) return;
+
+    // Una sola pasada enorme de izquierda a derecha
+    const startX = -150;
+    const endX = 250;
+    const duration = 4;
+
+    // Actualizar CSS variable mientras la Olympia se mueve - SIN causar re-renders
+    const startTime = Date.now();
+
+    const updatePosition = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / (duration * 1000), 1);
+      const currentX = startX + (endX - startX) * progress;
+
+      // Actualizar CSS variable directamente - NO causa re-render
       if (containerRef.current) {
-        containerRef.current.style.setProperty('--olympia-x', String(startX));
+        containerRef.current.style.setProperty('--olympia-x', String(currentX));
       }
 
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Animar la Olympia atravesando la pantalla
-      const animationPromise = controls.start({
-        x: `${endX}%`,
-        y: '-50%',
-        transition: {
-          duration: duration,
-          ease: "linear",
-        }
-      });
-
-      // Actualizar CSS variable mientras la Olympia se mueve - SIN causar re-renders
-      const startTime = Date.now();
-
-      const updatePosition = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / (duration * 1000), 1);
-        const currentX = startX + (endX - startX) * progress;
-
-        // Actualizar CSS variable directamente - NO causa re-render
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--olympia-x', String(currentX));
-        }
-
-        if (progress < 1) {
-          requestAnimationFrame(updatePosition);
-        }
-      };
-
-      requestAnimationFrame(updatePosition);
-
-      await animationPromise;
-      await new Promise(resolve => setTimeout(resolve, 100));
-      onComplete();
+      if (progress < 1) {
+        requestAnimationFrame(updatePosition);
+      }
     };
 
-    runAnimation();
-  }, [controls, onComplete]);
+    requestAnimationFrame(updatePosition);
+
+    // Llamar onComplete cuando la animación termine
+    const completeTimer = setTimeout(() => {
+      onCompleteRef.current();
+    }, (duration * 1000) + 100);
+
+    return () => clearTimeout(completeTimer);
+  }, [isAnimating]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-background" style={{ '--olympia-x': '-150' } as React.CSSProperties}>
@@ -91,7 +87,11 @@ export function OlympiaTransition({ onComplete, oldContent, newContent }: Olympi
       <motion.div
         className="absolute z-50 pointer-events-none"
         initial={{ x: '-150%', y: '-50%', rotate: 90 }}
-        animate={controls}
+        animate={isAnimating ? { x: '250%', y: '-50%' } : { x: '-150%', y: '-50%' }}
+        transition={{
+          duration: 4,
+          ease: "linear",
+        }}
         style={{
           width: '60vw',
           height: 'auto',
