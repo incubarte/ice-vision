@@ -208,6 +208,7 @@ export function FullScoreboard({ className }: { className?: string }) {
     if (isWarmup && isFixtureMatch) {
       // Si acabamos de entrar en warmup y no hemos mostrado la intro
       if (!wasWarmup && !hasShownIntro && tournamentLogo) {
+        console.log('[Pre-Warmup Intro] ACTIVATING intro!');
         setShowPreWarmupIntro(true);
         setHasShownIntro(true);
       }
@@ -235,54 +236,66 @@ export function FullScoreboard({ className }: { className?: string }) {
 
   // Efecto para alternar entre tabla y warmup display durante el warmup
   // 20 segundos CON tabla, 30 segundos SIN tabla
+  // NO mostrar tabla en el primer minuto de pantalla
+  // NO mostrar tabla si quedan menos de 7 segundos en el reloj
   useEffect(() => {
     if (!config || !live) return;
 
     const isWarmup = live.clock.periodDisplayOverride === 'Warm-up';
     const isFixtureMatch = !!live.matchId;
 
-    console.log('[Warmup Toggle] Effect running:', { isWarmup, isFixtureMatch, showStandingsEnabled: config.showStandingsInWarmup });
-
     if (isWarmup && isFixtureMatch && config.showStandingsInWarmup) {
-      // Empezar mostrando la tabla
-      console.log('[Warmup Toggle] Starting cycle - showing standings');
-      setShowStandingsInWarmup(true);
+      // Marcar el tiempo de inicio de la pantalla de warmup
+      const warmupStartTime = Date.now();
+
+      // NO empezar mostrando la tabla - esperar el primer minuto
+      setShowStandingsInWarmup(false);
 
       let currentTimeout: NodeJS.Timeout;
 
       const scheduleNextToggle = (currentlyShowingStandings: boolean) => {
         if (currentlyShowingStandings) {
           // Actualmente mostrando tabla, después de 20s ocultarla
-          console.log('[Warmup Toggle] Scheduling to HIDE standings in 20s');
           currentTimeout = setTimeout(() => {
-            console.log('[Warmup Toggle] HIDING standings now');
             setShowStandingsInWarmup(false);
             scheduleNextToggle(false);
           }, 20000);
         } else {
           // Actualmente SIN tabla, después de 30s mostrarla
-          console.log('[Warmup Toggle] Scheduling to SHOW standings in 30s');
           currentTimeout = setTimeout(() => {
-            console.log('[Warmup Toggle] SHOWING standings now');
-            setShowStandingsInWarmup(true);
-            scheduleNextToggle(true);
+            const elapsedTime = Date.now() - warmupStartTime;
+            const remainingSeconds = live.clock.minutes * 60 + live.clock.seconds;
+
+            // Solo mostrar si han pasado al menos 60 segundos de pantalla Y quedan más de 7 segundos en el reloj
+            if (elapsedTime >= 60000 && remainingSeconds > 7) {
+              setShowStandingsInWarmup(true);
+              scheduleNextToggle(true);
+            } else {
+              // Si no se cumplen las condiciones, seguir esperando
+              scheduleNextToggle(false);
+            }
           }, 30000);
         }
       };
 
-      // Iniciar el ciclo: actualmente mostrando tabla
-      scheduleNextToggle(true);
+      // Esperar 60 segundos antes de iniciar el ciclo
+      const initialTimeout = setTimeout(() => {
+        const remainingSeconds = live.clock.minutes * 60 + live.clock.seconds;
+        // Solo iniciar si quedan más de 7 segundos
+        if (remainingSeconds > 7) {
+          scheduleNextToggle(false);
+        }
+      }, 60000);
 
       return () => {
-        console.log('[Warmup Toggle] Cleaning up timeout');
+        clearTimeout(initialTimeout);
         clearTimeout(currentTimeout);
       };
     } else {
       // Si no estamos en warmup, resetear a false
-      console.log('[Warmup Toggle] Not in warmup or disabled, resetting');
       setShowStandingsInWarmup(false);
     }
-  }, [live.clock.periodDisplayOverride, live.matchId, config.showStandingsInWarmup]);
+  }, [live.clock.periodDisplayOverride, live.matchId, config.showStandingsInWarmup, live.clock.minutes, live.clock.seconds]);
 
   if (isLoading || !config || !live || !scoreboardLayout) {
     return null;
@@ -496,7 +509,7 @@ export function FullScoreboard({ className }: { className?: string }) {
           {/* Tournament Logo Watermark */}
           {config.selectedTournamentId && !isOlympiaTransitioning && (
             <div className="absolute bottom-8 right-8 z-5 opacity-40 pointer-events-none">
-              <TournamentLogo tournamentId={config.selectedTournamentId} size={400} />
+              <TournamentLogo tournamentId={config.selectedTournamentId} size={400} showFallback={false} />
             </div>
           )}
         </div>

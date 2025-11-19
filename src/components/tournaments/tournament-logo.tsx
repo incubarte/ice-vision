@@ -9,10 +9,11 @@ interface TournamentLogoProps {
   tournamentId: string;
   size?: number;
   className?: string;
+  showFallback?: boolean; // Si mostrar el icono Trophy cuando no hay logo
 }
 
-export function TournamentLogo({ tournamentId, size = 40, className }: TournamentLogoProps) {
-  const { logo } = useTournamentLogo(tournamentId);
+export function TournamentLogo({ tournamentId, size = 40, className, showFallback = true }: TournamentLogoProps) {
+  const { logo, isLoading } = useTournamentLogo(tournamentId);
 
   if (logo) {
     return (
@@ -26,5 +27,11 @@ export function TournamentLogo({ tournamentId, size = 40, className }: Tournamen
     );
   }
 
+  // Si está cargando o no hay logo y no queremos fallback, no mostrar nada
+  if (isLoading || !showFallback) {
+    return null;
+  }
+
+  // Mostrar Trophy como fallback solo si showFallback es true
   return <Trophy className={cn("text-amber-400", className)} style={{ width: size, height: size }} />;
 }

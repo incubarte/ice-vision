@@ -21,11 +21,8 @@ export function OlympiaTransition({ onComplete, oldContent, newContent }: Olympi
       const endX = 250;
       const duration = 4;
 
-      // Establecer posición inicial
-      await controls.set({
-        x: `${startX}%`,
-        y: '-50%',
-      });
+      // Wait for component to mount
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Inicializar CSS variable
       if (containerRef.current) {
@@ -37,6 +34,7 @@ export function OlympiaTransition({ onComplete, oldContent, newContent }: Olympi
       // Animar la Olympia atravesando la pantalla
       const animationPromise = controls.start({
         x: `${endX}%`,
+        y: '-50%',
         transition: {
           duration: duration,
           ease: "linear",

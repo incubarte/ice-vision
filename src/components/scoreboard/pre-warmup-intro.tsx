@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
@@ -11,35 +11,45 @@ interface PreWarmupIntroProps {
 
 export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
   const [phase, setPhase] = useState<'pulsing' | 'explosion'>('pulsing');
+  const onCompleteRef = useRef(onComplete);
+
+  // Keep ref updated
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     if (!logo) {
-      onComplete();
+      onCompleteRef.current();
       return;
     }
 
-    // Fase de palpitación: 8 segundos
-    const pulsingTimer = setTimeout(() => {
-      setPhase('explosion');
-    }, 8000);
+    console.log('[PreWarmupIntro] Starting animation - Version 2.0');
 
-    // Explosión final: 2 segundos
+    // Fase de palpitación: cambiar a explosión a los 5.58s (justo en el keyframe 0.93 = scale 1.55)
+    const pulsingTimer = setTimeout(() => {
+      console.log('[PreWarmupIntro] Switching to EXPLOSION phase (durante crecimiento)');
+      setPhase('explosion');
+    }, 5580);
+
+    // Explosión final: llamar onComplete cuando el último flash llega a blanco total
     const explosionTimer = setTimeout(() => {
-      onComplete();
-    }, 10000);
+      console.log('[PreWarmupIntro] Calling onComplete - transitioning to warmup');
+      onCompleteRef.current();
+    }, 9300); // 6s (pulsing) + 3.0s (explosion delay) + 0.3s (flash duration) = 9.3s
 
     return () => {
       clearTimeout(pulsingTimer);
       clearTimeout(explosionTimer);
     };
-  }, [onComplete, logo]);
+  }, [logo]);
 
   if (!logo) {
     return null;
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
+    <div className="relative w-full h-screen bg-black" style={{ overflow: phase === 'pulsing' ? 'hidden' : 'visible' }}>
       {/* Líneas diagonales animadas estilo warmup */}
       <svg
         className="absolute inset-0 w-full h-full"
@@ -115,17 +125,18 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
         {[...Array(30)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 bg-primary/60 rounded-full"
+            className="absolute w-1 h-1 bg-primary/70 rounded-full"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
+              boxShadow: '0 0 3px rgba(255,255,255,0.5)',
             }}
             animate={{
-              scale: [0, 1.5, 0],
+              scale: [0, 1.6, 0],
               opacity: [0, 1, 0],
             }}
             transition={{
-              duration: 2 + Math.random() * 2,
+              duration: 2.1 + Math.random() * 2,
               repeat: Infinity,
               delay: Math.random() * 2,
               ease: "easeInOut"
@@ -135,18 +146,22 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
       </div>
 
       {/* Logo central con animación */}
-      <div className="absolute inset-0 flex items-center justify-center z-10">
+      <div className="absolute inset-0 flex items-center justify-center z-10" style={{ overflow: 'visible' }}>
         {phase === 'pulsing' ? (
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{
-              scale: [0.5, 1, 0.95, 1.05, 0.9, 1.1, 0.85, 1.15, 0.8, 1.2],
+              // Cada par es: valle (baja) → pico (sube)
+              // Los valles van subiendo: 0.5 → 0.65 → 0.8 → 0.95 → 1.1 → 1.25
+              // Los picos MÁS GRANDES: 0.75 → 0.9 → 1.05 → 1.2 → 1.35 → 1.45
+              // Al final (últimos 0.5s): crecimiento continuo 1.45 → 1.55 → 1.7 → 1.85 para transición suave
+              scale: [0.5, 0.75, 0.65, 0.9, 0.8, 1.05, 0.95, 1.2, 1.1, 1.35, 1.25, 1.45, 1.55, 1.7, 1.85],
               opacity: 1,
             }}
             transition={{
               scale: {
-                duration: 8,
-                times: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1],
+                duration: 6,
+                times: [0, 0.08, 0.17, 0.25, 0.33, 0.42, 0.5, 0.58, 0.67, 0.75, 0.83, 0.88, 0.93, 0.97, 1],
                 ease: "easeInOut",
               },
               opacity: {
@@ -154,59 +169,126 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
                 ease: "easeOut",
               },
             }}
-            className="relative"
-            style={{ willChange: 'transform, opacity' }}
+            style={{
+              willChange: 'transform, opacity',
+              overflow: 'visible',
+              width: '300px',
+              height: '300px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={logo}
               alt="Tournament logo"
-              width={300}
-              height={300}
-              className="object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]"
-              priority
+              style={{
+                width: '300px',
+                height: '300px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 0 30px rgba(255,255,255,0.5))'
+              }}
             />
           </motion.div>
         ) : (
           <motion.div
-            initial={{ scale: 1.2 }}
+            initial={{ scale: 1.55 }}
             animate={{
-              scale: 25,
-              opacity: 0,
+              scale: 15,
+              opacity: 0.15,
             }}
             transition={{
               scale: {
-                duration: 2,
-                ease: [0.34, 1.56, 0.64, 1],
+                duration: 4.5,
+                ease: [0.5, 0, 0.5, 1.2], // Empieza lento, acelera constantemente hasta el final (no desacelera)
               },
               opacity: {
-                duration: 1.8,
+                duration: 3,
+                delay: 1,
                 ease: "easeIn",
               },
             }}
-            className="relative"
-            style={{ willChange: 'transform, opacity' }}
+            style={{
+              willChange: 'transform, opacity',
+              overflow: 'visible',
+              width: '300px',
+              height: '300px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={logo}
               alt="Tournament logo"
-              width={300}
-              height={300}
-              className="object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]"
-              priority
+              style={{
+                width: '300px',
+                height: '300px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 0 30px rgba(255,255,255,0.5))'
+              }}
             />
           </motion.div>
         )}
       </div>
 
-      {/* Flash blanco en la explosión */}
-      {phase === 'explosion' && (
-        <motion.div
-          className="absolute inset-0 bg-white z-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 0] }}
-          transition={{ duration: 1, times: [0, 0.3, 1], ease: "easeOut" }}
-        />
-      )}
+      {/* Flashes blancos - tanto en palpitación como en explosión */}
+      <>
+        {/* Flash 1: En la 2da palpitación (~1 segundo) */}
+        {phase === 'pulsing' && (
+          <motion.div
+            className="absolute inset-0 bg-white z-30"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 0.4, times: [0, 0.25, 1], ease: "linear", delay: 1.0 }}
+            onAnimationStart={() => console.log('[Flash 1] 2da palpitación')}
+          />
+        )}
+
+        {/* Flash 2 y 3: Justo antes de empezar a crecer indefinidamente (tapan transición) */}
+        {phase === 'pulsing' && (
+          <>
+            <motion.div
+              className="absolute inset-0 bg-white z-30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 0.35, times: [0, 0.3, 1], ease: "linear", delay: 4.4 }}
+              onAnimationStart={() => console.log('[Flash 2] Antes de crecer - primero')}
+            />
+            <motion.div
+              className="absolute inset-0 bg-white z-30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 0.3, times: [0, 0.3, 1], ease: "linear", delay: 4.75 }}
+              onAnimationStart={() => console.log('[Flash 3] Antes de crecer - segundo (tapa transición)')}
+            />
+          </>
+        )}
+
+        {/* Flash 4: Durante explosión (segundo 6.5) - corto estilo Flash 1 */}
+        {phase === 'explosion' && (
+          <motion.div
+            className="absolute inset-0 bg-white z-30"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 0.4, times: [0, 0.25, 1], ease: "linear", delay: 1.0 }}
+            onAnimationStart={() => console.log('[Flash 4] Durante explosión - segundo 6.5')}
+          />
+        )}
+
+        {/* Flash 5: FINAL cuando el logo llega a pantalla completa - SE QUEDA EN BLANCO */}
+        {phase === 'explosion' && (
+          <motion.div
+            className="absolute inset-0 bg-white z-30"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, ease: "easeIn", delay: 3.5 }}
+            onAnimationStart={() => console.log('[Flash 5 FINAL] Logo a pantalla completa - QUEDA EN BLANCO')}
+          />
+        )}
+      </>
     </div>
   );
 }
