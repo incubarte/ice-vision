@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-11-20T21:43:42.527Z",
+  "status": "ready",
+  "toUpload": [],
+  "toDownload": [],
+  "toDeleteLocally": [],
+  "toDeleteRemotely": [],
+  "conflicts": [],
+  "summary": {
+    "uploadCount": 0,
+    "downloadCount": 0,
+    "deleteLocalCount": 0,
+    "deleteRemoteCount": 0,
+    "conflictCount": 0,
+    "unchangedCount": 93
+  }
+}

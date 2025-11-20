@@ -1,0 +1,748 @@
+{
+  "attendance": {
+    "home": [
+      {
+        "id": "c3a0bff1-5fe0-4551-87b5-f92be24b845e",
+        "number": "18",
+        "name": "ROJAS ROXANA"
+      },
+      {
+        "id": "0cc7435f-feb1-41cf-972a-794bc966537d",
+        "number": "27",
+        "name": "LINK NAIKE"
+      },
+      {
+        "id": "18bc8585-a426-458b-8347-2c08115282d8",
+        "number": "31",
+        "name": "SOLARI MALENA"
+      },
+      {
+        "id": "96c360e3-d5a1-4057-9783-01989c4f2f1d",
+        "number": "21",
+        "name": "ORTIZ ABBY"
+      },
+      {
+        "id": "83d48cad-229a-4fbb-84db-ac0914629cb1",
+        "number": "24",
+        "name": "TAPIA NATALIA"
+      },
+      {
+        "id": "981dc489-1ffe-451d-9515-4e59694644c0",
+        "number": "7",
+        "name": "SOTO CAROLINA"
+      },
+      {
+        "id": "1fb40c93-d166-435c-a026-7d7de92f7143",
+        "number": "84",
+        "name": "MICUCCI LUCIANO"
+      },
+      {
+        "id": "a311c422-f9bc-45a9-a555-a5939c592777",
+        "number": "5",
+        "name": "PAPPALARDO MAXIMILIANO"
+      },
+      {
+        "id": "7b591745-b844-4e53-8d20-5a84e07d188e",
+        "number": "37",
+        "name": "CODELLA MARIA CECILIA"
+      },
+      {
+        "id": "b202d7f3-0707-4c57-98b0-0ad1b1a11b9d",
+        "number": "30",
+        "name": "GEREZ NICOLÁS"
+      },
+      {
+        "id": "1ae44cdc-1182-413c-a61d-23791841f8bb",
+        "number": "33",
+        "name": "MOMPO MACARENA"
+      },
+      {
+        "id": "05a5057c-5420-4bd5-b66b-c5bf60436af8",
+        "number": "12",
+        "name": "FORNARI MARIANO"
+      }
+    ],
+    "away": [
+      {
+        "id": "58517af5-2ff8-412d-a971-10970954e7b2",
+        "number": "25",
+        "name": "SCOTTO DI CARLO NATALIA"
+      },
+      {
+        "id": "6172bf1f-984c-46ca-8d54-ed62a06bf312",
+        "number": "0",
+        "name": "BONVEHI SEBASTIAN"
+      },
+      {
+        "id": "c6d4c13f-5ff5-4937-b8e7-b66f1ae0d27e",
+        "number": "29",
+        "name": "ACUÑA ERICA"
+      },
+      {
+        "id": "9f9f4e60-e7f6-49f0-8fa3-20ae919804a3",
+        "number": "77",
+        "name": "CARRERA JUAN PABLO"
+      },
+      {
+        "id": "e3feabac-afc8-4f63-98c1-6c0b802f6b06",
+        "number": "38",
+        "name": "CELLI ALEJANDRO"
+      },
+      {
+        "id": "0b6b5f4d-02e3-4fc4-9238-481285c2fcd0",
+        "number": "71",
+        "name": "CRUZ LIMA JUAN"
+      },
+      {
+        "id": "0f719073-1654-4897-8f71-dddd34c04960",
+        "number": "11",
+        "name": "DACAL ALEXIS"
+      },
+      {
+        "id": "77dc7893-0315-421f-83d6-33765c293f9e",
+        "number": "24",
+        "name": "FERRARI SOFIA"
+      },
+      {
+        "id": "b7dddce6-534d-4af2-961f-e67faa47ac0f",
+        "number": "14",
+        "name": "GALEANI MARIANO"
+      },
+      {
+        "id": "f865fa94-7a32-4e39-b67f-ba3fbddae866",
+        "number": "26",
+        "name": "MALPERI DIEGO"
+      },
+      {
+        "id": "6f5d6226-2aeb-4735-b696-e738113063cc",
+        "number": "19",
+        "name": "MOSCARDA NICOLAS"
+      },
+      {
+        "id": "e54284ce-d143-43ca-ae71-b6863cde998f",
+        "number": "43",
+        "name": "NUÑEZ FEDERICO"
+      },
+      {
+        "id": "44e21f63-2f1b-4b0f-a70e-9db09e988211",
+        "number": "21",
+        "name": "PACE EZEQUIEL"
+      },
+      {
+        "id": "f71c017d-fe8f-4f25-80e0-9e744fb70b14",
+        "number": "95",
+        "name": "PIERINI ROBERTINO"
+      },
+      {
+        "id": "5211e4cd-268c-4cc5-b7de-1a1206d8aa4d",
+        "number": "31",
+        "name": "RISSO EMANUEL"
+      }
+    ]
+  },
+  "statsByPeriod": [
+    {
+      "period": "1ST",
+      "stats": {
+        "goals": {
+          "home": [
+            {
+              "team": "home",
+              "timestamp": 1760896276705,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "26"
+              },
+              "id": "32422957-e5bc-47ad-bcaa-589c25f9c950"
+            },
+            {
+              "team": "home",
+              "timestamp": 1760896280893,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "84",
+                "playerName": "MICUCCI LUCIANO"
+              },
+              "id": "74576d48-d715-4a12-8cb1-73ab36deb3ed"
+            },
+            {
+              "team": "home",
+              "timestamp": 1760896288760,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "7",
+                "playerName": "SOTO CAROLINA"
+              },
+              "assist": {
+                "playerNumber": "84",
+                "playerName": "MICUCCI LUCIANO"
+              },
+              "id": "be960bcd-ff0b-461c-a2a9-6d83a9ad4f68"
+            },
+            {
+              "team": "home",
+              "timestamp": 1760896291732,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "5",
+                "playerName": "PAPPALARDO MAXIMILIANO"
+              },
+              "id": "f25aae3f-c8ef-4e2c-87da-3bf8534a3c9a"
+            },
+            {
+              "team": "home",
+              "timestamp": 1760896298197,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "7",
+                "playerName": "SOTO CAROLINA"
+              },
+              "assist": {
+                "playerNumber": "5",
+                "playerName": "PAPPALARDO MAXIMILIANO"
+              },
+              "id": "8acbdbff-5d21-4655-a037-fff0bdef85f6"
+            },
+            {
+              "team": "home",
+              "timestamp": 1760896303323,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "31",
+                "playerName": "SOLARI MALENA"
+              },
+              "id": "f94c8610-2de4-4322-ad3d-468c064e1dcc"
+            }
+          ],
+          "away": [
+            {
+              "team": "away",
+              "timestamp": 1760896308347,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "77",
+                "playerName": "CARRERA JUAN PABLO"
+              },
+              "id": "d19b13e8-6ca9-4ec5-8b85-6354a87b2b23"
+            },
+            {
+              "team": "away",
+              "timestamp": 1760896313531,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "28"
+              },
+              "assist": {
+                "playerNumber": "22"
+              },
+              "id": "752b5a4b-5fbb-42fd-9b00-47f010e84778"
+            },
+            {
+              "team": "away",
+              "timestamp": 1760896320172,
+              "gameTime": 90000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "77",
+                "playerName": "CARRERA JUAN PABLO"
+              },
+              "assist": {
+                "playerNumber": "27"
+              },
+              "id": "0dfad344-16df-4bb0-b742-f499068b5d19"
+            }
+          ]
+        },
+        "penalties": {
+          "home": [
+            {
+              "id": "a0b943e0-4eaa-4898-8d95-3366462aad6f",
+              "team": "home",
+              "playerNumber": "27",
+              "playerName": "LINK NAIKE",
+              "penaltyName": "Menor",
+              "initialDuration": 120,
+              "reducesPlayerCount": true,
+              "clearsOnGoal": true,
+              "isBenchPenalty": false,
+              "addTimestamp": 1760896330635,
+              "addGameTime": 90000,
+              "addPeriodText": "1ST"
+            }
+          ],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "c3a0bff1-5fe0-4551-87b5-f92be24b845e",
+              "name": "ROJAS ROXANA",
+              "number": "18",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0cc7435f-feb1-41cf-972a-794bc966537d",
+              "name": "LINK NAIKE",
+              "number": "27",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "18bc8585-a426-458b-8347-2c08115282d8",
+              "name": "SOLARI MALENA",
+              "number": "31",
+              "shots": 0,
+              "goals": 1,
+              "assists": 0
+            },
+            {
+              "id": "96c360e3-d5a1-4057-9783-01989c4f2f1d",
+              "name": "ORTIZ ABBY",
+              "number": "21",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "83d48cad-229a-4fbb-84db-ac0914629cb1",
+              "name": "TAPIA NATALIA",
+              "number": "24",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "981dc489-1ffe-451d-9515-4e59694644c0",
+              "name": "SOTO CAROLINA",
+              "number": "7",
+              "shots": 0,
+              "goals": 2,
+              "assists": 0
+            },
+            {
+              "id": "1fb40c93-d166-435c-a026-7d7de92f7143",
+              "name": "MICUCCI LUCIANO",
+              "number": "84",
+              "shots": 0,
+              "goals": 1,
+              "assists": 1
+            },
+            {
+              "id": "a311c422-f9bc-45a9-a555-a5939c592777",
+              "name": "PAPPALARDO MAXIMILIANO",
+              "number": "5",
+              "shots": 0,
+              "goals": 1,
+              "assists": 1
+            },
+            {
+              "id": "7b591745-b844-4e53-8d20-5a84e07d188e",
+              "name": "CODELLA MARIA CECILIA",
+              "number": "37",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "b202d7f3-0707-4c57-98b0-0ad1b1a11b9d",
+              "name": "GEREZ NICOLÁS",
+              "number": "30",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1ae44cdc-1182-413c-a61d-23791841f8bb",
+              "name": "MOMPO MACARENA",
+              "number": "33",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "05a5057c-5420-4bd5-b66b-c5bf60436af8",
+              "name": "FORNARI MARIANO",
+              "number": "12",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "58517af5-2ff8-412d-a971-10970954e7b2",
+              "name": "SCOTTO DI CARLO NATALIA",
+              "number": "25",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6172bf1f-984c-46ca-8d54-ed62a06bf312",
+              "name": "BONVEHI SEBASTIAN",
+              "number": "0",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "c6d4c13f-5ff5-4937-b8e7-b66f1ae0d27e",
+              "name": "ACUÑA ERICA",
+              "number": "29",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "9f9f4e60-e7f6-49f0-8fa3-20ae919804a3",
+              "name": "CARRERA JUAN PABLO",
+              "number": "77",
+              "shots": 0,
+              "goals": 2,
+              "assists": 0
+            },
+            {
+              "id": "e3feabac-afc8-4f63-98c1-6c0b802f6b06",
+              "name": "CELLI ALEJANDRO",
+              "number": "38",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0b6b5f4d-02e3-4fc4-9238-481285c2fcd0",
+              "name": "CRUZ LIMA JUAN",
+              "number": "71",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0f719073-1654-4897-8f71-dddd34c04960",
+              "name": "DACAL ALEXIS",
+              "number": "11",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "77dc7893-0315-421f-83d6-33765c293f9e",
+              "name": "FERRARI SOFIA",
+              "number": "24",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "b7dddce6-534d-4af2-961f-e67faa47ac0f",
+              "name": "GALEANI MARIANO",
+              "number": "14",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f865fa94-7a32-4e39-b67f-ba3fbddae866",
+              "name": "MALPERI DIEGO",
+              "number": "26",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6f5d6226-2aeb-4735-b696-e738113063cc",
+              "name": "MOSCARDA NICOLAS",
+              "number": "19",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "e54284ce-d143-43ca-ae71-b6863cde998f",
+              "name": "NUÑEZ FEDERICO",
+              "number": "43",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "44e21f63-2f1b-4b0f-a70e-9db09e988211",
+              "name": "PACE EZEQUIEL",
+              "number": "21",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f71c017d-fe8f-4f25-80e0-9e744fb70b14",
+              "name": "PIERINI ROBERTINO",
+              "number": "95",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5211e4cd-268c-4cc5-b7de-1a1206d8aa4d",
+              "name": "RISSO EMANUEL",
+              "number": "31",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "period": "2ND",
+      "stats": {
+        "goals": {
+          "home": [],
+          "away": []
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "c3a0bff1-5fe0-4551-87b5-f92be24b845e",
+              "name": "ROJAS ROXANA",
+              "number": "18",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0cc7435f-feb1-41cf-972a-794bc966537d",
+              "name": "LINK NAIKE",
+              "number": "27",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "18bc8585-a426-458b-8347-2c08115282d8",
+              "name": "SOLARI MALENA",
+              "number": "31",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "96c360e3-d5a1-4057-9783-01989c4f2f1d",
+              "name": "ORTIZ ABBY",
+              "number": "21",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "83d48cad-229a-4fbb-84db-ac0914629cb1",
+              "name": "TAPIA NATALIA",
+              "number": "24",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "981dc489-1ffe-451d-9515-4e59694644c0",
+              "name": "SOTO CAROLINA",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1fb40c93-d166-435c-a026-7d7de92f7143",
+              "name": "MICUCCI LUCIANO",
+              "number": "84",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "a311c422-f9bc-45a9-a555-a5939c592777",
+              "name": "PAPPALARDO MAXIMILIANO",
+              "number": "5",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7b591745-b844-4e53-8d20-5a84e07d188e",
+              "name": "CODELLA MARIA CECILIA",
+              "number": "37",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "b202d7f3-0707-4c57-98b0-0ad1b1a11b9d",
+              "name": "GEREZ NICOLÁS",
+              "number": "30",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1ae44cdc-1182-413c-a61d-23791841f8bb",
+              "name": "MOMPO MACARENA",
+              "number": "33",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "05a5057c-5420-4bd5-b66b-c5bf60436af8",
+              "name": "FORNARI MARIANO",
+              "number": "12",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "58517af5-2ff8-412d-a971-10970954e7b2",
+              "name": "SCOTTO DI CARLO NATALIA",
+              "number": "25",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6172bf1f-984c-46ca-8d54-ed62a06bf312",
+              "name": "BONVEHI SEBASTIAN",
+              "number": "0",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "c6d4c13f-5ff5-4937-b8e7-b66f1ae0d27e",
+              "name": "ACUÑA ERICA",
+              "number": "29",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "9f9f4e60-e7f6-49f0-8fa3-20ae919804a3",
+              "name": "CARRERA JUAN PABLO",
+              "number": "77",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "e3feabac-afc8-4f63-98c1-6c0b802f6b06",
+              "name": "CELLI ALEJANDRO",
+              "number": "38",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0b6b5f4d-02e3-4fc4-9238-481285c2fcd0",
+              "name": "CRUZ LIMA JUAN",
+              "number": "71",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0f719073-1654-4897-8f71-dddd34c04960",
+              "name": "DACAL ALEXIS",
+              "number": "11",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "77dc7893-0315-421f-83d6-33765c293f9e",
+              "name": "FERRARI SOFIA",
+              "number": "24",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "b7dddce6-534d-4af2-961f-e67faa47ac0f",
+              "name": "GALEANI MARIANO",
+              "number": "14",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f865fa94-7a32-4e39-b67f-ba3fbddae866",
+              "name": "MALPERI DIEGO",
+              "number": "26",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6f5d6226-2aeb-4735-b696-e738113063cc",
+              "name": "MOSCARDA NICOLAS",
+              "number": "19",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "e54284ce-d143-43ca-ae71-b6863cde998f",
+              "name": "NUÑEZ FEDERICO",
+              "number": "43",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "44e21f63-2f1b-4b0f-a70e-9db09e988211",
+              "name": "PACE EZEQUIEL",
+              "number": "21",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f71c017d-fe8f-4f25-80e0-9e744fb70b14",
+              "name": "PIERINI ROBERTINO",
+              "number": "95",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5211e4cd-268c-4cc5-b7de-1a1206d8aa4d",
+              "name": "RISSO EMANUEL",
+              "number": "31",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "playedPeriods": [
+    "1ST",
+    "2ND"
+  ],
+  "overTimeOrShootouts": false
+}

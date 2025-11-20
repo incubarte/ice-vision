@@ -1,0 +1,299 @@
+{
+  "attendance": {
+    "home": [
+      {
+        "id": "aa9e3074-c383-41cb-9c36-2911e35054d0",
+        "number": "",
+        "name": "MAZAFERRO ADRIANO"
+      },
+      {
+        "id": "7682a261-e668-4f8a-b927-ddbd063110bd",
+        "number": "1",
+        "name": "GARCIA FABCISCO"
+      },
+      {
+        "id": "5b4b40f0-ca37-4af4-94d7-8dd71f7bca93",
+        "number": "6",
+        "name": "MARINELLI EDUARDO"
+      },
+      {
+        "id": "193eb7c8-8512-48e1-a0db-924d216c09e4",
+        "number": "77",
+        "name": "CLARET AGUSTIN"
+      },
+      {
+        "id": "f076fbf7-44de-4006-a93d-839527ad54db",
+        "number": "2",
+        "name": "BOIX CRITIAN"
+      },
+      {
+        "id": "2307c748-0e30-458b-8a19-b705c3d0e837",
+        "number": "9",
+        "name": "OCAMPO NICOLAS"
+      },
+      {
+        "id": "a0e81d83-2064-410c-b668-ace200740b17",
+        "number": "23",
+        "name": "BOIX. CONTU"
+      },
+      {
+        "id": "3b99ac24-d251-404e-86a5-ea3af58614cf",
+        "number": "7",
+        "name": "BOIX BAUTI"
+      },
+      {
+        "id": "2eae4810-8035-45b7-acd3-adae8dcce29f",
+        "number": "",
+        "name": "SHENDERA IVAN"
+      },
+      {
+        "id": "5c23fa2c-16c4-4db5-93db-0fed9eac3567",
+        "number": "",
+        "name": "VAL FRAN"
+      },
+      {
+        "id": "6efa665f-261a-4a98-a05b-d3cd5345fd72",
+        "number": "",
+        "name": "BELLI GUIDO"
+      },
+      {
+        "id": "83e525a3-796b-46e9-8e3b-3de2419f9828",
+        "number": "93",
+        "name": "LOMBRAÑA FEDERICO"
+      },
+      {
+        "id": "f7f67111-2210-46e3-a46a-4cf761d3dff7",
+        "number": "",
+        "name": "LUTTERAL LIAM"
+      }
+    ],
+    "away": [
+      {
+        "id": "2e8c0519-5592-4b60-84bb-f89db002d1ae",
+        "number": "93",
+        "name": "KYSAINOV ALMAT"
+      },
+      {
+        "id": "1c290edd-eddf-413d-9344-c323d881d44e",
+        "number": "10",
+        "name": "SERYY ANDREY"
+      },
+      {
+        "id": "6f2a8f7e-89a0-4659-865d-66926463f501",
+        "number": "13",
+        "name": "HAROSHKA SIARGEI"
+      },
+      {
+        "id": "fb0e4215-5c0f-4a6a-9535-4e68bb1afd88",
+        "number": "92",
+        "name": "EFIMOV GRIGORY"
+      },
+      {
+        "id": "38d17ecc-9090-4545-8e8d-ad5de325fa3f",
+        "number": "20",
+        "name": "STOLYAROV VICTOR"
+      },
+      {
+        "id": "1f0ecd60-e5b5-4f0e-9322-eda43785c11e",
+        "number": "14",
+        "name": "LEE MARTIN"
+      },
+      {
+        "id": "7530c1a6-304a-44b2-9731-2ec94e23893a",
+        "number": "77",
+        "name": "PEREZ BELLO PATRICIO"
+      },
+      {
+        "id": "07dd987f-7542-4e59-a71b-7946d655d23c",
+        "number": "9",
+        "name": "NOZHNOV ANDREY"
+      },
+      {
+        "id": "0476510f-d86d-42a8-85cd-5bd8b42f3e47",
+        "number": "11",
+        "name": "ARTUROVICH NARULIN ROMAN"
+      },
+      {
+        "id": "d86ff016-8cfc-4b1d-8c48-c862c9108a82",
+        "number": "69",
+        "name": "DE LUCA ELIAS"
+      },
+      {
+        "id": "49dc5674-af21-44d4-880c-79d8e8e11ca9",
+        "number": "12",
+        "name": "POVELIKIN EVGENII"
+      },
+      {
+        "id": "aecc22f2-045d-4dcf-a39e-e4195f90920a",
+        "number": "87",
+        "name": "SEDRAN NICOLAS"
+      },
+      {
+        "id": "cc614d68-ff92-4a7b-b452-4dafc4a8880c",
+        "number": "35",
+        "name": "RUDENKO DANIL"
+      },
+      {
+        "id": "828dc642-cb14-45d9-a238-9c5547c92de5",
+        "number": "36",
+        "name": "LOPEZ SILVA GASPAR"
+      }
+    ]
+  },
+  "statsByPeriod": [
+    {
+      "period": "1ST",
+      "stats": {
+        "goals": {
+          "home": [
+            {
+              "team": "home",
+              "timestamp": 1761788332087,
+              "gameTime": 120000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "2",
+                "playerName": "BOIX CRITIAN"
+              },
+              "id": "e65167f4-5e79-4e5e-8af7-f407c11fa336",
+              "type": "goal"
+            },
+            {
+              "team": "home",
+              "timestamp": 1761788334423,
+              "gameTime": 120000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "2",
+                "playerName": "BOIX CRITIAN"
+              },
+              "id": "f742f841-b14d-4ab0-b643-4330082e5c97",
+              "type": "goal"
+            },
+            {
+              "team": "home",
+              "timestamp": 1761788338828,
+              "gameTime": 119674,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "2",
+                "playerName": "BOIX CRITIAN"
+              },
+              "id": "3c98a7b6-a011-4ed0-ae5f-85b1bb8d9cde",
+              "type": "goal"
+            }
+          ],
+          "away": [
+            {
+              "team": "away",
+              "timestamp": 1761788353149,
+              "gameTime": 118241,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "11",
+                "playerName": "ARTUROVICH NARULIN ROMAN"
+              },
+              "id": "18248af1-e797-4c87-a660-f3f0653f6ef1",
+              "type": "goal"
+            }
+          ]
+        },
+        "penalties": {
+          "home": [
+            {
+              "id": "e7d283a2-acdc-43e8-8ee5-4f624894cf1f",
+              "team": "home",
+              "playerNumber": "77",
+              "playerName": "CLARET AGUSTIN",
+              "penaltyName": "Menor",
+              "initialDuration": 120,
+              "reducesPlayerCount": true,
+              "clearsOnGoal": true,
+              "isBenchPenalty": false,
+              "addTimestamp": 1761788356406,
+              "addGameTime": 117917,
+              "addPeriodText": "1ST",
+              "endTimestamp": 1761788363453,
+              "endGameTime": 105894,
+              "endReason": "completed",
+              "timeServed": 120,
+              "type": "penalty"
+            }
+          ],
+          "away": [
+            {
+              "id": "84696b04-e7f4-499b-b70c-a70306519aef",
+              "team": "away",
+              "playerNumber": "3",
+              "penaltyName": "Menor",
+              "initialDuration": 120,
+              "reducesPlayerCount": true,
+              "clearsOnGoal": true,
+              "isBenchPenalty": false,
+              "addTimestamp": 1761789384032,
+              "addGameTime": 18300,
+              "addPeriodText": "1ST",
+              "type": "penalty"
+            }
+          ]
+        },
+        "playerStats": {
+          "home": [],
+          "away": [
+            {
+              "id": "07dd987f-7542-4e59-a71b-7946d655d23c",
+              "name": "NOZHNOV ANDREY",
+              "number": "9",
+              "shots": 7,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "period": "2ND",
+      "stats": {
+        "goals": {
+          "home": [
+            {
+              "team": "home",
+              "timestamp": 1761788375210,
+              "gameTime": 119802,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "5303c2b9-e007-4c1d-94aa-14565017051e",
+              "type": "goal"
+            }
+          ],
+          "away": []
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [],
+          "away": [
+            {
+              "id": "07dd987f-7542-4e59-a71b-7946d655d23c",
+              "name": "NOZHNOV ANDREY",
+              "number": "9",
+              "shots": 1,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "overTimeOrShootouts": false,
+  "playedPeriods": [
+    "1ST",
+    "2ND"
+  ]
+}

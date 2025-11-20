@@ -1,0 +1,867 @@
+{
+  "attendance": {
+    "home": [
+      {
+        "id": "8f11738e-b8cb-4fe7-9752-7e3d6a10e965",
+        "number": "17",
+        "name": "LAVALLE AGUSTIN"
+      },
+      {
+        "id": "1c6b093e-7fc1-400d-9fda-d8da25baae22",
+        "number": "12",
+        "name": "AMED NICOLAS"
+      },
+      {
+        "id": "dd32ee89-3cfb-425f-94d2-f547cea610b9",
+        "number": "26",
+        "name": "CATZ DAVID"
+      },
+      {
+        "id": "90efad55-e79c-4e6d-bb10-8bb336f0f4ec",
+        "number": "9",
+        "name": "CARUSO DANILO"
+      },
+      {
+        "id": "d0e6e30d-bfc8-41ca-b785-4883a381563e",
+        "number": "23",
+        "name": "MAIER FERNANDO"
+      },
+      {
+        "id": "cdf9082c-f37a-4abc-957d-d61393496446",
+        "number": "14",
+        "name": "MORRONE SANTINO"
+      },
+      {
+        "id": "1ef068be-2383-4115-858e-80bb4a802dcd",
+        "number": "29",
+        "name": "HOFMANN LEANDRO"
+      },
+      {
+        "id": "5a16e85a-d5ff-4797-af80-cb19217369d6",
+        "number": "16",
+        "name": "NUDELMAN ARIEL"
+      },
+      {
+        "id": "9de80117-f26a-4ff6-b8b1-d5bf1a01cdc4",
+        "number": "15",
+        "name": "CARABELLI SANTIAGO"
+      },
+      {
+        "id": "01ade97c-79a6-4959-9afd-649128fdc02c",
+        "number": "10",
+        "name": "VALENTIN MATEO"
+      },
+      {
+        "id": "60d04319-9bcd-4923-ab7f-051595874581",
+        "number": "87",
+        "name": "FRIGERIO FRANCISCO"
+      },
+      {
+        "id": "11def250-6992-47ef-a2cc-df59c7a939b7",
+        "number": "25",
+        "name": "SUEZ GABRIEL"
+      },
+      {
+        "id": "14874519-4c88-44ea-9c49-671e9a022b7a",
+        "number": "",
+        "name": "MARQUEZ NOAH"
+      }
+    ],
+    "away": [
+      {
+        "id": "a1267a33-140a-4ebb-92ae-67e2f91c5d8c",
+        "number": "25",
+        "name": "SCOTTO DI CARLO NATALIA"
+      },
+      {
+        "id": "6522a433-3afe-491a-b0c1-eba803be98f6",
+        "number": "0",
+        "name": "BONVEHI SEBASTIAN"
+      },
+      {
+        "id": "7d435986-1a05-45ef-97f3-dfea388eb125",
+        "number": "52",
+        "name": "BRAVO LAUTARO HERNAN"
+      },
+      {
+        "id": "18396ec9-7833-478c-84ff-2dadb5c3fcf5",
+        "number": "33",
+        "name": "CACERES LEON CRISTIAN"
+      },
+      {
+        "id": "e9a6ecf0-5ff3-482b-b526-46fc064e47ad",
+        "number": "17",
+        "name": "CARIMATTO JESICA"
+      },
+      {
+        "id": "98647fc4-64c8-4745-a892-d1a225c1effa",
+        "number": "72",
+        "name": "CRUSES RAMIRO"
+      },
+      {
+        "id": "7c2b9f49-8e9a-4ca7-a985-c64d5e613c57",
+        "number": "18",
+        "name": "DE LA VEGA FLAVIA MICHELLE"
+      },
+      {
+        "id": "fc7c6551-7d6a-4ac9-9f9b-0862fd9b7d7e",
+        "number": "90",
+        "name": "DUPERRON SANTIAGO"
+      },
+      {
+        "id": "2cf39754-9b90-4c24-b893-c23b103c08b1",
+        "number": "30",
+        "name": "GARIBOTTO JULIAN"
+      },
+      {
+        "id": "c985a3b3-495b-45e7-bae2-d97037c733bc",
+        "number": "74",
+        "name": "GIULIODORO JUAN CARLOS"
+      },
+      {
+        "id": "681bc4ec-d842-4c62-bc3c-14c7d5530e94",
+        "number": "7",
+        "name": "HERRERA JAVIER"
+      },
+      {
+        "id": "c0027f1f-9458-487d-8624-01b264fc7c07",
+        "number": "70",
+        "name": "SUAREZ PABLO"
+      },
+      {
+        "id": "ffb17c2c-59e7-43ad-be02-832968c15a6a",
+        "number": "27",
+        "name": "SANCHEZ MATIAS"
+      },
+      {
+        "id": "1c75df96-8771-4644-a413-204f6021b81c",
+        "number": "22",
+        "name": "PONCE GERMAN"
+      }
+    ]
+  },
+  "statsByPeriod": [
+    {
+      "period": "1ST",
+      "stats": {
+        "goals": {
+          "home": [],
+          "away": []
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "8f11738e-b8cb-4fe7-9752-7e3d6a10e965",
+              "name": "LAVALLE AGUSTIN",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1c6b093e-7fc1-400d-9fda-d8da25baae22",
+              "name": "AMED NICOLAS",
+              "number": "12",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dd32ee89-3cfb-425f-94d2-f547cea610b9",
+              "name": "CATZ DAVID",
+              "number": "26",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "90efad55-e79c-4e6d-bb10-8bb336f0f4ec",
+              "name": "CARUSO DANILO",
+              "number": "9",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "d0e6e30d-bfc8-41ca-b785-4883a381563e",
+              "name": "MAIER FERNANDO",
+              "number": "23",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "cdf9082c-f37a-4abc-957d-d61393496446",
+              "name": "MORRONE SANTINO",
+              "number": "14",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1ef068be-2383-4115-858e-80bb4a802dcd",
+              "name": "HOFMANN LEANDRO",
+              "number": "29",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5a16e85a-d5ff-4797-af80-cb19217369d6",
+              "name": "NUDELMAN ARIEL",
+              "number": "16",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "9de80117-f26a-4ff6-b8b1-d5bf1a01cdc4",
+              "name": "CARABELLI SANTIAGO",
+              "number": "15",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "01ade97c-79a6-4959-9afd-649128fdc02c",
+              "name": "VALENTIN MATEO",
+              "number": "10",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "60d04319-9bcd-4923-ab7f-051595874581",
+              "name": "FRIGERIO FRANCISCO",
+              "number": "87",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "11def250-6992-47ef-a2cc-df59c7a939b7",
+              "name": "SUEZ GABRIEL",
+              "number": "25",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "14874519-4c88-44ea-9c49-671e9a022b7a",
+              "name": "MARQUEZ NOAH",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "a1267a33-140a-4ebb-92ae-67e2f91c5d8c",
+              "name": "SCOTTO DI CARLO NATALIA",
+              "number": "25",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6522a433-3afe-491a-b0c1-eba803be98f6",
+              "name": "BONVEHI SEBASTIAN",
+              "number": "0",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7d435986-1a05-45ef-97f3-dfea388eb125",
+              "name": "BRAVO LAUTARO HERNAN",
+              "number": "52",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "18396ec9-7833-478c-84ff-2dadb5c3fcf5",
+              "name": "CACERES LEON CRISTIAN",
+              "number": "33",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "e9a6ecf0-5ff3-482b-b526-46fc064e47ad",
+              "name": "CARIMATTO JESICA",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "98647fc4-64c8-4745-a892-d1a225c1effa",
+              "name": "CRUSES RAMIRO",
+              "number": "72",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7c2b9f49-8e9a-4ca7-a985-c64d5e613c57",
+              "name": "DE LA VEGA FLAVIA MICHELLE",
+              "number": "18",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "fc7c6551-7d6a-4ac9-9f9b-0862fd9b7d7e",
+              "name": "DUPERRON SANTIAGO",
+              "number": "90",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2cf39754-9b90-4c24-b893-c23b103c08b1",
+              "name": "GARIBOTTO JULIAN",
+              "number": "30",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "c985a3b3-495b-45e7-bae2-d97037c733bc",
+              "name": "GIULIODORO JUAN CARLOS",
+              "number": "74",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "681bc4ec-d842-4c62-bc3c-14c7d5530e94",
+              "name": "HERRERA JAVIER",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "c0027f1f-9458-487d-8624-01b264fc7c07",
+              "name": "SUAREZ PABLO",
+              "number": "70",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "ffb17c2c-59e7-43ad-be02-832968c15a6a",
+              "name": "SANCHEZ MATIAS",
+              "number": "27",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1c75df96-8771-4644-a413-204f6021b81c",
+              "name": "PONCE GERMAN",
+              "number": "22",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "period": "2ND",
+      "stats": {
+        "goals": {
+          "home": [],
+          "away": []
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "8f11738e-b8cb-4fe7-9752-7e3d6a10e965",
+              "name": "LAVALLE AGUSTIN",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1c6b093e-7fc1-400d-9fda-d8da25baae22",
+              "name": "AMED NICOLAS",
+              "number": "12",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dd32ee89-3cfb-425f-94d2-f547cea610b9",
+              "name": "CATZ DAVID",
+              "number": "26",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "90efad55-e79c-4e6d-bb10-8bb336f0f4ec",
+              "name": "CARUSO DANILO",
+              "number": "9",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "d0e6e30d-bfc8-41ca-b785-4883a381563e",
+              "name": "MAIER FERNANDO",
+              "number": "23",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "cdf9082c-f37a-4abc-957d-d61393496446",
+              "name": "MORRONE SANTINO",
+              "number": "14",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1ef068be-2383-4115-858e-80bb4a802dcd",
+              "name": "HOFMANN LEANDRO",
+              "number": "29",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5a16e85a-d5ff-4797-af80-cb19217369d6",
+              "name": "NUDELMAN ARIEL",
+              "number": "16",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "9de80117-f26a-4ff6-b8b1-d5bf1a01cdc4",
+              "name": "CARABELLI SANTIAGO",
+              "number": "15",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "01ade97c-79a6-4959-9afd-649128fdc02c",
+              "name": "VALENTIN MATEO",
+              "number": "10",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "60d04319-9bcd-4923-ab7f-051595874581",
+              "name": "FRIGERIO FRANCISCO",
+              "number": "87",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "11def250-6992-47ef-a2cc-df59c7a939b7",
+              "name": "SUEZ GABRIEL",
+              "number": "25",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "14874519-4c88-44ea-9c49-671e9a022b7a",
+              "name": "MARQUEZ NOAH",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "a1267a33-140a-4ebb-92ae-67e2f91c5d8c",
+              "name": "SCOTTO DI CARLO NATALIA",
+              "number": "25",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6522a433-3afe-491a-b0c1-eba803be98f6",
+              "name": "BONVEHI SEBASTIAN",
+              "number": "0",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7d435986-1a05-45ef-97f3-dfea388eb125",
+              "name": "BRAVO LAUTARO HERNAN",
+              "number": "52",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "18396ec9-7833-478c-84ff-2dadb5c3fcf5",
+              "name": "CACERES LEON CRISTIAN",
+              "number": "33",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "e9a6ecf0-5ff3-482b-b526-46fc064e47ad",
+              "name": "CARIMATTO JESICA",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "98647fc4-64c8-4745-a892-d1a225c1effa",
+              "name": "CRUSES RAMIRO",
+              "number": "72",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7c2b9f49-8e9a-4ca7-a985-c64d5e613c57",
+              "name": "DE LA VEGA FLAVIA MICHELLE",
+              "number": "18",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "fc7c6551-7d6a-4ac9-9f9b-0862fd9b7d7e",
+              "name": "DUPERRON SANTIAGO",
+              "number": "90",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2cf39754-9b90-4c24-b893-c23b103c08b1",
+              "name": "GARIBOTTO JULIAN",
+              "number": "30",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "c985a3b3-495b-45e7-bae2-d97037c733bc",
+              "name": "GIULIODORO JUAN CARLOS",
+              "number": "74",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "681bc4ec-d842-4c62-bc3c-14c7d5530e94",
+              "name": "HERRERA JAVIER",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "c0027f1f-9458-487d-8624-01b264fc7c07",
+              "name": "SUAREZ PABLO",
+              "number": "70",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "ffb17c2c-59e7-43ad-be02-832968c15a6a",
+              "name": "SANCHEZ MATIAS",
+              "number": "27",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1c75df96-8771-4644-a413-204f6021b81c",
+              "name": "PONCE GERMAN",
+              "number": "22",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "period": "OT",
+      "stats": {
+        "goals": {
+          "home": [],
+          "away": [
+            {
+              "team": "away",
+              "timestamp": 1762957837325,
+              "gameTime": 30000,
+              "periodText": "OT",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "6756bc1d-094a-4442-8d51-605521505a84"
+            }
+          ]
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "8f11738e-b8cb-4fe7-9752-7e3d6a10e965",
+              "name": "LAVALLE AGUSTIN",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1c6b093e-7fc1-400d-9fda-d8da25baae22",
+              "name": "AMED NICOLAS",
+              "number": "12",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dd32ee89-3cfb-425f-94d2-f547cea610b9",
+              "name": "CATZ DAVID",
+              "number": "26",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "90efad55-e79c-4e6d-bb10-8bb336f0f4ec",
+              "name": "CARUSO DANILO",
+              "number": "9",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "d0e6e30d-bfc8-41ca-b785-4883a381563e",
+              "name": "MAIER FERNANDO",
+              "number": "23",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "cdf9082c-f37a-4abc-957d-d61393496446",
+              "name": "MORRONE SANTINO",
+              "number": "14",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1ef068be-2383-4115-858e-80bb4a802dcd",
+              "name": "HOFMANN LEANDRO",
+              "number": "29",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "5a16e85a-d5ff-4797-af80-cb19217369d6",
+              "name": "NUDELMAN ARIEL",
+              "number": "16",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "9de80117-f26a-4ff6-b8b1-d5bf1a01cdc4",
+              "name": "CARABELLI SANTIAGO",
+              "number": "15",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "01ade97c-79a6-4959-9afd-649128fdc02c",
+              "name": "VALENTIN MATEO",
+              "number": "10",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "60d04319-9bcd-4923-ab7f-051595874581",
+              "name": "FRIGERIO FRANCISCO",
+              "number": "87",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "11def250-6992-47ef-a2cc-df59c7a939b7",
+              "name": "SUEZ GABRIEL",
+              "number": "25",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "14874519-4c88-44ea-9c49-671e9a022b7a",
+              "name": "MARQUEZ NOAH",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "a1267a33-140a-4ebb-92ae-67e2f91c5d8c",
+              "name": "SCOTTO DI CARLO NATALIA",
+              "number": "25",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6522a433-3afe-491a-b0c1-eba803be98f6",
+              "name": "BONVEHI SEBASTIAN",
+              "number": "0",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7d435986-1a05-45ef-97f3-dfea388eb125",
+              "name": "BRAVO LAUTARO HERNAN",
+              "number": "52",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "18396ec9-7833-478c-84ff-2dadb5c3fcf5",
+              "name": "CACERES LEON CRISTIAN",
+              "number": "33",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "e9a6ecf0-5ff3-482b-b526-46fc064e47ad",
+              "name": "CARIMATTO JESICA",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "98647fc4-64c8-4745-a892-d1a225c1effa",
+              "name": "CRUSES RAMIRO",
+              "number": "72",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "7c2b9f49-8e9a-4ca7-a985-c64d5e613c57",
+              "name": "DE LA VEGA FLAVIA MICHELLE",
+              "number": "18",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "fc7c6551-7d6a-4ac9-9f9b-0862fd9b7d7e",
+              "name": "DUPERRON SANTIAGO",
+              "number": "90",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "2cf39754-9b90-4c24-b893-c23b103c08b1",
+              "name": "GARIBOTTO JULIAN",
+              "number": "30",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "c985a3b3-495b-45e7-bae2-d97037c733bc",
+              "name": "GIULIODORO JUAN CARLOS",
+              "number": "74",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "681bc4ec-d842-4c62-bc3c-14c7d5530e94",
+              "name": "HERRERA JAVIER",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "c0027f1f-9458-487d-8624-01b264fc7c07",
+              "name": "SUAREZ PABLO",
+              "number": "70",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "ffb17c2c-59e7-43ad-be02-832968c15a6a",
+              "name": "SANCHEZ MATIAS",
+              "number": "27",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1c75df96-8771-4644-a413-204f6021b81c",
+              "name": "PONCE GERMAN",
+              "number": "22",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "playedPeriods": [
+    "1ST",
+    "2ND",
+    "OT"
+  ],
+  "overTimeOrShootouts": true
+}

@@ -1,0 +1,652 @@
+{
+  "attendance": {
+    "home": [
+      {
+        "id": "e7f3aa3f-40a2-4a90-8a5d-90051d45b555",
+        "number": "51",
+        "name": "KITAURA ANDRES"
+      },
+      {
+        "id": "3b86a9f3-ae7e-4f11-a406-398f640ee6fe",
+        "number": "91",
+        "name": "MAZZALUPO ADRIAN"
+      },
+      {
+        "id": "ef9927aa-db93-4408-a4e8-cfc38863a2dd",
+        "number": "",
+        "name": "DRESCO JAVIER"
+      },
+      {
+        "id": "95a807e7-0b78-449b-9618-f546b2e23307",
+        "number": "94",
+        "name": "DI LEONE DANIEL"
+      },
+      {
+        "id": "03e0a5d5-f864-4129-810b-5a75b96f8bd7",
+        "number": "11",
+        "name": "SANCHEZ HÉCTOR"
+      },
+      {
+        "id": "0444c677-915f-4f95-8beb-befd52e1cfc0",
+        "number": "58",
+        "name": "DIGANGI DANIEL"
+      },
+      {
+        "id": "54e20849-b2b6-4215-afbe-10ab2f811ff5",
+        "number": "3",
+        "name": "ROMERO ANTÓN"
+      },
+      {
+        "id": "dfc70fdc-cfe9-49c6-b8c2-6cb2ffea2c11",
+        "number": "21",
+        "name": "SANZ BENICIO"
+      },
+      {
+        "id": "ff663f4b-db21-4bb4-a855-d5a2a35e89da",
+        "number": "81",
+        "name": "PIAGGIO SANTIAGO"
+      },
+      {
+        "id": "b55105c9-d97d-4623-b658-ae49360da56b",
+        "number": "",
+        "name": "MAMANI NAZARENO"
+      },
+      {
+        "id": "06795990-7200-4687-912d-e474fd818dc5",
+        "number": "",
+        "name": "ESPOSITO FACUNDO"
+      },
+      {
+        "id": "f3e1863f-8d7c-4af4-9591-b9d74cc8f209",
+        "number": "",
+        "name": "ZAMBRANO HUMBERTO"
+      }
+    ],
+    "away": [
+      {
+        "id": "8d106491-2442-4423-8a32-9bec25c3c50d",
+        "number": "22",
+        "name": "CASTRO ABRIL"
+      },
+      {
+        "id": "b143d05f-895c-4668-8ac8-b2072aec99c2",
+        "number": "90",
+        "name": "CARRASCOSA JOAQUIN"
+      },
+      {
+        "id": "a1cdd37c-a74c-4aae-a99e-473a144071f3",
+        "number": "77",
+        "name": "MAZZA FACUNDO"
+      },
+      {
+        "id": "715f4364-0024-415b-a395-3f0104a691d4",
+        "number": "21",
+        "name": "LOSTE AYRTON"
+      },
+      {
+        "id": "19020223-51e2-40d9-8c9c-8e2f5a4b573a",
+        "number": "7",
+        "name": "BURGUESS-WEBB MILO"
+      },
+      {
+        "id": "0de376b8-8267-4e6a-8653-2494d11eccd0",
+        "number": "58",
+        "name": "GADEA SOFÍA"
+      },
+      {
+        "id": "aaa27a0b-86a8-4359-938e-a8b9866a6307",
+        "number": "5",
+        "name": "CHAPERÓN ABASTO VALENTINA"
+      },
+      {
+        "id": "9b29723f-dc3e-4493-aaeb-7de587eebda2",
+        "number": "46",
+        "name": "DETTO ROMINA"
+      },
+      {
+        "id": "49d580bb-5380-4946-a8a0-f6fa2d4b2b74",
+        "number": "",
+        "name": "DE LA CRUZ LUCIANO"
+      },
+      {
+        "id": "67c8e12c-ccb1-4243-9153-ec15788ddc6f",
+        "number": "93",
+        "name": "TEDONE MARIANO"
+      },
+      {
+        "id": "6c5fd8f4-3de8-4964-b3bd-ab715f9a73b5",
+        "number": "17",
+        "name": "BEREZYUK RUSLAN"
+      },
+      {
+        "id": "1ad724e1-c756-41a9-bc34-4340f573ecc1",
+        "number": "",
+        "name": "ANON JUAN PABLO"
+      },
+      {
+        "id": "e5d955f9-cb57-4a8a-9708-792f59973d33",
+        "number": "",
+        "name": "PONS EDWARD"
+      },
+      {
+        "id": "acb4ad42-0cbc-4688-a88f-b58caa302b73",
+        "number": "",
+        "name": "BLANCO ALAN EZEQUIEL"
+      },
+      {
+        "id": "320e3ed7-2f14-4e13-a493-a1e219f4332a",
+        "number": "",
+        "name": "ROSA FRANCISCO"
+      }
+    ]
+  },
+  "statsByPeriod": [
+    {
+      "period": "1ST",
+      "stats": {
+        "goals": {
+          "home": [],
+          "away": [
+            {
+              "team": "away",
+              "timestamp": 1762924105620,
+              "gameTime": 120000,
+              "periodText": "1ST",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "9f15c423-ddaf-4b8a-b401-0da990dc0edb"
+            }
+          ]
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "e7f3aa3f-40a2-4a90-8a5d-90051d45b555",
+              "name": "KITAURA ANDRES",
+              "number": "51",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "3b86a9f3-ae7e-4f11-a406-398f640ee6fe",
+              "name": "MAZZALUPO ADRIAN",
+              "number": "91",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "ef9927aa-db93-4408-a4e8-cfc38863a2dd",
+              "name": "DRESCO JAVIER",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "95a807e7-0b78-449b-9618-f546b2e23307",
+              "name": "DI LEONE DANIEL",
+              "number": "94",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "03e0a5d5-f864-4129-810b-5a75b96f8bd7",
+              "name": "SANCHEZ HÉCTOR",
+              "number": "11",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0444c677-915f-4f95-8beb-befd52e1cfc0",
+              "name": "DIGANGI DANIEL",
+              "number": "58",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "54e20849-b2b6-4215-afbe-10ab2f811ff5",
+              "name": "ROMERO ANTÓN",
+              "number": "3",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dfc70fdc-cfe9-49c6-b8c2-6cb2ffea2c11",
+              "name": "SANZ BENICIO",
+              "number": "21",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "ff663f4b-db21-4bb4-a855-d5a2a35e89da",
+              "name": "PIAGGIO SANTIAGO",
+              "number": "81",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "b55105c9-d97d-4623-b658-ae49360da56b",
+              "name": "MAMANI NAZARENO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "06795990-7200-4687-912d-e474fd818dc5",
+              "name": "ESPOSITO FACUNDO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f3e1863f-8d7c-4af4-9591-b9d74cc8f209",
+              "name": "ZAMBRANO HUMBERTO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "8d106491-2442-4423-8a32-9bec25c3c50d",
+              "name": "CASTRO ABRIL",
+              "number": "22",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "b143d05f-895c-4668-8ac8-b2072aec99c2",
+              "name": "CARRASCOSA JOAQUIN",
+              "number": "90",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "a1cdd37c-a74c-4aae-a99e-473a144071f3",
+              "name": "MAZZA FACUNDO",
+              "number": "77",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "715f4364-0024-415b-a395-3f0104a691d4",
+              "name": "LOSTE AYRTON",
+              "number": "21",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "19020223-51e2-40d9-8c9c-8e2f5a4b573a",
+              "name": "BURGUESS-WEBB MILO",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0de376b8-8267-4e6a-8653-2494d11eccd0",
+              "name": "GADEA SOFÍA",
+              "number": "58",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "aaa27a0b-86a8-4359-938e-a8b9866a6307",
+              "name": "CHAPERÓN ABASTO VALENTINA",
+              "number": "5",
+              "shots": 15,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "9b29723f-dc3e-4493-aaeb-7de587eebda2",
+              "name": "DETTO ROMINA",
+              "number": "46",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "49d580bb-5380-4946-a8a0-f6fa2d4b2b74",
+              "name": "DE LA CRUZ LUCIANO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "67c8e12c-ccb1-4243-9153-ec15788ddc6f",
+              "name": "TEDONE MARIANO",
+              "number": "93",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6c5fd8f4-3de8-4964-b3bd-ab715f9a73b5",
+              "name": "BEREZYUK RUSLAN",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1ad724e1-c756-41a9-bc34-4340f573ecc1",
+              "name": "ANON JUAN PABLO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "e5d955f9-cb57-4a8a-9708-792f59973d33",
+              "name": "PONS EDWARD",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "acb4ad42-0cbc-4688-a88f-b58caa302b73",
+              "name": "BLANCO ALAN EZEQUIEL",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "320e3ed7-2f14-4e13-a493-a1e219f4332a",
+              "name": "ROSA FRANCISCO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "period": "2ND",
+      "stats": {
+        "goals": {
+          "home": [],
+          "away": [
+            {
+              "team": "away",
+              "timestamp": 1762924233650,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "cbe861e4-7a2a-4ae1-b1e2-be6baf6d5fd8"
+            },
+            {
+              "team": "away",
+              "timestamp": 1762924461149,
+              "gameTime": 120000,
+              "periodText": "2ND",
+              "scorer": {
+                "playerNumber": "4"
+              },
+              "id": "a04171db-7a01-4f8a-8671-98736eef19d3"
+            }
+          ]
+        },
+        "penalties": {
+          "home": [],
+          "away": []
+        },
+        "playerStats": {
+          "home": [
+            {
+              "id": "e7f3aa3f-40a2-4a90-8a5d-90051d45b555",
+              "name": "KITAURA ANDRES",
+              "number": "51",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "3b86a9f3-ae7e-4f11-a406-398f640ee6fe",
+              "name": "MAZZALUPO ADRIAN",
+              "number": "91",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "ef9927aa-db93-4408-a4e8-cfc38863a2dd",
+              "name": "DRESCO JAVIER",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "95a807e7-0b78-449b-9618-f546b2e23307",
+              "name": "DI LEONE DANIEL",
+              "number": "94",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "03e0a5d5-f864-4129-810b-5a75b96f8bd7",
+              "name": "SANCHEZ HÉCTOR",
+              "number": "11",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0444c677-915f-4f95-8beb-befd52e1cfc0",
+              "name": "DIGANGI DANIEL",
+              "number": "58",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "54e20849-b2b6-4215-afbe-10ab2f811ff5",
+              "name": "ROMERO ANTÓN",
+              "number": "3",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "dfc70fdc-cfe9-49c6-b8c2-6cb2ffea2c11",
+              "name": "SANZ BENICIO",
+              "number": "21",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "ff663f4b-db21-4bb4-a855-d5a2a35e89da",
+              "name": "PIAGGIO SANTIAGO",
+              "number": "81",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "b55105c9-d97d-4623-b658-ae49360da56b",
+              "name": "MAMANI NAZARENO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "06795990-7200-4687-912d-e474fd818dc5",
+              "name": "ESPOSITO FACUNDO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "f3e1863f-8d7c-4af4-9591-b9d74cc8f209",
+              "name": "ZAMBRANO HUMBERTO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ],
+          "away": [
+            {
+              "id": "8d106491-2442-4423-8a32-9bec25c3c50d",
+              "name": "CASTRO ABRIL",
+              "number": "22",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "b143d05f-895c-4668-8ac8-b2072aec99c2",
+              "name": "CARRASCOSA JOAQUIN",
+              "number": "90",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "a1cdd37c-a74c-4aae-a99e-473a144071f3",
+              "name": "MAZZA FACUNDO",
+              "number": "77",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "715f4364-0024-415b-a395-3f0104a691d4",
+              "name": "LOSTE AYRTON",
+              "number": "21",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "19020223-51e2-40d9-8c9c-8e2f5a4b573a",
+              "name": "BURGUESS-WEBB MILO",
+              "number": "7",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "0de376b8-8267-4e6a-8653-2494d11eccd0",
+              "name": "GADEA SOFÍA",
+              "number": "58",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "aaa27a0b-86a8-4359-938e-a8b9866a6307",
+              "name": "CHAPERÓN ABASTO VALENTINA",
+              "number": "5",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "9b29723f-dc3e-4493-aaeb-7de587eebda2",
+              "name": "DETTO ROMINA",
+              "number": "46",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "49d580bb-5380-4946-a8a0-f6fa2d4b2b74",
+              "name": "DE LA CRUZ LUCIANO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "67c8e12c-ccb1-4243-9153-ec15788ddc6f",
+              "name": "TEDONE MARIANO",
+              "number": "93",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "6c5fd8f4-3de8-4964-b3bd-ab715f9a73b5",
+              "name": "BEREZYUK RUSLAN",
+              "number": "17",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "1ad724e1-c756-41a9-bc34-4340f573ecc1",
+              "name": "ANON JUAN PABLO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "e5d955f9-cb57-4a8a-9708-792f59973d33",
+              "name": "PONS EDWARD",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "acb4ad42-0cbc-4688-a88f-b58caa302b73",
+              "name": "BLANCO ALAN EZEQUIEL",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            },
+            {
+              "id": "320e3ed7-2f14-4e13-a493-a1e219f4332a",
+              "name": "ROSA FRANCISCO",
+              "number": "",
+              "shots": 0,
+              "goals": 0,
+              "assists": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "playedPeriods": [
+    "1ST",
+    "2ND"
+  ],
+  "overTimeOrShootouts": false
+}

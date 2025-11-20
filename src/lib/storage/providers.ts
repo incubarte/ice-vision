@@ -134,41 +134,32 @@ export class SupabaseStorageProvider implements StorageProvider {
     }
 
     async readFile(filePath: string): Promise<string> {
-        console.log(`[SupabaseStorage] Reading file: ${filePath} from bucket: ${this.bucket}`);
         const { data, error } = await this.supabase.storage.from(this.bucket).download(filePath);
         if (error) {
-            console.error(`[SupabaseStorage] Error reading file ${filePath}:`, error);
-
-            // Try to get the response body for better error messages
-            if ('originalError' in error && error.originalError) {
-                const response = error.originalError as Response;
-                console.error(`[SupabaseStorage] Response status: ${response.status}`);
-                console.error(`[SupabaseStorage] Response URL: ${response.url}`);
-
-                // Try to read the body as text
-                try {
-                    const bodyText = await response.text();
-                    console.error(`[SupabaseStorage] Response body: ${bodyText}`);
-
-                    // Try to parse as JSON
-                    try {
-                        const bodyJson = JSON.parse(bodyText);
-                        console.error('[SupabaseStorage] Parsed error body:', bodyJson);
-                    } catch (e) {
-                        // Not JSON, that's ok
-                    }
-                } catch (e) {
-                    console.error('[SupabaseStorage] Could not read response body');
-                }
-            }
-
             if ('status' in error && error.status === 404) {
                 throw new FileNotFoundError(`File not found in Supabase: ${filePath}`);
             }
+            // Check for the existence of originalError for more detailed logging
+            else if ('originalError' in error && typeof error.originalError === 'object' && error.originalError !== null && 'json' in error.originalError && typeof (error.originalError as any).json === 'function') {
+                const errorBody = await (async () => {
+                    try {
+                        return await (error.originalError as Response).json();
+                    } catch (e) {
+                        console.error('Failed to parse Supabase error body.');
+                        return null;
+                    }
+                })();
 
+                if (errorBody && errorBody.statusCode === '404') {
+                    throw new FileNotFoundError(`File not found in Supabase: ${filePath}`);
+                }
+                // If it's not a 404, log the detailed error for debugging
+                if (errorBody) {
+                    console.error('Detailed Supabase error:', JSON.stringify(errorBody, null, 2));
+                }
+            }
             throw error;
         }
-        console.log(`[SupabaseStorage] Successfully read file: ${filePath}, size: ${data.size} bytes`);
         return data.text();
     }
 

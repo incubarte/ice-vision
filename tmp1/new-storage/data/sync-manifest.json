@@ -1,0 +1,838 @@
+{
+  "lastSync": "2025-11-20T21:28:04.353Z",
+  "files": {
+    "tournaments.json": {
+      "lastModified": "2025-11-20T20:30:03.654Z",
+      "hash": "6c1163c4c81fbeac48fe29084f38405a",
+      "size": 156
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/fixture.json": {
+      "lastModified": "2025-11-20T20:35:14.975Z",
+      "hash": "ee4b4b4e7beda2dfbfcf888ccd9dffea",
+      "size": 25453,
+      "previousVersion": {
+        "hash": "ee4b4b4e7beda2dfbfcf888ccd9dffea",
+        "lastModified": "2025-11-20T20:35:14.975Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/0232f118-5398-4288-944f-6fd290fd5fa4.json": {
+      "lastModified": "2025-11-20T20:35:15.351Z",
+      "hash": "a6951e0379e093bb09f5f7b2280984c2",
+      "size": 17959,
+      "previousVersion": {
+        "hash": "a6951e0379e093bb09f5f7b2280984c2",
+        "lastModified": "2025-11-20T20:35:15.351Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/04a187e5-5fc1-4cdc-b293-36b2c8fd97d9.json": {
+      "lastModified": "2025-11-20T20:35:15.733Z",
+      "hash": "2ba79f676ec3fe342f4f3adea8db8623",
+      "size": 24314,
+      "previousVersion": {
+        "hash": "2ba79f676ec3fe342f4f3adea8db8623",
+        "lastModified": "2025-11-20T20:35:15.733Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/0613a10d-0d6a-48a4-8e8a-3168bf548ee9.json": {
+      "lastModified": "2025-11-20T20:35:16.027Z",
+      "hash": "0da93aa6a0e1c7e0800693dcd7b27bbd",
+      "size": 21662,
+      "previousVersion": {
+        "hash": "0da93aa6a0e1c7e0800693dcd7b27bbd",
+        "lastModified": "2025-11-20T20:35:16.027Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/09bee919-3a54-447b-b379-f1bc1349edbd.json": {
+      "lastModified": "2025-11-20T20:35:16.331Z",
+      "hash": "60c669a3b51d8d1f45565b9d54db731a",
+      "size": 25373,
+      "previousVersion": {
+        "hash": "60c669a3b51d8d1f45565b9d54db731a",
+        "lastModified": "2025-11-20T20:35:16.331Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/0eaf5116-df5f-4fdf-a8c8-74b213d82958.json": {
+      "lastModified": "2025-11-20T20:35:16.961Z",
+      "hash": "c666e469bda36057f8b833ae439ffe0d",
+      "size": 24351,
+      "previousVersion": {
+        "hash": "c666e469bda36057f8b833ae439ffe0d",
+        "lastModified": "2025-11-20T20:35:16.961Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/0f3a124b-e036-4dac-9557-5e2f4db28729.json": {
+      "lastModified": "2025-11-20T20:35:17.473Z",
+      "hash": "94330331fe88bc7fa1cb96b607eef33f",
+      "size": 17562,
+      "previousVersion": {
+        "hash": "94330331fe88bc7fa1cb96b607eef33f",
+        "lastModified": "2025-11-20T20:35:17.473Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/1286f373-e3a0-412f-a30e-be4bd37b059b.json": {
+      "lastModified": "2025-11-20T20:35:18.691Z",
+      "hash": "6adcdb08636703e195b510462a25f842",
+      "size": 26985,
+      "previousVersion": {
+        "hash": "6adcdb08636703e195b510462a25f842",
+        "lastModified": "2025-11-20T20:35:18.691Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/1ad244c2-2ced-492b-bb06-549c7d4c5211.json": {
+      "lastModified": "2025-11-20T20:35:19.621Z",
+      "hash": "29d9e79627dd76f5cf6bb185b24883ee",
+      "size": 18060,
+      "previousVersion": {
+        "hash": "29d9e79627dd76f5cf6bb185b24883ee",
+        "lastModified": "2025-11-20T20:35:19.621Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/1c80aaf8-8890-4830-8ff2-55242942552d.json": {
+      "lastModified": "2025-11-20T20:35:20.035Z",
+      "hash": "3c62e2e6ccc8fdd24367878c100863b4",
+      "size": 23858,
+      "previousVersion": {
+        "hash": "3c62e2e6ccc8fdd24367878c100863b4",
+        "lastModified": "2025-11-20T20:35:20.035Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/1d0ecba4-2ac9-4292-835d-cdf057f91745.json": {
+      "lastModified": "2025-11-20T20:35:20.527Z",
+      "hash": "983f388f725209063a2637f49d241cd6",
+      "size": 16216,
+      "previousVersion": {
+        "hash": "983f388f725209063a2637f49d241cd6",
+        "lastModified": "2025-11-20T20:35:20.527Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/2a610a49-7b09-4628-b988-1002fcea0c1c.json": {
+      "lastModified": "2025-11-20T20:35:21.362Z",
+      "hash": "898a207ad088239558b900e99e23a22d",
+      "size": 6553,
+      "previousVersion": {
+        "hash": "898a207ad088239558b900e99e23a22d",
+        "lastModified": "2025-11-20T20:35:21.362Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/2ee8f78c-c6f4-465a-b749-b503e55f42c9.json": {
+      "lastModified": "2025-11-20T20:35:22.078Z",
+      "hash": "f041b00753488d36c68a93127e3a62b8",
+      "size": 16192,
+      "previousVersion": {
+        "hash": "f041b00753488d36c68a93127e3a62b8",
+        "lastModified": "2025-11-20T20:35:22.078Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/3202b9b3-5f0b-48de-aed8-69e701859245.json": {
+      "lastModified": "2025-11-20T20:35:22.383Z",
+      "hash": "19c5ba4edf70d0a05ae2988db9e373b3",
+      "size": 20927,
+      "previousVersion": {
+        "hash": "19c5ba4edf70d0a05ae2988db9e373b3",
+        "lastModified": "2025-11-20T20:35:22.383Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/360a68e6-4f04-4f5e-b173-71079342b313.json": {
+      "lastModified": "2025-11-20T20:35:22.796Z",
+      "hash": "a314bcbcbc65a1348b42054dd4c78c63",
+      "size": 21708,
+      "previousVersion": {
+        "hash": "a314bcbcbc65a1348b42054dd4c78c63",
+        "lastModified": "2025-11-20T20:35:22.796Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/36cc6e97-e5bb-4aa1-971e-3b05f011af91.json": {
+      "lastModified": "2025-11-20T20:35:23.110Z",
+      "hash": "a0874f2bbdee2be990280730b3035a50",
+      "size": 21654,
+      "previousVersion": {
+        "hash": "a0874f2bbdee2be990280730b3035a50",
+        "lastModified": "2025-11-20T20:35:23.110Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/374d2367-22cc-411c-9dd2-716586cbce72.json": {
+      "lastModified": "2025-11-20T20:35:23.951Z",
+      "hash": "64d6d8d73409f06ed0b6cac8a8aa4839",
+      "size": 25574,
+      "previousVersion": {
+        "hash": "64d6d8d73409f06ed0b6cac8a8aa4839",
+        "lastModified": "2025-11-20T20:35:23.951Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/3861fddb-da75-4e03-970c-2526d36c7991.json": {
+      "lastModified": "2025-11-20T20:35:24.575Z",
+      "hash": "b5e6c94779ffb5ab0640cf470bd77796",
+      "size": 20588,
+      "previousVersion": {
+        "hash": "b5e6c94779ffb5ab0640cf470bd77796",
+        "lastModified": "2025-11-20T20:35:24.575Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/3bc5cabb-1d93-496d-b13d-88c268ff2b5f.json": {
+      "lastModified": "2025-11-20T20:35:25.797Z",
+      "hash": "dfacc8c3e5f88fa2f6a7c085dfb9df54",
+      "size": 24629,
+      "previousVersion": {
+        "hash": "dfacc8c3e5f88fa2f6a7c085dfb9df54",
+        "lastModified": "2025-11-20T20:35:25.797Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/3c0a2046-fd66-4279-8c74-3bcce4f5135c.json": {
+      "lastModified": "2025-11-20T20:35:26.178Z",
+      "hash": "4a7155ecbe23250b47456709874a8bfd",
+      "size": 25780,
+      "previousVersion": {
+        "hash": "4a7155ecbe23250b47456709874a8bfd",
+        "lastModified": "2025-11-20T20:35:26.178Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/3ea13e72-cad0-44e9-9c2e-a487a9d641b1.json": {
+      "lastModified": "2025-11-20T20:35:26.534Z",
+      "hash": "9b9a6521effcacd29b11dc6b1eb6bb3b",
+      "size": 17562,
+      "previousVersion": {
+        "hash": "9b9a6521effcacd29b11dc6b1eb6bb3b",
+        "lastModified": "2025-11-20T20:35:26.534Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/410d876f-5106-40ae-b801-cd295b1b3a67.json": {
+      "lastModified": "2025-11-20T20:35:27.095Z",
+      "hash": "d468ec822c35ac8a5bfb7454f4ea93d8",
+      "size": 18059,
+      "previousVersion": {
+        "hash": "d468ec822c35ac8a5bfb7454f4ea93d8",
+        "lastModified": "2025-11-20T20:35:27.095Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/41a3b15f-2ebf-40ce-aad3-a53a02b8b616.json": {
+      "lastModified": "2025-11-20T20:35:27.428Z",
+      "hash": "e841a5f793c82c247331c1f37b9cd5c1",
+      "size": 1057,
+      "previousVersion": {
+        "hash": "e841a5f793c82c247331c1f37b9cd5c1",
+        "lastModified": "2025-11-20T20:35:27.428Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/42714b7e-732d-4f45-b53d-feb3a2308f99.json": {
+      "lastModified": "2025-11-20T20:35:28.477Z",
+      "hash": "b733fc8cc820a55afc47759db3bd4f0c",
+      "size": 24915,
+      "previousVersion": {
+        "hash": "b733fc8cc820a55afc47759db3bd4f0c",
+        "lastModified": "2025-11-20T20:35:28.477Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/45bb57d0-a8ae-42d3-b454-88cc8e04550b.json": {
+      "lastModified": "2025-11-20T20:35:28.763Z",
+      "hash": "01b9e5c8ab58d410c6b252a31e6c2a05",
+      "size": 25048,
+      "previousVersion": {
+        "hash": "01b9e5c8ab58d410c6b252a31e6c2a05",
+        "lastModified": "2025-11-20T20:35:28.763Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/47381109-ac4b-4e5d-95ff-fde7edf4a83a.json": {
+      "lastModified": "2025-11-20T20:35:29.142Z",
+      "hash": "409264a0b22a92f82b823325c7fe3418",
+      "size": 32766,
+      "previousVersion": {
+        "hash": "409264a0b22a92f82b823325c7fe3418",
+        "lastModified": "2025-11-20T20:35:29.142Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/5574b45d-2acd-4b9b-8eff-f9becb9202e7.json": {
+      "lastModified": "2025-11-20T20:35:30.069Z",
+      "hash": "5bf670d189650426413f7201888f3448",
+      "size": 7826,
+      "previousVersion": {
+        "hash": "5bf670d189650426413f7201888f3448",
+        "lastModified": "2025-11-20T20:35:30.069Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/5592c2fe-78e5-4de2-a558-afab82b87fed.json": {
+      "lastModified": "2025-11-20T20:35:30.678Z",
+      "hash": "541985e116374350e9c3d4483f97552c",
+      "size": 19350,
+      "previousVersion": {
+        "hash": "541985e116374350e9c3d4483f97552c",
+        "lastModified": "2025-11-20T20:35:30.678Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/58dd064d-9226-4aa0-b902-11e2d62ff4b6.json": {
+      "lastModified": "2025-11-20T20:35:31.093Z",
+      "hash": "a1080bfdc72bd1ea0971128d67610a26",
+      "size": 21808,
+      "previousVersion": {
+        "hash": "a1080bfdc72bd1ea0971128d67610a26",
+        "lastModified": "2025-11-20T20:35:31.093Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/5c9b1095-7c1b-4628-bf68-209468bad5b8.json": {
+      "lastModified": "2025-11-20T20:35:32.009Z",
+      "hash": "e8414010db522c74ba080464f6e6483c",
+      "size": 4830,
+      "previousVersion": {
+        "hash": "e8414010db522c74ba080464f6e6483c",
+        "lastModified": "2025-11-20T20:35:32.009Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/5eb6f3b6-583f-4fff-9949-a3606e57f041.json": {
+      "lastModified": "2025-11-20T20:35:32.420Z",
+      "hash": "7c0d6d1d3dac0ed1015f42173a46d1dc",
+      "size": 20736,
+      "previousVersion": {
+        "hash": "7c0d6d1d3dac0ed1015f42173a46d1dc",
+        "lastModified": "2025-11-20T20:35:32.420Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/5f56878f-8571-4590-9b0a-dc9c52aae508.json": {
+      "lastModified": "2025-11-20T20:35:33.041Z",
+      "hash": "42ebdd38b68589dca47cd4cb507230d7",
+      "size": 44890,
+      "previousVersion": {
+        "hash": "42ebdd38b68589dca47cd4cb507230d7",
+        "lastModified": "2025-11-20T20:35:33.041Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/5fef5847-8a35-4e7f-90a3-9a3623becbe0.json": {
+      "lastModified": "2025-11-20T20:35:33.423Z",
+      "hash": "25168694b5c028a6740babe75ecba9c4",
+      "size": 26858,
+      "previousVersion": {
+        "hash": "25168694b5c028a6740babe75ecba9c4",
+        "lastModified": "2025-11-20T20:35:33.423Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/646f049d-6e15-4f8c-b0a2-3ba251a46990.json": {
+      "lastModified": "2025-11-20T20:35:33.941Z",
+      "hash": "da0734095b54fef16d48cb76c1917a4e",
+      "size": 30512,
+      "previousVersion": {
+        "hash": "da0734095b54fef16d48cb76c1917a4e",
+        "lastModified": "2025-11-20T20:35:33.941Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/64a0385e-ae84-4fe3-9e95-01d0d7ad248d.json": {
+      "lastModified": "2025-11-20T20:35:34.365Z",
+      "hash": "e5fe45c61bab1c8609caf6a96ef5e1b3",
+      "size": 24945,
+      "previousVersion": {
+        "hash": "e5fe45c61bab1c8609caf6a96ef5e1b3",
+        "lastModified": "2025-11-20T20:35:34.365Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/64a25efc-8e5d-4067-92f9-39253697978b.json": {
+      "lastModified": "2025-11-20T20:35:34.679Z",
+      "hash": "ecf14187f8d452557c3430e42beb6750",
+      "size": 30907,
+      "previousVersion": {
+        "hash": "ecf14187f8d452557c3430e42beb6750",
+        "lastModified": "2025-11-20T20:35:34.679Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/66b268ce-8e97-47b6-a755-8823c4388a72.json": {
+      "lastModified": "2025-11-20T20:35:35.053Z",
+      "hash": "cc44fef33ff5fbddd68ba281e3fc014f",
+      "size": 4837,
+      "previousVersion": {
+        "hash": "cc44fef33ff5fbddd68ba281e3fc014f",
+        "lastModified": "2025-11-20T20:35:35.053Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/6cf1a5bf-2938-43a5-a3fb-1ed55e8ad2b6.json": {
+      "lastModified": "2025-11-20T20:35:35.672Z",
+      "hash": "15b686cf14ab4afddb435ff4201115e0",
+      "size": 29518,
+      "previousVersion": {
+        "hash": "15b686cf14ab4afddb435ff4201115e0",
+        "lastModified": "2025-11-20T20:35:35.672Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/6dcc5d8c-7227-4653-940e-516b294e3bca.json": {
+      "lastModified": "2025-11-20T20:35:36.240Z",
+      "hash": "e7a4f320f4d28f0f011f170fde8562c2",
+      "size": 31184,
+      "previousVersion": {
+        "hash": "e7a4f320f4d28f0f011f170fde8562c2",
+        "lastModified": "2025-11-20T20:35:36.240Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/6f6d9c95-91fd-494d-b850-5493348d6017.json": {
+      "lastModified": "2025-11-20T20:35:36.928Z",
+      "hash": "3bb88d9157e4c4af994aa5bee7e20ebd",
+      "size": 35955,
+      "previousVersion": {
+        "hash": "3bb88d9157e4c4af994aa5bee7e20ebd",
+        "lastModified": "2025-11-20T20:35:36.928Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/7383c563-57a5-426a-be7d-d3a744143572.json": {
+      "lastModified": "2025-11-20T20:35:37.496Z",
+      "hash": "e8ef84cb5848d1e742d38ccc51d38cfa",
+      "size": 4823,
+      "previousVersion": {
+        "hash": "e8ef84cb5848d1e742d38ccc51d38cfa",
+        "lastModified": "2025-11-20T20:35:37.496Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/75695d97-d6bb-4f58-b307-2f2f26a8862b.json": {
+      "lastModified": "2025-11-20T20:35:37.827Z",
+      "hash": "0c847c9dcd91dddcfed0bf1b8f912b29",
+      "size": 30186,
+      "previousVersion": {
+        "hash": "0c847c9dcd91dddcfed0bf1b8f912b29",
+        "lastModified": "2025-11-20T20:35:37.827Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/784d97b8-5d35-4184-8e75-15c4534891e6.json": {
+      "lastModified": "2025-11-20T20:35:38.379Z",
+      "hash": "f7d161e48c87fbd3fec9588162e9e079",
+      "size": 29287,
+      "previousVersion": {
+        "hash": "f7d161e48c87fbd3fec9588162e9e079",
+        "lastModified": "2025-11-20T20:35:38.379Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/7b71eeed-d270-42db-b4c4-24d8cd61862d.json": {
+      "lastModified": "2025-11-20T20:35:38.748Z",
+      "hash": "f32d6bd072833b5f45f7e87cf51e62bb",
+      "size": 30539,
+      "previousVersion": {
+        "hash": "f32d6bd072833b5f45f7e87cf51e62bb",
+        "lastModified": "2025-11-20T20:35:38.748Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/7bf06ceb-18fc-4d2c-861b-a8b395efa460.json": {
+      "lastModified": "2025-11-20T20:35:39.382Z",
+      "hash": "5a633b485449feed286f7e85192f8efd",
+      "size": 30255,
+      "previousVersion": {
+        "hash": "5a633b485449feed286f7e85192f8efd",
+        "lastModified": "2025-11-20T20:35:39.382Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/7db576c8-b0ee-4112-9f34-a5b67bfc7a5b.json": {
+      "lastModified": "2025-11-20T20:35:40.093Z",
+      "hash": "cb84124cf724701bb203c0c53c6cb1d2",
+      "size": 29611,
+      "previousVersion": {
+        "hash": "cb84124cf724701bb203c0c53c6cb1d2",
+        "lastModified": "2025-11-20T20:35:40.093Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/8230d768-7d4b-4572-ad25-3c259e0f512d.json": {
+      "lastModified": "2025-11-20T20:35:40.432Z",
+      "hash": "9293e59835de535c81e07a9a981e1e2d",
+      "size": 19428,
+      "previousVersion": {
+        "hash": "9293e59835de535c81e07a9a981e1e2d",
+        "lastModified": "2025-11-20T20:35:40.432Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/893f51ac-3714-4862-b726-d45e372f4607.json": {
+      "lastModified": "2025-11-20T20:35:40.846Z",
+      "hash": "15da7c04add61de0450b992f5c1a77b7",
+      "size": 5583,
+      "previousVersion": {
+        "hash": "15da7c04add61de0450b992f5c1a77b7",
+        "lastModified": "2025-11-20T20:35:40.846Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/8ba4e5f6-6cec-427f-b509-6eff34ea00fc.json": {
+      "lastModified": "2025-11-20T20:35:41.226Z",
+      "hash": "249ea132ef194cd30fc0ac5409cdcac5",
+      "size": 24022,
+      "previousVersion": {
+        "hash": "249ea132ef194cd30fc0ac5409cdcac5",
+        "lastModified": "2025-11-20T20:35:41.226Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/97401fe2-f4a5-444e-9c12-7be7e4fd63be.json": {
+      "lastModified": "2025-11-20T20:35:41.575Z",
+      "hash": "349e9fcc2a6c5d606f83650a841f0f26",
+      "size": 17760,
+      "previousVersion": {
+        "hash": "349e9fcc2a6c5d606f83650a841f0f26",
+        "lastModified": "2025-11-20T20:35:41.575Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/9d656f52-93e3-419a-9a3d-7cf27c1d4d71.json": {
+      "lastModified": "2025-11-20T20:35:42.129Z",
+      "hash": "3be9a32b7f1d4663d27c28f719c09d81",
+      "size": 21897,
+      "previousVersion": {
+        "hash": "3be9a32b7f1d4663d27c28f719c09d81",
+        "lastModified": "2025-11-20T20:35:42.129Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/a073c614-687c-4e1c-9e89-7b28bd9e7f7f.json": {
+      "lastModified": "2025-11-20T20:35:42.558Z",
+      "hash": "f4a9e600b71ef37ec6e71bde104d8c17",
+      "size": 18689,
+      "previousVersion": {
+        "hash": "f4a9e600b71ef37ec6e71bde104d8c17",
+        "lastModified": "2025-11-20T20:35:42.558Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/a966b625-37f3-4a74-a062-9e6fbd9de624.json": {
+      "lastModified": "2025-11-20T20:35:43.172Z",
+      "hash": "8bdc70936802256614abf931b1cf53ea",
+      "size": 23793,
+      "previousVersion": {
+        "hash": "8bdc70936802256614abf931b1cf53ea",
+        "lastModified": "2025-11-20T20:35:43.172Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/aa7acb59-7881-4fac-a89d-da1942360f52.json": {
+      "lastModified": "2025-11-20T20:35:43.775Z",
+      "hash": "2429e089b4dcbc9781338c5c29ea143a",
+      "size": 19997,
+      "previousVersion": {
+        "hash": "2429e089b4dcbc9781338c5c29ea143a",
+        "lastModified": "2025-11-20T20:35:43.775Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/abfd42e4-a946-4a7e-a72a-9b7f6fa2fd0a.json": {
+      "lastModified": "2025-11-20T20:35:44.165Z",
+      "hash": "e13420ac6d174995b0cd098efd29f752",
+      "size": 23088,
+      "previousVersion": {
+        "hash": "e13420ac6d174995b0cd098efd29f752",
+        "lastModified": "2025-11-20T20:35:44.165Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/b1b7f8aa-faf7-49b8-8d1c-cd11ba77276a.json": {
+      "lastModified": "2025-11-20T20:35:44.466Z",
+      "hash": "f5be7a70e1cc995040b8e096cbf153b1",
+      "size": 21226,
+      "previousVersion": {
+        "hash": "f5be7a70e1cc995040b8e096cbf153b1",
+        "lastModified": "2025-11-20T20:35:44.466Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/b1c15fd9-2489-45f0-8762-6a2b94b49cbc.json": {
+      "lastModified": "2025-11-20T20:35:44.843Z",
+      "hash": "30a32e49f419a7ed903a796a21741814",
+      "size": 26760,
+      "previousVersion": {
+        "hash": "30a32e49f419a7ed903a796a21741814",
+        "lastModified": "2025-11-20T20:35:44.843Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/b739a0b3-7f09-4f70-93c6-9aec6988dd04.json": {
+      "lastModified": "2025-11-20T20:35:45.380Z",
+      "hash": "3bb38a990168040ff7dbcf0bbe99ecad",
+      "size": 20547,
+      "previousVersion": {
+        "hash": "3bb38a990168040ff7dbcf0bbe99ecad",
+        "lastModified": "2025-11-20T20:35:45.380Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/bba56ffa-1dbd-46ec-ac3a-aa3f6428c0b6.json": {
+      "lastModified": "2025-11-20T20:35:45.944Z",
+      "hash": "48c1589e903066cb861e28e868cfddaa",
+      "size": 18722,
+      "previousVersion": {
+        "hash": "48c1589e903066cb861e28e868cfddaa",
+        "lastModified": "2025-11-20T20:35:45.944Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/be0e337b-1336-485f-b9b6-65015f696330.json": {
+      "lastModified": "2025-11-20T20:35:46.356Z",
+      "hash": "2f7fb339ab793c08832d216b8e45fd47",
+      "size": 4638,
+      "previousVersion": {
+        "hash": "2f7fb339ab793c08832d216b8e45fd47",
+        "lastModified": "2025-11-20T20:35:46.356Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/be1549ba-91b6-49fd-855c-614104b28a4a.json": {
+      "lastModified": "2025-11-20T20:35:46.729Z",
+      "hash": "906038d035e8e4647191e31e65ce8a7b",
+      "size": 36697,
+      "previousVersion": {
+        "hash": "906038d035e8e4647191e31e65ce8a7b",
+        "lastModified": "2025-11-20T20:35:46.729Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/c073d492-7955-4f88-a92c-6efe0c5ece6d.json": {
+      "lastModified": "2025-11-20T20:35:47.168Z",
+      "hash": "cc59304f9e8d1efb833e293f3f0e66c2",
+      "size": 6131,
+      "previousVersion": {
+        "hash": "cc59304f9e8d1efb833e293f3f0e66c2",
+        "lastModified": "2025-11-20T20:35:47.168Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/c5989089-692e-4caf-a957-ba4d497caef5.json": {
+      "lastModified": "2025-11-20T20:35:47.781Z",
+      "hash": "736a16cc1b2afa7496400e357b6e17ec",
+      "size": 30231,
+      "previousVersion": {
+        "hash": "736a16cc1b2afa7496400e357b6e17ec",
+        "lastModified": "2025-11-20T20:35:47.781Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/c65f0b46-81b0-4512-be8e-bcf9574b544a.json": {
+      "lastModified": "2025-11-20T20:35:48.192Z",
+      "hash": "0b5b0ed0a3fd999e78dd5d82a4dc85f9",
+      "size": 18066,
+      "previousVersion": {
+        "hash": "0b5b0ed0a3fd999e78dd5d82a4dc85f9",
+        "lastModified": "2025-11-20T20:35:48.192Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/c7e65e85-ff5c-47ca-bc5e-9e4e42d29646.json": {
+      "lastModified": "2025-11-20T20:35:48.600Z",
+      "hash": "1cc98844cfffcbc78713080e0b3110c6",
+      "size": 23777,
+      "previousVersion": {
+        "hash": "1cc98844cfffcbc78713080e0b3110c6",
+        "lastModified": "2025-11-20T20:35:48.600Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/c82793e3-a178-4ec3-be84-20c162701421.json": {
+      "lastModified": "2025-11-20T20:35:48.920Z",
+      "hash": "5225632976ae60889b5f78c3658e6022",
+      "size": 21982,
+      "previousVersion": {
+        "hash": "5225632976ae60889b5f78c3658e6022",
+        "lastModified": "2025-11-20T20:35:48.920Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/caa2757c-ecca-43bb-83d2-ceb8eaa8140f.json": {
+      "lastModified": "2025-11-20T20:35:49.214Z",
+      "hash": "3cad22793b3e97dc65a3a866d79b9775",
+      "size": 16193,
+      "previousVersion": {
+        "hash": "3cad22793b3e97dc65a3a866d79b9775",
+        "lastModified": "2025-11-20T20:35:49.214Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/cbabe30b-fb0f-4ba4-a2ce-0fd2f11264e8.json": {
+      "lastModified": "2025-11-20T20:35:49.624Z",
+      "hash": "1ec229eb24385b094685df090bcbc146",
+      "size": 24321,
+      "previousVersion": {
+        "hash": "1ec229eb24385b094685df090bcbc146",
+        "lastModified": "2025-11-20T20:35:49.624Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/cce85e4e-6d83-403f-a5f6-7666ed483aee.json": {
+      "lastModified": "2025-11-20T20:35:50.239Z",
+      "hash": "5d3f3c53d9918425074cc67497374642",
+      "size": 22542,
+      "previousVersion": {
+        "hash": "5d3f3c53d9918425074cc67497374642",
+        "lastModified": "2025-11-20T20:35:50.239Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/d072b765-7557-4fce-b90a-2b1466ece00e.json": {
+      "lastModified": "2025-11-20T20:35:50.854Z",
+      "hash": "72950540e2ed10a851c3f2cb82328f7d",
+      "size": 27311,
+      "previousVersion": {
+        "hash": "72950540e2ed10a851c3f2cb82328f7d",
+        "lastModified": "2025-11-20T20:35:50.854Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/d0a89c30-4fc0-48a4-a79e-99d236ebc7f2.json": {
+      "lastModified": "2025-11-20T20:35:51.262Z",
+      "hash": "5c565370e4ea01a0ed73576647e78019",
+      "size": 23244,
+      "previousVersion": {
+        "hash": "5c565370e4ea01a0ed73576647e78019",
+        "lastModified": "2025-11-20T20:35:51.262Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/d3169f64-39c9-456e-aa1a-082eac3dac1f.json": {
+      "lastModified": "2025-11-20T20:35:52.141Z",
+      "hash": "3bc4563665c70986393fc11416ecba5c",
+      "size": 25803,
+      "previousVersion": {
+        "hash": "3bc4563665c70986393fc11416ecba5c",
+        "lastModified": "2025-11-20T20:35:52.141Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/d3ba3149-f201-41cf-9ea8-91f6d8f4c443.json": {
+      "lastModified": "2025-11-20T20:35:52.798Z",
+      "hash": "fb32da552b737b6c7ce0e4dea3d060aa",
+      "size": 37615,
+      "previousVersion": {
+        "hash": "fb32da552b737b6c7ce0e4dea3d060aa",
+        "lastModified": "2025-11-20T20:35:52.798Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/d8de7f32-0c74-4f59-af9e-43b93818c816.json": {
+      "lastModified": "2025-11-20T20:35:53.307Z",
+      "hash": "baa5db76f8f16e74be11d80483bb45f0",
+      "size": 5947,
+      "previousVersion": {
+        "hash": "baa5db76f8f16e74be11d80483bb45f0",
+        "lastModified": "2025-11-20T20:35:53.307Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/e3b590df-e56d-44b5-bac3-465e3e5ad395.json": {
+      "lastModified": "2025-11-20T20:35:54.128Z",
+      "hash": "a95c12a0e6c1ab11c92cbc01c366e201",
+      "size": 18752,
+      "previousVersion": {
+        "hash": "a95c12a0e6c1ab11c92cbc01c366e201",
+        "lastModified": "2025-11-20T20:35:54.128Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/e4c928b4-5c2e-4416-acdb-25415ae83c74.json": {
+      "lastModified": "2025-11-20T20:35:55.052Z",
+      "hash": "5c63a7d75ff81b1420fa35fd131a2e33",
+      "size": 17538,
+      "previousVersion": {
+        "hash": "5c63a7d75ff81b1420fa35fd131a2e33",
+        "lastModified": "2025-11-20T20:35:55.052Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/e7c516fd-4bf4-4d11-b277-b8f684c7b0af.json": {
+      "lastModified": "2025-11-20T20:35:55.870Z",
+      "hash": "56ada287e94f9aaaf33d5ba403777ca6",
+      "size": 21778,
+      "previousVersion": {
+        "hash": "56ada287e94f9aaaf33d5ba403777ca6",
+        "lastModified": "2025-11-20T20:35:55.870Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/ec64fc15-c5fa-4b4c-94ba-42ad9982e5ba.json": {
+      "lastModified": "2025-11-20T20:35:56.485Z",
+      "hash": "b712ad016d85df772a5d688bc9d87e74",
+      "size": 24181,
+      "previousVersion": {
+        "hash": "b712ad016d85df772a5d688bc9d87e74",
+        "lastModified": "2025-11-20T20:35:56.485Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/f4f4c2c6-6143-4c4d-bb56-e1811e02d88d.json": {
+      "lastModified": "2025-11-20T20:35:56.998Z",
+      "hash": "4e10bc0f93f3d2abb582431dc3485aa5",
+      "size": 21058,
+      "previousVersion": {
+        "hash": "4e10bc0f93f3d2abb582431dc3485aa5",
+        "lastModified": "2025-11-20T20:35:56.998Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/f5dad2ee-a1d9-4993-84d4-342f6396e001.json": {
+      "lastModified": "2025-11-20T20:35:57.408Z",
+      "hash": "4f90956d52935ba3406b5c12b94c10ec",
+      "size": 28938,
+      "previousVersion": {
+        "hash": "4f90956d52935ba3406b5c12b94c10ec",
+        "lastModified": "2025-11-20T20:35:57.408Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/f905bc5e-2ba8-4f7c-ac2c-4add50ad0899.json": {
+      "lastModified": "2025-11-20T20:35:58.023Z",
+      "hash": "32ed1e361e11b4e1a08c820a1e6e15f0",
+      "size": 20583,
+      "previousVersion": {
+        "hash": "32ed1e361e11b4e1a08c820a1e6e15f0",
+        "lastModified": "2025-11-20T20:35:58.023Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/fae6eee4-1a73-4720-9ea1-2a3c145cd18b.json": {
+      "lastModified": "2025-11-20T20:35:58.425Z",
+      "hash": "38bd6976a2a82beb0189eefa379b2e62",
+      "size": 18315,
+      "previousVersion": {
+        "hash": "38bd6976a2a82beb0189eefa379b2e62",
+        "lastModified": "2025-11-20T20:35:58.425Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/fe6c4a4f-0b2b-4e38-b26a-e3b72dac05cc.json": {
+      "lastModified": "2025-11-20T20:35:58.831Z",
+      "hash": "a68c55ae93820e9aa3daf271af250650",
+      "size": 26857,
+      "previousVersion": {
+        "hash": "a68c55ae93820e9aa3daf271af250650",
+        "lastModified": "2025-11-20T20:35:58.831Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/teams.json": {
+      "lastModified": "2025-11-20T20:35:59.420Z",
+      "hash": "5004f5566f02e9b9cdbd47d988cc50d6",
+      "size": 50532,
+      "previousVersion": {
+        "hash": "5004f5566f02e9b9cdbd47d988cc50d6",
+        "lastModified": "2025-11-20T20:35:59.420Z"
+      }
+    },
+    "tournaments/90f2cb75-7983-47cb-aa21-9deb98f00676/fixture.json": {
+      "lastModified": "2025-11-20T20:35:59.970Z",
+      "hash": "344f873f751c3f207ec997e5edd36a75",
+      "size": 19,
+      "previousVersion": {
+        "hash": "344f873f751c3f207ec997e5edd36a75",
+        "lastModified": "2025-11-20T20:35:59.970Z"
+      }
+    },
+    "tournaments/90f2cb75-7983-47cb-aa21-9deb98f00676/teams.json": {
+      "lastModified": "2025-11-20T20:36:00.375Z",
+      "hash": "c4b9ad71633252d9e3491860af78e673",
+      "size": 216,
+      "previousVersion": {
+        "hash": "c4b9ad71633252d9e3491860af78e673",
+        "lastModified": "2025-11-20T20:36:00.375Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/8b8ba8b6-f01e-4f42-9fb2-08ba51ca2ee5.json": {
+      "lastModified": "2025-11-20T20:36:01.194Z",
+      "hash": "7cea2e0cff029a40ced31f3d8e442236",
+      "size": 23108,
+      "previousVersion": {
+        "hash": "7cea2e0cff029a40ced31f3d8e442236",
+        "lastModified": "2025-11-20T20:36:01.194Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/1f48d784-1c04-4d13-8bc7-9365dfcaf2ca.json": {
+      "lastModified": "2025-11-20T20:36:01.811Z",
+      "hash": "e24c62f187812c35a8fd77820303e709",
+      "size": 25386,
+      "previousVersion": {
+        "hash": "e24c62f187812c35a8fd77820303e709",
+        "lastModified": "2025-11-20T20:36:01.811Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/22989e1f-2cfd-4e57-913b-b3b29bdbe99d.json": {
+      "lastModified": "2025-11-20T20:36:02.220Z",
+      "hash": "0d60a95b5052a74299b4c7862553bf35",
+      "size": 25263,
+      "previousVersion": {
+        "hash": "0d60a95b5052a74299b4c7862553bf35",
+        "lastModified": "2025-11-20T20:36:02.220Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/summaries/82963aec-578c-45b7-90f5-a9a8cb243e4b.json": {
+      "lastModified": "2025-11-20T20:36:02.628Z",
+      "hash": "7229b0203a3121ccb0fc564ae9343eda",
+      "size": 35854,
+      "previousVersion": {
+        "hash": "7229b0203a3121ccb0fc564ae9343eda",
+        "lastModified": "2025-11-20T20:36:02.628Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/logo.png": {
+      "lastModified": "2025-11-20T21:28:04.014Z",
+      "hash": "e6931802a6f7b5502d09e10db5cd46a3",
+      "size": 303732,
+      "previousVersion": {
+        "hash": "e6931802a6f7b5502d09e10db5cd46a3",
+        "lastModified": "2025-11-20T21:28:04.014Z"
+      }
+    },
+    "tournaments/8a422a4c-1953-4abd-acae-bf5cd358ef9c/.logo-updated": {
+      "lastModified": "2025-11-20T21:28:04.348Z",
+      "hash": "dd8a118cfc9fbbe0436e2d465b799933",
+      "size": 13,
+      "previousVersion": {
+        "hash": "dd8a118cfc9fbbe0436e2d465b799933",
+        "lastModified": "2025-11-20T21:28:04.348Z"
+      }
+    }
+  }
+}
