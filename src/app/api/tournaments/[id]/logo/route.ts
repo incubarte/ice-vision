@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { storageProvider } from '@/lib/storage';
 import { FileNotFoundError } from '@/lib/storage/providers';
+import { updateManifestEntry, removeManifestEntry } from '@/lib/sync-manifest';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
@@ -51,6 +52,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const logoPath = `tournaments/${tournamentId}/logo.png`;
         await storageProvider.writeFile(logoPath, base64Data, 'base64');
 
+        // Update manifest for Supabase sync
+        // Convert base64 to buffer to string for consistent hashing
+        try {
+            const buffer = Buffer.from(base64Data, 'base64');
+            const contentForHash = buffer.toString('binary');
+            await updateManifestEntry(logoPath, contentForHash);
+            console.log(`[Tournament Logo] Manifest updated for: ${logoPath}`);
+        } catch (manifestError) {
+            console.error('[Tournament Logo] Error updating manifest:', manifestError);
+            // Don't fail the request if manifest update fails
+        }
+
+        // Trigger storage change notification to sync with other instances
+        await storageProvider.writeFile(`tournaments/${tournamentId}/.logo-updated`, Date.now().toString(), 'utf8');
+
         return NextResponse.json({
             success: true,
             message: 'Logo saved successfully'
@@ -77,6 +93,18 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     try {
         const logoPath = `tournaments/${tournamentId}/logo.png`;
         await storageProvider.deleteFile(logoPath);
+
+        // Remove from manifest for Supabase sync
+        try {
+            await removeManifestEntry(logoPath);
+            console.log(`[Tournament Logo] Removed from manifest: ${logoPath}`);
+        } catch (manifestError) {
+            console.error('[Tournament Logo] Error removing from manifest:', manifestError);
+            // Don't fail the request if manifest update fails
+        }
+
+        // Trigger storage change notification to sync with other instances
+        await storageProvider.writeFile(`tournaments/${tournamentId}/.logo-updated`, Date.now().toString(), 'utf8');
 
         return NextResponse.json({
             success: true,
