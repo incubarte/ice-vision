@@ -1386,8 +1386,21 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         if (t.id === tournamentId) {
           const newMatches = (t.matches || []).map(m => {
             if (m.id === matchId) {
-                const homeScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
-                const awayScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
+                // Count physical goals from all periods
+                let homeScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0);
+                let awayScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0);
+
+                // If there was a shootout, add +1 to the winner (not the total penalty goals)
+                if (summary.shootout) {
+                    const homeShootoutGoals = summary.shootout.homeAttempts.filter(a => a.isGoal).length;
+                    const awayShootoutGoals = summary.shootout.awayAttempts.filter(a => a.isGoal).length;
+                    if (homeShootoutGoals > awayShootoutGoals) {
+                        homeScore += 1;
+                    } else if (awayShootoutGoals > homeShootoutGoals) {
+                        awayScore += 1;
+                    }
+                }
+
                 return { ...m, summary, homeScore, awayScore, overTimeOrShootouts: summary.overTimeOrShootouts };
             }
             return m;
