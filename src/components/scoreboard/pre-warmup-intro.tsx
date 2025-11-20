@@ -7,6 +7,7 @@ import Image from 'next/image';
 interface PreWarmupIntroProps {
   logo: string | null;
   onComplete: () => void;
+  mode?: 'loop' | 'explosion'; // 'loop' para Pre Warm-up infinito, 'explosion' para transición a Warm-up
 }
 
 // Generar posiciones de partículas una sola vez (fuera del componente)
@@ -31,7 +32,7 @@ const PARTICLE_POSITIONS = Array.from({ length: 30 }, () => {
   };
 });
 
-export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
+export function PreWarmupIntro({ logo, onComplete, mode = 'explosion' }: PreWarmupIntroProps) {
   const [phase, setPhase] = useState<'pulsing' | 'explosion'>('pulsing');
   const onCompleteRef = useRef(onComplete);
 
@@ -46,25 +47,32 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
       return;
     }
 
-    console.log('[PreWarmupIntro] Starting animation - Version 2.0');
+    // Modo 'loop': Solo palpitación infinita, nunca llama onComplete ni cambia a explosion
+    if (mode === 'loop') {
+      console.log('[PreWarmupIntro] LOOP MODE - Infinite pulsing');
+      return; // No hay timers, solo queda en fase 'pulsing' indefinidamente
+    }
 
-    // Fase de palpitación: cambiar a explosión a los 5.58s (justo en el keyframe 0.93 = scale 1.55)
+    // Modo 'explosion': Animación completa con transición
+    console.log('[PreWarmupIntro] EXPLOSION MODE - Starting animation');
+
+    // Fase de heartbeat + crecimiento exponencial: cambiar a explosión a los 3.5s
     const pulsingTimer = setTimeout(() => {
-      console.log('[PreWarmupIntro] Switching to EXPLOSION phase (durante crecimiento)');
+      console.log('[PreWarmupIntro] Switching to EXPLOSION phase (exponential growth completed)');
       setPhase('explosion');
-    }, 5580);
+    }, 3500);
 
     // Explosión final: llamar onComplete cuando el último flash llega a blanco total
     const explosionTimer = setTimeout(() => {
       console.log('[PreWarmupIntro] Calling onComplete - transitioning to warmup');
       onCompleteRef.current();
-    }, 9300); // 6s (pulsing) + 3.0s (explosion delay) + 0.3s (flash duration) = 9.3s
+    }, 6300); // 3.5s (heartbeat + crecimiento) + 2.5s (explosion) + 0.3s (flash duration) = 6.3s
 
     return () => {
       clearTimeout(pulsingTimer);
       clearTimeout(explosionTimer);
     };
-  }, [logo]);
+  }, [logo, mode]);
 
   if (!logo) {
     return null;
@@ -199,20 +207,72 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
       <div className="absolute inset-0 flex items-center justify-center z-10" style={{ overflow: 'visible' }}>
         {phase === 'pulsing' ? (
           <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ scale: 1.0, opacity: 0, x: 0, y: 0 }}
             animate={{
-              // Cada par es: valle (baja) → pico (sube)
-              // Los valles van subiendo: 0.5 → 0.65 → 0.8 → 0.95 → 1.1 → 1.25
-              // Los picos MÁS GRANDES: 0.75 → 0.9 → 1.05 → 1.2 → 1.35 → 1.45
-              // Al final (últimos 0.5s): crecimiento continuo 1.45 → 1.55 → 1.7 → 1.85 para transición suave
-              scale: [0.5, 0.75, 0.65, 0.9, 0.8, 1.05, 0.95, 1.2, 1.1, 1.35, 1.25, 1.45, 1.55, 1.7, 1.85],
+              // Ritmo de corazón mejorado: normal → achica → rebota (crece) → achica de nuevo → vuelve → pausa
+              // Cada ciclo: 1.0 → 0.85 → 0.91 → 0.87 → 1.0 → (pausa)
+              scale: mode === 'loop'
+                ? [1.0, 0.85, 0.91, 0.87, 1.0, 1.0] // Loop mode: ritmo constante con doble rebote
+                : [
+                    // Fase 1: Vibración + crecimiento leve (0-20%)
+                    1.0, 1.05, 1.08, 1.1, 1.12, 1.15,
+                    // Fase 2: Continúa vibrando y creciendo (20-35%)
+                    1.18, 1.22, 1.25,
+                    // Fase 3: Crecimiento continuo sin vibración (35-100%)
+                    1.3, 1.5, 1.8, 2.2, 2.8, 3.5, 4.5
+                  ],
               opacity: 1,
+              // Vibración solo al principio - luego sin vibración
+              x: mode === 'explosion'
+                ? [-2, 2, -2, 2, -2, 2,  // Fase 1: Vibración con crecimiento leve
+                   -3, 3, -3,  // Fase 2: Sigue vibrando (~0.5s)
+                   0, 0, 0, 0, 0, 0, 0]  // Fase 3: Sin vibración - crecimiento continuo
+                : 0,
+              y: mode === 'explosion'
+                ? [2, -2, 2, -2, 2, -2,  // Fase 1: Vibración con crecimiento leve
+                   3, -3, 3,  // Fase 2: Sigue vibrando (~0.5s)
+                   0, 0, 0, 0, 0, 0, 0]  // Fase 3: Sin vibración - crecimiento continuo
+                : 0,
             }}
             transition={{
               scale: {
-                duration: 6,
-                times: [0, 0.08, 0.17, 0.25, 0.33, 0.42, 0.5, 0.58, 0.67, 0.75, 0.83, 0.88, 0.93, 0.97, 1],
-                ease: "easeInOut",
+                duration: mode === 'loop' ? 1.4 : 3.5, // 3.5s total para explosion
+                times: mode === 'loop'
+                  ? [0, 0.15, 0.22, 0.28, 0.35, 1] // Doble rebote + pausa
+                  : [
+                      // Fase 1: Vibración + crecimiento leve (0-20%)
+                      0, 0.03, 0.06, 0.09, 0.12, 0.15,
+                      // Fase 2: Continúa vibrando y creciendo (20-35%) - SIN GAPS
+                      0.18, 0.25, 0.33,
+                      // Fase 3: Crecimiento continuo sin vibración (35-100%) - SIN GAPS
+                      0.42, 0.54, 0.66, 0.76, 0.86, 0.94, 1
+                    ],
+                ease: mode === 'loop' ? "easeInOut" : [0.05, 0, 0.95, 1], // ease-in ultra agresivo (exponencial)
+                repeat: mode === 'loop' ? Infinity : 0,
+              },
+              x: {
+                duration: mode === 'explosion' ? 3.5 : 0,
+                times: mode === 'explosion'
+                  ? [// Fase 1: Vibración con crecimiento leve (0-20%)
+                     0, 0.03, 0.06, 0.09, 0.12, 0.15,
+                     // Fase 2: Sigue vibrando (20-35%) - SIN GAPS
+                     0.18, 0.25, 0.33,
+                     // Fase 3: Sin vibración (35-100%) - SIN GAPS
+                     0.42, 0.54, 0.66, 0.76, 0.86, 0.94, 1]
+                  : [0, 1],
+                ease: "linear",
+              },
+              y: {
+                duration: mode === 'explosion' ? 3.5 : 0,
+                times: mode === 'explosion'
+                  ? [// Fase 1: Vibración con crecimiento leve (0-20%)
+                     0, 0.03, 0.06, 0.09, 0.12, 0.15,
+                     // Fase 2: Sigue vibrando (20-35%) - SIN GAPS
+                     0.18, 0.25, 0.33,
+                     // Fase 3: Sin vibración (35-100%) - SIN GAPS
+                     0.42, 0.54, 0.66, 0.76, 0.86, 0.94, 1]
+                  : [0, 1],
+                ease: "linear",
               },
               opacity: {
                 duration: 0.5,
@@ -245,19 +305,19 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
           </motion.div>
         ) : (
           <motion.div
-            initial={{ scale: 1.55 }}
+            initial={{ scale: 4.5 }}
             animate={{
               scale: 15,
               opacity: 0.15,
             }}
             transition={{
               scale: {
-                duration: 4.5,
+                duration: 2.5,
                 ease: [0.5, 0, 0.5, 1.2], // Empieza lento, acelera constantemente hasta el final (no desacelera)
               },
               opacity: {
-                duration: 3,
-                delay: 1,
+                duration: 2,
+                delay: 0.3,
                 ease: "easeIn",
               },
             }}
@@ -288,47 +348,67 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
         )}
       </div>
 
-      {/* Flashes blancos - tanto en palpitación como en explosión */}
+      {/* Flashes blancos - EN TODO MOMENTO */}
       <>
-        {/* Flash 1: En la 2da palpitación (~1 segundo) */}
-        {phase === 'pulsing' && (
-          <motion.div
-            className="absolute inset-0 bg-white z-30"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 0.4, times: [0, 0.25, 1], ease: "linear", delay: 1.0 }}
-            onAnimationStart={() => console.log('[Flash 1] 2da palpitación')}
-          />
+        {/* Flashes durante modo LOOP (Pre Warm-up infinito) - alternando 1 flash y 2 flashes */}
+        {phase === 'pulsing' && mode === 'loop' && (
+          <>
+            {/* Secuencia: 1 flash → pausa → 2 flashes seguidos → pausa → repetir */}
+            {/* Flash individual cada 5.6s (ciclo completo) */}
+            <motion.div
+              className="absolute inset-0 bg-white z-30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0, 0, 0.9, 0, 0, 0, 0, 0] }}
+              transition={{
+                duration: 5.6,
+                times: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5, 0.75, 1],
+                ease: "linear",
+                repeat: Infinity,
+              }}
+            />
+            {/* Doble flash seguido - offset para que aparezca después del flash individual */}
+            <motion.div
+              className="absolute inset-0 bg-white z-30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0, 0, 0, 0, 0.9, 0, 0.9, 0] }}
+              transition={{
+                duration: 5.6,
+                times: [0, 0.3, 0.4, 0.5, 0.55, 0.60, 0.65, 0.70, 0.75],
+                ease: "linear",
+                repeat: Infinity,
+              }}
+            />
+          </>
         )}
 
-        {/* Flash 2 y 3: Justo antes de empezar a crecer indefinidamente (tapan transición) */}
-        {phase === 'pulsing' && (
+        {/* 2 Flashes seguidos después de la vibración (~1.15s = 33% de 3.5s) - SOLO en explosion mode */}
+        {phase === 'pulsing' && mode === 'explosion' && (
           <>
             <motion.div
               className="absolute inset-0 bg-white z-30"
               initial={{ opacity: 0 }}
               animate={{ opacity: [0, 1, 0] }}
-              transition={{ duration: 0.35, times: [0, 0.3, 1], ease: "linear", delay: 4.4 }}
-              onAnimationStart={() => console.log('[Flash 2] Antes de crecer - primero')}
+              transition={{ duration: 0.08, times: [0, 0.5, 1], ease: "linear", delay: 1.15 }}
+              onAnimationStart={() => console.log('[Flash 1] Primer flash después de vibración')}
             />
             <motion.div
               className="absolute inset-0 bg-white z-30"
               initial={{ opacity: 0 }}
               animate={{ opacity: [0, 1, 0] }}
-              transition={{ duration: 0.3, times: [0, 0.3, 1], ease: "linear", delay: 4.75 }}
-              onAnimationStart={() => console.log('[Flash 3] Antes de crecer - segundo (tapa transición)')}
+              transition={{ duration: 0.0035, times: [0, 0.5, 1], ease: "linear", delay: 1.20 }}
+              onAnimationStart={() => console.log('[Flash 2] Segundo flash después de vibración - más corto y pegado')}
             />
           </>
         )}
 
-        {/* Flash 4: Durante explosión (segundo 6.5) - corto estilo Flash 1 */}
+        {/* Flash 4: Mitad de la explosión */}
         {phase === 'explosion' && (
           <motion.div
             className="absolute inset-0 bg-white z-30"
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 0.4, times: [0, 0.25, 1], ease: "linear", delay: 1.0 }}
-            onAnimationStart={() => console.log('[Flash 4] Durante explosión - segundo 6.5')}
+            transition={{ duration: 0.4, times: [0, 0.25, 1], ease: "linear", delay: 1.2 }}
+            onAnimationStart={() => console.log('[Flash 4] Mitad de explosión')}
           />
         )}
 
@@ -338,7 +418,7 @@ export function PreWarmupIntro({ logo, onComplete }: PreWarmupIntroProps) {
             className="absolute inset-0 bg-white z-30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, ease: "easeIn", delay: 3.5 }}
+            transition={{ duration: 0.3, ease: "easeIn", delay: 2.0 }}
             onAnimationStart={() => console.log('[Flash 5 FINAL] Logo a pantalla completa - QUEDA EN BLANCO')}
           />
         )}

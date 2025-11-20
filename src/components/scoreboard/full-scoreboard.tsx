@@ -55,6 +55,7 @@ export function FullScoreboard({ className }: { className?: string }) {
   const [isOlympiaTransitioning, setIsOlympiaTransitioning] = useState(false);
   const [frozenWarmupContent, setFrozenWarmupContent] = useState<React.ReactNode>(null);
   const [wasWarmup, setWasWarmup] = useState(false);
+  const [wasPreWarmup, setWasPreWarmup] = useState(false);
   const [wasEndOfGame, setWasEndOfGame] = useState(false);
   const [showStandingsInWarmup, setShowStandingsInWarmup] = useState(false);
   const [showPreWarmupIntro, setShowPreWarmupIntro] = useState(false);
@@ -206,20 +207,30 @@ export function FullScoreboard({ className }: { className?: string }) {
       setIsOlympiaTransitioning(true);
     }
 
-    // Actualizar el estado de wasWarmup y detectar inicio de warmup para intro
+    // Actualizar el estado de wasWarmup/wasPreWarmup y detectar transición Pre Warm-up → Warm-up
+    const isPreWarmup = live.clock.periodDisplayOverride === 'Pre Warm-up';
+
+    // Detectar transición de Pre Warm-up a Warm-up para activar la animación de explosión
+    if (isWarmup && isFixtureMatch && wasPreWarmup && !hasShownIntro && tournamentLogo) {
+      console.log('[Pre-Warmup Intro] ACTIVATING EXPLOSION intro - transition from Pre Warm-up to Warm-up!');
+      setShowPreWarmupIntro(true);
+      setHasShownIntro(true);
+    }
+
+    // Actualizar estados de tracking
     if (isWarmup && isFixtureMatch) {
-      // Si acabamos de entrar en warmup y no hemos mostrado la intro
-      if (!wasWarmup && !hasShownIntro && tournamentLogo) {
-        console.log('[Pre-Warmup Intro] ACTIVATING intro!');
-        setShowPreWarmupIntro(true);
-        setHasShownIntro(true);
-      }
       setWasWarmup(true);
+      setWasPreWarmup(false);
+    } else if (isPreWarmup && isFixtureMatch) {
+      setWasPreWarmup(true);
+      setWasWarmup(false);
+      setHasShownIntro(false); // Reset cuando volvemos a Pre Warm-up para permitir la animación en el próximo partido
     } else if (!isFixtureMatch) {
       setWasWarmup(false);
+      setWasPreWarmup(false);
       setHasShownIntro(false); // Reset para el próximo partido
     }
-  }, [config, live, wasWarmup, isOlympiaTransitioning, homeLogoDataUrl, awayLogoDataUrl, hasShownIntro, tournamentLogo]);
+  }, [config, live, wasWarmup, wasPreWarmup, isOlympiaTransitioning, homeLogoDataUrl, awayLogoDataUrl, hasShownIntro, tournamentLogo]);
 
   // Detectar cuando el partido termina - ya no usa Olympia, solo marca el estado
   useEffect(() => {
@@ -341,10 +352,11 @@ export function FullScoreboard({ className }: { className?: string }) {
     ? Math.max(homeAttempts.length, awayAttempts.length) + (homeAttempts.length === awayAttempts.length ? 1 : 0)
     : 1;
 
-  const showMainScoreboard = clock.periodDisplayOverride !== 'Shootout' && clock.periodDisplayOverride !== 'Warm-up';
+  const showMainScoreboard = clock.periodDisplayOverride !== 'Shootout' && clock.periodDisplayOverride !== 'Warm-up' && clock.periodDisplayOverride !== 'Pre Warm-up';
 
-  // Determinar qué vista mostrar durante warm-up
+  // Determinar qué vista mostrar durante warm-up y pre warm-up
   const isWarmup = clock.periodDisplayOverride === 'Warm-up';
+  const isPreWarmup = clock.periodDisplayOverride === 'Pre Warm-up';
   const isFixtureMatch = !!matchId;
 
   // Mostrar tabla si estamos en warmup, es partido de fixture, la opción está activada Y el estado indica mostrar
@@ -404,11 +416,19 @@ export function FullScoreboard({ className }: { className?: string }) {
             </div>
           }
         />
+      ) : isPreWarmup && isFixtureMatch && tournamentLogo ? (
+        // Show Pre Warm-up LOOP mode - infinite pulsing until operator starts the match
+        <PreWarmupIntro
+          logo={tournamentLogo}
+          onComplete={() => {}} // No hace nada, loop infinito
+          mode="loop"
+        />
       ) : showPreWarmupIntro ? (
-        // Show Pre-Warmup Intro animation
+        // Show Pre-Warmup Intro EXPLOSION animation (transición a Warm-up)
         <PreWarmupIntro
           logo={tournamentLogo}
           onComplete={() => setShowPreWarmupIntro(false)}
+          mode="explosion"
         />
       ) : clock.periodDisplayOverride === 'End of Game' && isFixtureMatch ? (
         // Show End of Game screen (after transition has completed)
@@ -541,10 +561,10 @@ export function FullScoreboard({ className }: { className?: string }) {
 
           {/* Tournament Logo Watermark - Only show when NOT in warmup */}
           {config.selectedTournamentId && !isOlympiaTransitioning && !isWarmup && (
-            <div className="absolute bottom-8 right-8 z-5 opacity-40 pointer-events-none">
+            <div className="absolute bottom-4 right-4 z-5 opacity-40 pointer-events-none">
               <TournamentLogo
                 tournamentId={config.selectedTournamentId}
-                size={400}
+                size={380}
                 showFallback={false}
               />
             </div>

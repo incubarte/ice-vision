@@ -97,7 +97,7 @@ const INITIAL_LIVE_DATA: LiveState = {
     currentTime: 30000, // Default warm-up duration
     currentPeriod: 0,
     isClockRunning: false,
-    periodDisplayOverride: 'Warm-up',
+    periodDisplayOverride: 'Pre Warm-up',
     preTimeoutState: null,
     clockStartTimeMs: null,
     remainingTimeAtStartCs: null,
@@ -379,10 +379,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         const autoStartClock = (newPeriod === 0) ? (autoStartWarmUp && periodDurationCs > 0) : false;
         const newAbsoluteTime = calculateAbsoluteTimeForPeriod(newPeriod, periodDurationCs, state);
 
+        // Si newPeriod === 0, determinar si es Pre Warm-up o Warm-up
+        // - Pre Warm-up: solo si es un partido nuevo (sin períodos jugados y estado actual es Pre Warm-up)
+        // - Warm-up: si estás retrocediendo desde el período 1 (ya has jugado períodos)
+        let periodOverride = null;
+        if (newPeriod === 0) {
+            const hasPlayedPeriods = state.live.playedPeriods && state.live.playedPeriods.length > 0;
+            const isComingFromPreWarmup = state.live.clock.periodDisplayOverride === 'Pre Warm-up';
+            periodOverride = (hasPlayedPeriods || (!isComingFromPreWarmup && state.live.clock.currentPeriod > 0)) ? 'Warm-up' : 'Pre Warm-up';
+        }
+
         newState = { ...state, live: { ...state.live, clock: {
             ...state.live.clock,
             currentPeriod: newPeriod,
-            periodDisplayOverride: newPeriod === 0 ? 'Warm-up' : null,
+            periodDisplayOverride: periodOverride,
             currentTime: periodDurationCs,
             isClockRunning: autoStartClock,
             preTimeoutState: null,
@@ -935,6 +945,24 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             clockStartTimeMs: autoStart && breakDurationCs > 0 ? Date.now() : null, remainingTimeAtStartCs: autoStart && breakDurationCs > 0 ? breakDurationCs : null,
             absoluteElapsedTimeCs: newAbsoluteTime, _liveAbsoluteElapsedTimeCs: newAbsoluteTime,
         }}};
+        break;
+    }
+    case 'START_WARMUP': {
+        // Transition from 'Pre Warm-up' to 'Warm-up' (triggered by operator clicking "Comenzar Partido")
+        if (state.live.clock.periodDisplayOverride !== 'Pre Warm-up') break;
+
+        const { defaultWarmUpDuration, autoStartWarmUp } = state.config;
+        const autoStartClock = autoStartWarmUp && defaultWarmUpDuration > 0;
+
+        newState = { ...state, live: { ...state.live, clock: {
+            ...state.live.clock,
+            periodDisplayOverride: 'Warm-up',
+            currentTime: defaultWarmUpDuration,
+            isClockRunning: autoStartClock,
+            clockStartTimeMs: autoStartClock ? Date.now() : null,
+            remainingTimeAtStartCs: autoStartClock ? defaultWarmUpDuration : null,
+        }}};
+        toastMessage = { title: "Warm-up Iniciado", description: `El partido ha comenzado. Reloj ${autoStartClock ? 'corriendo' : 'pausado'}.` };
         break;
     }
     case 'START_TIMEOUT': {

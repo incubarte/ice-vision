@@ -266,20 +266,17 @@ const EditableGoalRow = ({ goal, onCancel, onSave }: { goal: GoalLog; onCancel: 
   useEffect(() => {
     setPositives(prev => {
       const newPositives = [...prev];
+      // Sincronizar goleador en posición 0 solo si hay valor
       if (scorerNumber.trim()) {
         newPositives[0] = scorerNumber.trim();
-      } else {
-        newPositives[0] = '';
       }
+      // Sincronizar asistencia 1 en posición 1 solo si hay valor
       if (assistNumber.trim()) {
         newPositives[1] = assistNumber.trim();
-      } else {
-        newPositives[1] = '';
       }
+      // Sincronizar asistencia 2 en posición 2 solo si hay valor
       if (assist2Number.trim()) {
         newPositives[2] = assist2Number.trim();
-      } else {
-        newPositives[2] = '';
       }
       return newPositives;
     });
@@ -1261,6 +1258,7 @@ export default function ControlsPage() {
       <MiniScoreboard onScoreClick={handleScoreClick} />
 
       <PenaltyNotifications />
+
 
       {finishedFixtureMatch && (
         <div className="my-4 flex justify-center">

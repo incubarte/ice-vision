@@ -362,7 +362,7 @@ export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'n
   selectedMatchCategory: string;
 }
 
-export type PeriodDisplayOverrideType = 'Warm-up' | 'Break' | 'Pre-OT Break' | 'Time Out' | 'End of Game' | 'Shootout' | 'AwaitingDecision' | null;
+export type PeriodDisplayOverrideType = 'Pre Warm-up' | 'Warm-up' | 'Break' | 'Pre-OT Break' | 'Time Out' | 'End of Game' | 'Shootout' | 'AwaitingDecision' | null;
 
 export interface PreTimeoutState {
   period: number;
@@ -538,6 +538,7 @@ export type GameAction =
   | { type: 'START_BREAK' }
   | { type: 'START_PRE_OT_BREAK' }
   | { type: 'START_BREAK_AFTER_PREVIOUS_PERIOD' }
+  | { type: 'START_WARMUP' }
   | { type: 'START_TIMEOUT'; payload: { team: Team } }
   | { type: 'END_TIMEOUT' }
   | { type: 'MANUAL_END_GAME' }

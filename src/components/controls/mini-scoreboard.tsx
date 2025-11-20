@@ -563,7 +563,8 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
 
   const isShootout = state.live.clock.periodDisplayOverride === 'Shootout';
   const isFinalState = state.live.clock.periodDisplayOverride === 'AwaitingDecision' || state.live.clock.periodDisplayOverride === 'End of Game';
-  const showClock = !isShootout && !isFinalState;
+  const isPreWarmup = state.live.clock.periodDisplayOverride === 'Pre Warm-up';
+  const showClock = !isShootout && !isFinalState && !isPreWarmup;
 
   const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
   const availableCategories = selectedTournament?.categories || [];
@@ -861,16 +862,27 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
               )}
             </div>
             <div className={cn("w-full max-w-[180px] mx-auto mt-2 h-9", showNextActionButton && "invisible")}>
-                <Button
-                    onClick={handleToggleClock}
-                    className="w-full"
-                    variant={state.live.clock.isClockRunning ? "destructive" : "default"}
-                    aria-label={state.live.clock.isClockRunning ? "Pausar Reloj" : "Iniciar Reloj"}
-                    disabled={(state.live.clock.currentTime <= 0 && !state.live.clock.isClockRunning && state.live.clock.periodDisplayOverride !== "Time Out") || state.live.clock.periodDisplayOverride === "End of Game" || state.live.clock.isFlashingZero}
-                >
-                    {state.live.clock.isClockRunning ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-                    {state.live.clock.isClockRunning ? 'Pausar' : 'Iniciar'} Reloj
-                </Button>
+                {state.live.clock.periodDisplayOverride === 'Pre Warm-up' ? (
+                  <Button
+                    onClick={() => dispatch({ type: 'START_WARMUP' })}
+                    className="w-full bg-green-600 hover:bg-green-700 px-2 text-sm font-semibold"
+                    variant="default"
+                  >
+                    <Play className="mr-1 h-4 w-4" />
+                    COMENZAR PARTIDO
+                  </Button>
+                ) : (
+                  <Button
+                      onClick={handleToggleClock}
+                      className="w-full"
+                      variant={state.live.clock.isClockRunning ? "destructive" : "default"}
+                      aria-label={state.live.clock.isClockRunning ? "Pausar Reloj" : "Iniciar Reloj"}
+                      disabled={(state.live.clock.currentTime <= 0 && !state.live.clock.isClockRunning && state.live.clock.periodDisplayOverride !== "Time Out") || state.live.clock.periodDisplayOverride === "End of Game" || state.live.clock.isFlashingZero}
+                  >
+                      {state.live.clock.isClockRunning ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+                      {state.live.clock.isClockRunning ? 'Pausar' : 'Iniciar'} Reloj
+                  </Button>
+                )}
             </div>
             
             <div className="relative mt-1 flex items-center justify-center gap-2">
