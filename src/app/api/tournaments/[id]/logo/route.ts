@@ -8,7 +8,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     try {
         const logoPath = `tournaments/${tournamentId}/logo.png`;
-        const logoData = await storageProvider.readFile(logoPath, 'base64');
+        // The file is already stored as base64 text, just read it as string
+        const logoData = await storageProvider.readFile(logoPath);
 
         return NextResponse.json({
             success: true,
@@ -50,7 +51,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const base64Data = logo.replace(/^data:image\/\w+;base64,/, '');
 
         const logoPath = `tournaments/${tournamentId}/logo.png`;
-        await storageProvider.writeFile(logoPath, base64Data, 'base64');
+        // Store the logo as base64 text (not binary)
+        await storageProvider.writeFile(logoPath, base64Data);
 
         // Update manifest for Supabase sync
         // Convert base64 to buffer to string for consistent hashing
@@ -65,7 +67,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         }
 
         // Trigger storage change notification to sync with other instances
-        await storageProvider.writeFile(`tournaments/${tournamentId}/.logo-updated`, Date.now().toString(), 'utf8');
+        await storageProvider.writeFile(`tournaments/${tournamentId}/.logo-updated`, Date.now().toString());
 
         return NextResponse.json({
             success: true,
@@ -104,7 +106,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         }
 
         // Trigger storage change notification to sync with other instances
-        await storageProvider.writeFile(`tournaments/${tournamentId}/.logo-updated`, Date.now().toString(), 'utf8');
+        await storageProvider.writeFile(`tournaments/${tournamentId}/.logo-updated`, Date.now().toString());
 
         return NextResponse.json({
             success: true,
