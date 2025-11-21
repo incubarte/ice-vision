@@ -20,6 +20,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Checkbox } from '../ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
+import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 
 export function FixtureListView() {
   const { state, dispatch } = useGameState();
@@ -186,11 +187,17 @@ export function FixtureListView() {
               sortedMatches.map(match => {
                 const homeTeam = selectedTournament?.teams.find(t => t.id === match.homeTeamId);
                 const awayTeam = selectedTournament?.teams.find(t => t.id === match.awayTeamId);
-                
-                const score = (match.homeScore !== undefined && match.awayScore !== undefined)
-                    ? `${match.homeScore} - ${match.awayScore}`
+
+                // Calculate score from summary (single source of truth)
+                const score = match.summary
+                    ? (() => {
+                        const { home, away } = calculateScoreFromSummary(match.summary);
+                        return `${home} - ${away}`;
+                      })()
                     : '-';
-                
+
+                const wentToOTOrSO = match.summary ? hasOvertimeOrShootout(match.summary) : false;
+
                 return (
                   <TableRow key={match.id}>
                     <TableCell>{format(new Date(match.date), "dd/MM/yy HH:mm", { locale: es })}</TableCell>
@@ -198,7 +205,7 @@ export function FixtureListView() {
                     <TableCell>{homeTeam?.name || 'Equipo no encontrado'}</TableCell>
                     <TableCell>{awayTeam?.name || 'Equipo no encontrado'}</TableCell>
                     <TableCell className="text-center font-mono font-bold">{score}</TableCell>
-                    <TableCell className="text-center">{match.overTimeOrShootouts && <CheckIcon className="h-4 w-4 mx-auto text-green-500"/>}</TableCell>
+                    <TableCell className="text-center">{wentToOTOrSO && <CheckIcon className="h-4 w-4 mx-auto text-green-500"/>}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
                         {match.summary && (

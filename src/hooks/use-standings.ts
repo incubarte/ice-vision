@@ -3,6 +3,7 @@
 
 import { useMemo } from 'react';
 import type { Tournament, TeamData, CategoryData } from '@/types';
+import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 
 interface TeamStats {
   id: string;
@@ -39,11 +40,9 @@ export function useStandings(tournament: Tournament | null | undefined, category
             if (!match.summary) return; // Should not happen due to filter, but for type safety
 
             teamStats.pj++;
-            
-            const homeGoals = (match.summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (match.summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
-            const awayGoals = (match.summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (match.summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
-            
-            const wentToOTOrSO = match.overTimeOrShootouts || false;
+
+            const { home: homeGoals, away: awayGoals } = calculateScoreFromSummary(match.summary);
+            const wentToOTOrSO = hasOvertimeOrShootout(match.summary);
             const isHome = match.homeTeamId === team.id;
             
             teamStats.gf += isHome ? homeGoals : awayGoals;

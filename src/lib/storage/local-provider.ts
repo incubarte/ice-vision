@@ -185,17 +185,11 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
 
         (tournament.matches || []).forEach(match => {
             const { summary, ...matchWithoutSummary } = match;
-            
+
             if (summary) {
                 const summaryPath = path.join(summariesDir, `${match.id}.json`);
                 summaryWritePromises.push(writeJsonFile(summaryPath, summary));
-                
-                 const homeScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
-                 const awayScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
-                
-                matchWithoutSummary.homeScore = homeScore;
-                matchWithoutSummary.awayScore = awayScore;
-                matchWithoutSummary.overTimeOrShootouts = summary.overTimeOrShootouts;
+                // Note: Score and overtime info are calculated from summary when needed
             }
             fixtureMatches.push(matchWithoutSummary);
         });

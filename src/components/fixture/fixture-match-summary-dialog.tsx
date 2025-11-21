@@ -17,6 +17,7 @@ import { Separator } from "../ui/separator";
 import { AddPenaltyForm } from "../shared/add-penalty-form";
 import { safeUUID } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { calculateScoreFromSummary } from "@/lib/match-helpers";
 
 interface FixtureMatchSummaryDialogProps {
   isOpen: boolean;
@@ -297,8 +298,9 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   if (!match || !tournament || !localSummary) return null;
 
   const { statsByPeriod, playedPeriods } = localSummary;
-  const finalHomeScore = (match.homeScore === undefined) ? aggregatedGoals.home.length : match.homeScore;
-  const finalAwayScore = (match.awayScore === undefined) ? aggregatedGoals.away.length : match.awayScore;
+
+  // Calculate score from summary (single source of truth)
+  const { home: finalHomeScore, away: finalAwayScore } = calculateScoreFromSummary(localSummary);
 
 
   return (

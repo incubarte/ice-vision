@@ -98,13 +98,7 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
                 const summaryKey = `${tournamentPrefix}summaries/${match.id}.json`;
                 const summaryContent = JSON.stringify(summary, null, 2);
                 summaryWritePromises.push(storageProvider.writeFile(summaryKey, summaryContent));
-
-                const homeScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.home?.length ?? 0), 0) + (summary.shootout?.homeAttempts.filter(a => a.isGoal).length ?? 0);
-                const awayScore = (summary.statsByPeriod || []).reduce((acc, p) => acc + (p.stats.goals.away?.length ?? 0), 0) + (summary.shootout?.awayAttempts.filter(a => a.isGoal).length ?? 0);
-
-                matchWithoutSummary.homeScore = homeScore;
-                matchWithoutSummary.awayScore = awayScore;
-                matchWithoutSummary.overTimeOrShootouts = summary.overTimeOrShootouts;
+                // Note: Score and overtime info are calculated from summary when needed
             }
             fixtureMatches.push(matchWithoutSummary);
         });

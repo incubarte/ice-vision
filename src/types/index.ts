@@ -43,9 +43,7 @@ export interface MatchData {
   awayTeamId: string;
   playersPerTeam: number;
   summary?: GameSummary;
-  homeScore?: number;
-  awayScore?: number;
-  overTimeOrShootouts?: boolean;
+  // Note: Score and overtime info are calculated from summary using match-helpers
 }
 
 
