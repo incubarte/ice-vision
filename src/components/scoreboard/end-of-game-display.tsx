@@ -450,9 +450,10 @@ export function EndOfGameDisplay({
         </div>
       )}
 
-      {/* Score display - top right corner */}
+      {/* Score display - bottom right corner */}
       <motion.div
-        className="absolute top-8 right-8 z-20 bg-background/80 backdrop-blur-md rounded-2xl px-8 py-6 shadow-2xl border border-primary/30"
+        className="absolute bottom-8 right-8 z-20 bg-background/80 backdrop-blur-md rounded-2xl px-8 py-6 shadow-2xl border border-primary/30"
+        style={{ transform: 'scale(0.95)' }}
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, delay: 1 }}
