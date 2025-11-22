@@ -1367,6 +1367,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'DELETE_MATCH_FROM_TOURNAMENT': {
         const { tournamentId, matchId } = action.payload;
+
         const newTournaments = state.config.tournaments.map(t => {
              if (t.id === tournamentId) {
                 const newMatches = (t.matches || []).filter(m => m.id !== matchId);
@@ -1375,6 +1376,28 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
              return t;
         });
         newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
+        toastMessage = { title: "Partido Eliminado", description: "El partido y su resumen han sido movidos a la carpeta de eliminados." };
+        break;
+    }
+    case 'CLEAN_MATCH_SUMMARY': {
+        const { tournamentId, matchId } = action.payload;
+
+        // Remove summary from match in state
+        const newTournaments = state.config.tournaments.map(t => {
+             if (t.id === tournamentId) {
+                const newMatches = (t.matches || []).map(m => {
+                    if (m.id === matchId) {
+                        const { summary, ...matchWithoutSummary } = m;
+                        return matchWithoutSummary;
+                    }
+                    return m;
+                });
+                return { ...t, matches: newMatches };
+             }
+             return t;
+        });
+        newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
+        toastMessage = { title: "Partido Limpiado", description: "El resumen del partido ha sido movido a la carpeta de eliminados." };
         break;
     }
     case 'SAVE_MATCH_SUMMARY': {

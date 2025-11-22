@@ -16,3 +16,19 @@ export const safeUUID = () => {
         return v.toString(16);
     });
 };
+
+/**
+ * Generate a match ID with format: DD-MM-YYYY_hash
+ * @param date The date of the match
+ * @returns A match ID with date prefix
+ */
+export const generateMatchId = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    // Generate a short hash (8 characters from UUID)
+    const hash = safeUUID().substring(0, 8);
+
+    return `${day}-${month}-${year}_${hash}`;
+};

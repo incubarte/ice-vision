@@ -6,7 +6,7 @@ import { useGameState, getCategoryNameById } from '@/contexts/game-state-context
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Edit, Trash2, FileText, Search, ListFilter, Calendar as CalendarIcon, X, Check as CheckIcon, Play } from 'lucide-react';
+import { Edit, Trash2, FileText, Search, ListFilter, Calendar as CalendarIcon, X, Check as CheckIcon, Play, Eraser } from 'lucide-react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddEditMatchDialog } from './add-edit-match-dialog';
@@ -21,6 +21,7 @@ import { Checkbox } from '../ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
+import { deleteMatchWithSummary, cleanMatchSummary } from '@/lib/summary-management';
 
 export function FixtureListView() {
   const { state, dispatch } = useGameState();
@@ -34,6 +35,7 @@ export function FixtureListView() {
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
   const [matchToEdit, setMatchToEdit] = useState<MatchData | null>(null);
   const [matchToDelete, setMatchToDelete] = useState<MatchData | null>(null);
+  const [matchToClean, setMatchToClean] = useState<MatchData | null>(null);
   const [matchToShowSummary, setMatchToShowSummary] = useState<MatchData | null>(null);
 
   // Filter states
@@ -88,11 +90,40 @@ export function FixtureListView() {
     setIsAddEditDialogOpen(true);
   };
   
-  const handleDeleteMatch = () => {
+  const handleDeleteMatch = async () => {
     if (isReadOnly || !matchToDelete || !selectedTournamentId) return;
-    dispatch({ type: 'DELETE_MATCH_FROM_TOURNAMENT', payload: { tournamentId: selectedTournamentId, matchId: matchToDelete.id }});
-    toast({ title: 'Partido Eliminado', description: 'El partido ha sido eliminado del fixture.' });
+
+    try {
+      // Move summary to deleted-matches folder (server-side)
+      await deleteMatchWithSummary(selectedTournamentId, matchToDelete.id);
+
+      // Update state
+      dispatch({ type: 'DELETE_MATCH_FROM_TOURNAMENT', payload: { tournamentId: selectedTournamentId, matchId: matchToDelete.id }});
+      toast({ title: 'Partido Eliminado', description: 'El partido ha sido eliminado del fixture.' });
+    } catch (error) {
+      console.error('[DELETE_MATCH] Error:', error);
+      toast({ title: 'Error', description: 'No se pudo eliminar el partido.', variant: 'destructive' });
+    }
+
     setMatchToDelete(null);
+  };
+
+  const handleCleanMatch = async () => {
+    if (isReadOnly || !matchToClean || !selectedTournamentId) return;
+
+    try {
+      // Move summary to deleted-summaries folder (server-side)
+      await cleanMatchSummary(selectedTournamentId, matchToClean.id);
+
+      // Update state
+      dispatch({ type: 'CLEAN_MATCH_SUMMARY', payload: { tournamentId: selectedTournamentId, matchId: matchToClean.id }});
+      toast({ title: 'Partido Limpiado', description: 'El resumen del partido ha sido eliminado.' });
+    } catch (error) {
+      console.error('[CLEAN_MATCH] Error:', error);
+      toast({ title: 'Error', description: 'No se pudo limpiar el partido.', variant: 'destructive' });
+    }
+
+    setMatchToClean(null);
   };
 
   const handlePlayMatch = (match: MatchData) => {
@@ -209,8 +240,13 @@ export function FixtureListView() {
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
                         {match.summary && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMatchToShowSummary(match)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMatchToShowSummary(match)} title="Ver resumen">
                                 <FileText className="h-4 w-4 text-blue-400" />
+                            </Button>
+                        )}
+                        {!isReadOnly && match.summary && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-500 hover:text-orange-600" onClick={() => setMatchToClean(match)} title="Limpiar resumen del partido">
+                                <Eraser className="h-4 w-4" />
                             </Button>
                         )}
                         {!isReadOnly && (
@@ -218,10 +254,10 @@ export function FixtureListView() {
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600" onClick={() => handlePlayMatch(match)} title="Jugar partido">
                               <Play className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMatch(match)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMatch(match)} title="Editar partido">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setMatchToDelete(match)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setMatchToDelete(match)} title="Eliminar partido">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
@@ -266,13 +302,32 @@ export function FixtureListView() {
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Eliminación</AlertDialogTitle>
               <AlertDialogDescription>
-                ¿Estás seguro de que quieres eliminar este partido? Esta acción no se puede deshacer.
+                ¿Estás seguro de que quieres eliminar este partido? Esta acción moverá el partido y su resumen a la carpeta de eliminados.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setMatchToDelete(null)}>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeleteMatch} className="bg-destructive hover:bg-destructive/90">
                 Eliminar Partido
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {!isReadOnly && matchToClean && (
+        <AlertDialog open={!!matchToClean} onOpenChange={() => setMatchToClean(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Limpieza de Resumen</AlertDialogTitle>
+              <AlertDialogDescription>
+                ¿Estás seguro de que quieres limpiar el resumen de este partido? El resumen se moverá a la carpeta de eliminados, pero el partido permanecerá en el fixture.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setMatchToClean(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCleanMatch} className="bg-orange-600 hover:bg-orange-700">
+                Limpiar Resumen
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

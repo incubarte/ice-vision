@@ -572,6 +572,7 @@ export type GameAction =
   | { type: 'ADD_MATCH_TO_TOURNAMENT'; payload: { tournamentId: string; match: Omit<MatchData, 'id'> & {id: string} } }
   | { type: 'UPDATE_MATCH_IN_TOURNAMENT'; payload: { tournamentId: string; match: MatchData } }
   | { type: 'DELETE_MATCH_FROM_TOURNAMENT'; payload: { tournamentId: string; matchId: string } }
+  | { type: 'CLEAN_MATCH_SUMMARY'; payload: { tournamentId: string; matchId: string } }
   | { type: 'SAVE_MATCH_SUMMARY'; payload: { matchId: string; summary: GameSummary; } }
   | { type: 'HYDRATE_FROM_SERVER'; payload: Partial<GameState> }
   | { type: 'HYDRATE_TOURNAMENT_DETAILS', payload: { tournamentData: Partial<Tournament> } }

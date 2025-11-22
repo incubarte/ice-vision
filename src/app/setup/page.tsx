@@ -22,7 +22,7 @@ import { PenaltySettingsCard } from '@/components/config/penalty-settings-card';
 import { StoppedTimeAlertCard } from '@/components/config/stopped-time-alert-card';
 import { isToday, format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { safeUUID } from '@/lib/utils';
+import { generateMatchId } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
 
 const TeamSelector = ({
@@ -195,9 +195,10 @@ function SetupPageContent() {
                     toast({ title: "Datos Incompletos", description: "Por favor, selecciona una categoría y ambos equipos para continuar.", variant: "destructive" });
                     return;
                 }
+                const matchDate = new Date();
                 const newMatch: MatchData = {
-                    id: safeUUID(),
-                    date: new Date().toISOString(),
+                    id: generateMatchId(matchDate),
+                    date: matchDate.toISOString(),
                     categoryId: localCategoryId,
                     homeTeamId: homeTeamId,
                     awayTeamId: awayTeamId,
