@@ -6,6 +6,7 @@ import { ConditionalToaster } from "@/components/ui/conditional-toaster";
 import { cn } from '@/lib/utils';
 import { PageShell } from '@/components/layout/page-shell';
 import { Analytics } from "@vercel/analytics/next";
+import { ReferralBlocker } from '@/components/layout/referral-blocker';
 
 export const metadata: Metadata = {
   title: 'IceVision - Hockey Scoreboard',
@@ -29,6 +30,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
+        <ReferralBlocker />
         <GameStateProvider>
           <PageShell>{children}</PageShell>
           <ConditionalToaster />
