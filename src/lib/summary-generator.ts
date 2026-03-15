@@ -133,25 +133,20 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
         }
     }
 
-    const currentTournament = config.tournaments.find(t => t.id === config.selectedTournamentId);
+    // Prefer matchContext roster (snapshot at game setup), fall back to activeTournament
+    const matchContext = live.matchContext;
+    const currentTournament = config.activeTournament;
 
-    console.log('[DEBUG Summary] 🔍 Looking for rosters:', {
-        homeTeamName: live.homeTeamName,
-        awayTeamName: live.awayTeamName,
-        homeTeamSubName: live.homeTeamSubName,
-        awayTeamSubName: live.awayTeamSubName,
-        selectedMatchCategory: config.selectedMatchCategory,
-        tournamentTeamsCount: currentTournament?.teams?.length || 0,
-        availableTeamNames: currentTournament?.teams?.map(t => ({ name: t.name, subName: t.subName, category: t.category })).slice(0, 5) || []
-    });
+    const homeTeamRoster = matchContext?.homeRoster
+        || currentTournament?.teams.find(t => t.name === live.homeTeamName && (t.subName || undefined) === (live.homeTeamSubName || undefined) && t.category === config.selectedMatchCategory)?.players
+        || [];
+    const awayTeamRoster = matchContext?.awayRoster
+        || currentTournament?.teams.find(t => t.name === live.awayTeamName && (t.subName || undefined) === (live.awayTeamSubName || undefined) && t.category === config.selectedMatchCategory)?.players
+        || [];
 
-    const homeTeamRoster = currentTournament?.teams.find(t => t.name === live.homeTeamName && (t.subName || undefined) === (live.homeTeamSubName || undefined) && t.category === config.selectedMatchCategory)?.players || [];
-    const awayTeamRoster = currentTournament?.teams.find(t => t.name === live.awayTeamName && (t.subName || undefined) === (live.awayTeamSubName || undefined) && t.category === config.selectedMatchCategory)?.players || [];
-
-    console.log('[DEBUG Summary] 🔍 Roster search results:', {
-        homeRosterFound: homeTeamRoster.length > 0,
+    console.log('[DEBUG Summary] Roster sources:', {
+        usingMatchContext: !!matchContext,
         homeRosterSize: homeTeamRoster.length,
-        awayRosterFound: awayTeamRoster.length > 0,
         awayRosterSize: awayTeamRoster.length
     });
 
@@ -223,18 +218,19 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
             const attendanceList = isHome ? (live.attendance?.home || []) : (live.attendance?.away || []);
             const statsArray = isHome ? periodData.playerStats.home : periodData.playerStats.away;
 
+            const eventPlayerNumber = 'playerNumber' in event.data ? (event.data as { playerNumber: string }).playerNumber : undefined;
             console.log(`[DEBUG Summary] 🎯 Processing voice event ${index + 1}/${voiceEventsForPeriod.length}:`, {
                 team: event.data.team,
-                playerNumber: event.data.playerNumber,
-                hasPlayerNumber: 'playerNumber' in event.data,
+                playerNumber: eventPlayerNumber,
+                hasPlayerNumber: !!eventPlayerNumber,
                 attendanceSize: attendanceList.length
             });
 
             // Find player by number (only for shot events with playerNumber)
-            if ('playerNumber' in event.data) {
-                const player = attendanceList.find(p => p.number === event.data.playerNumber);
+            if (eventPlayerNumber) {
+                const player = attendanceList.find(p => p.number === eventPlayerNumber);
                 console.log(`[DEBUG Summary] 🎯 Player search result:`, {
-                    searchingFor: event.data.playerNumber,
+                    searchingFor: eventPlayerNumber,
                     playerFound: !!player,
                     playerId: player?.id,
                     playerName: player?.name,
@@ -338,11 +334,12 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
     }
 
     // Include staff assignment in summary
-    if (live.assignedStaff && currentTournament?.staff) {
+    const staffSource = matchContext?.staff || currentTournament?.staff;
+    if (live.assignedStaff && staffSource) {
         const mesaStaffInfo = live.assignedStaff.mesa
             .map((id, index) => {
                 if (id === null) return null;
-                const staff = currentTournament.staff?.find(s => s.id === id);
+                const staff = staffSource.find(s => s.id === id);
                 if (!staff) return null;
                 return {
                     id: staff.id,
@@ -356,7 +353,7 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
         const refereesStaffInfo = live.assignedStaff.referees
             .map((id, index) => {
                 if (id === null) return null;
-                const staff = currentTournament.staff?.find(s => s.id === id);
+                const staff = staffSource.find(s => s.id === id);
                 if (!staff) return null;
                 return {
                     id: staff.id,

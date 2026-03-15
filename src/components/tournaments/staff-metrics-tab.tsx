@@ -23,7 +23,7 @@ interface StaffMetricsTabProps {
 
 export function StaffMetricsTab({ tournamentId }: StaffMetricsTabProps) {
   const { state } = useGameState();
-  const tournament = state.config.tournaments.find(t => t.id === tournamentId);
+  const tournament = state.config.activeTournament;
 
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 

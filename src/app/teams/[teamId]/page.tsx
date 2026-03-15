@@ -27,8 +27,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
-import type { PlayerData, Tournament } from "@/types";
+import { type PlayerData, type Tournament, isTournamentHydrated } from "@/types";
 import { Badge } from "@/components/ui/badge";
+import { HockeyPuckSpinner } from "@/components/ui/hockey-puck-spinner";
 
 type ViewMode = 'list' | 'grid';
 
@@ -38,31 +39,27 @@ export default function ManageTeamPage() {
   const { state, dispatch, isLoading } = useGameState();
   const { toast } = useToast();
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
+  const { activeTournament, tournaments } = state.config;
 
   const teamId = typeof params.teamId === 'string' ? params.teamId : undefined;
 
-  const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [team, setTeam] = useState(teamId ? tournament?.teams.find(t => t.id === teamId) : undefined);
+  const tournament = useMemo(() => {
+    if (activeTournament && activeTournament.teams?.some(tm => tm.id === teamId)) {
+      return activeTournament;
+    }
+    return null;
+  }, [activeTournament, teamId]);
+
+  const team = useMemo(() => {
+    return tournament?.teams?.find(tm => tm.id === teamId);
+  }, [tournament, teamId]);
+
+  const isHydrated = isTournamentHydrated(tournament) && !!team;
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [editingPlayer, setEditingPlayer] = useState<PlayerData | null>(null);
-
-  useEffect(() => {
-    if (teamId) {
-      for (const t of (state.config.tournaments || [])) {
-        if (t.teams) { // Check if the teams array exists
-          const foundTeam = t.teams.find(tm => tm.id === teamId);
-          if (foundTeam) {
-            setTeam(foundTeam);
-            setTournament(t);
-            break;
-          }
-        }
-      }
-    }
-  }, [teamId, state.config.tournaments]);
 
   const sortedPlayers = useMemo(() => {
     if (!team?.players) return [];
@@ -107,8 +104,13 @@ export default function ManageTeamPage() {
     );
   }, [playerStats, team]);
 
-  if (isLoading) {
-    return <div className="text-center text-muted-foreground py-10">Cargando datos del equipo...</div>;
+  if (isLoading || !isHydrated) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <HockeyPuckSpinner />
+        <p className="text-muted-foreground animate-pulse">Cargando datos del equipo...</p>
+      </div>
+    );
   }
 
   if (!team || !tournament) {

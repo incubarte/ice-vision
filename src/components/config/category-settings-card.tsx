@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
-import { useGameState, type CategoryData } from "@/contexts/game-state-context";
+import { useGameState } from "@/contexts/game-state-context";
+import type { CategoryData } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -27,8 +28,8 @@ export const CategorySettingsCard = forwardRef<CategorySettingsCardRef, Category
   const { toast } = useToast();
   const { onDirtyChange } = props;
 
-  const { selectedTournamentId, tournaments } = state.config;
-  const selectedTournament = tournaments.find(t => t.id === selectedTournamentId);
+  const { selectedTournamentId, activeTournament } = state.config;
+  const selectedTournament = activeTournament;
   const availableCategories = selectedTournament?.categories || [];
 
   const [localCategoriesString, setLocalCategoriesString] = useState(
@@ -73,7 +74,7 @@ export const CategorySettingsCard = forwardRef<CategorySettingsCardRef, Category
     }
     
     const finalCategories: CategoryData[] = Array.from(new Set(categoryNames))
-        .map(name => ({ id: safeUUID(), name })); 
+        .map(name => ({ id: safeUUID(), name, classificationRounds: 1 }));
 
     dispatch({ type: "SET_CATEGORIES_FOR_TOURNAMENT", payload: { tournamentId: selectedTournamentId, categories: finalCategories } });
     

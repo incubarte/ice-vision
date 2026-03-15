@@ -48,7 +48,11 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
             const initialDate = matchToEdit ? new Date(matchToEdit.date) : (selectedDate || new Date());
             setDate(initialDate);
             setTime(format(initialDate, 'HH:mm'));
-            const cat = matchToEdit?.categoryId || tournament?.categories?.[0]?.id || '';
+            
+            // Priority: matchToEdit -> already set state (if valid) -> first tournament category -> empty
+            const currentCat = categoryId && tournament?.categories?.some(c => c.id === categoryId) ? categoryId : '';
+            const cat = matchToEdit?.categoryId || currentCat || tournament?.categories?.[0]?.id || '';
+            
             const home = matchToEdit?.homeTeamId || '';
             const away = matchToEdit?.awayTeamId || '';
 
@@ -281,9 +285,13 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                                 <SelectValue placeholder="Seleccionar categoría..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {tournament?.categories?.map(cat => (
-                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                ))}
+                                {tournament?.categories && tournament.categories.length > 0 ? (
+                                    tournament.categories.map(cat => (
+                                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                    ))
+                                ) : (
+                                    <SelectItem value="none" disabled>No hay categorías definidas</SelectItem>
+                                )}
                             </SelectContent>
                         </Select>
                     </div>

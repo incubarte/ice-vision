@@ -10,10 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trophy, Info, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { useStandings } from '@/hooks/use-standings';
 import { cn } from '@/lib/utils';
-import type { Tournament, MatchData } from '@/types';
+import { type Tournament, type MatchData, isTournamentHydrated } from '@/types';
 import { calculateScoreFromSummary } from '@/lib/match-helpers';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 
 const StandingsTable = ({ categoryName, categoryId, tournament }: { categoryName: string, categoryId: string, tournament: any }) => {
     const stats = useStandings(tournament, categoryId);
@@ -567,21 +568,35 @@ interface StandingsTabProps {
 
 export function StandingsTab({ tournamentId }: StandingsTabProps = {}) {
     const { state } = useGameState();
-    const { tournaments, selectedTournamentId } = state.config;
+    const { tournaments, selectedTournamentId, activeTournament } = state.config;
 
     // Use tournamentId prop if provided, otherwise fall back to selectedTournamentId from state
     const activeTournamentId = tournamentId || selectedTournamentId;
 
     const selectedTournament = useMemo(() => {
+        if (activeTournament && activeTournament.id === activeTournamentId) {
+            return activeTournament;
+        }
         return (tournaments || []).find(t => t.id === activeTournamentId);
-    }, [tournaments, activeTournamentId]);
+    }, [tournaments, activeTournamentId, activeTournament]);
+
+    const isHydrated = isTournamentHydrated(selectedTournament);
 
     const categoriesWithTeams = useMemo(() => {
-        if (!selectedTournament) return [];
+        if (!isHydrated || !selectedTournament) return [];
         return selectedTournament.categories.filter(cat =>
             (selectedTournament.teams || []).some(team => team.category === cat.id)
         );
-    }, [selectedTournament]);
+    }, [selectedTournament, isHydrated]);
+
+    if (!isHydrated) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <HockeyPuckSpinner />
+                <p className="text-muted-foreground animate-pulse">Cargando posiciones...</p>
+            </div>
+        );
+    }
 
     if (!selectedTournament) return null;
 

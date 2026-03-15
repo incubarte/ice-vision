@@ -4,7 +4,7 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useReducer, useEffect, useRef, useState, useCallback } from 'react';
-import type { Penalty, Team, TeamData, PlayerData, CategoryData, ConfigState, LiveState, FormatAndTimingsProfile, FormatAndTimingsProfileData, ScoreboardLayoutSettings, ScoreboardLayoutProfile, GameSummary, GoalLog, PenaltyLog, PreTimeoutState, PeriodDisplayOverrideType, ClockState, ScoreState, PenaltiesState, GameState, GameAction, TunnelState, PenaltyTypeDefinition, AttendedPlayerInfo, ShootoutState, ShotLog, PlayerSubstitutionLog, SummaryPlayerStats, Tournament, MatchData, PeriodSummary, ReplaySettings, ShootoutAttempt, GoalkeeperChangeLog } from '@/types';
+import type { Penalty, Team, TeamData, PlayerData, CategoryData, ConfigState, LiveState, FormatAndTimingsProfile, FormatAndTimingsProfileData, ScoreboardLayoutSettings, ScoreboardLayoutProfile, GameSummary, GoalLog, PenaltyLog, PreTimeoutState, PeriodDisplayOverrideType, ClockState, ScoreState, PenaltiesState, GameState, GameAction, TunnelState, PenaltyTypeDefinition, AttendedPlayerInfo, ShootoutState, ShotLog, PlayerSubstitutionLog, SummaryPlayerStats, Tournament, TournamentMetadata, MatchData, PeriodSummary, ReplaySettings, ShootoutAttempt, GoalkeeperChangeLog } from '@/types';
 import { useToast as showToast } from '@/hooks/use-toast';
 import isEqual from 'lodash.isequal';
 import { updateConfigOnServer, updateGameStateOnServer, saveTournamentOnServer } from '@/app/actions';
@@ -131,6 +131,7 @@ const INITIAL_LIVE_DATA: LiveState = {
   replayLoadRequest: null,
   replayOverlay: null,
   matchId: null,
+  matchContext: null,
   playedPeriods: [],
 };
 
@@ -179,6 +180,7 @@ const getInitialState = (): GameState => {
       selectedScoreboardLayoutProfileId: defaultInitialLayoutProfile.id,
       selectedMatchCategory: '',
       tournaments: [],
+      activeTournament: null,
       selectedTournamentId: null,
       tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
       replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,
@@ -245,10 +247,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'HIDE_GOAL_CELEBRATION':
       newState = { ...state, live: { ...state.live, goalCelebration: null } };
       break;
-    case 'HYDRATE_FROM_SERVER': {
+    case 'INITIALIZE_STATE': {
       const serverState = action.payload;
       if (!serverState.config) {
-        console.error("Hydration from server failed: config is missing.");
+        console.error("Initialization from server failed: config is missing.");
         return state; // Return current state if server data is incomplete
       }
 
@@ -262,6 +264,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           // Ensure critical properties have defaults if missing
           tunnel: serverState.config.tunnel || initialState.config.tunnel,
           replays: serverState.config.replays || initialState.config.replays,
+          // Ensure activeTournament is correctly set if provided from server (e.g., during sync)
+          activeTournament: serverState.config.activeTournament || state.config.activeTournament || null,
         },
         _initialConfigLoadComplete: true,
       };
@@ -280,14 +284,29 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       newState = applyScoreboardLayoutProfileToState(newState, finalState.config.selectedScoreboardLayoutProfileId);
       break;
     }
-    case 'HYDRATE_TOURNAMENT_DETAILS': {
+    case 'LOAD_TOURNAMENT_CONTEXT': {
       const { tournamentData } = action.payload;
       if (!tournamentData) return state;
-      console.log('[Reducer] HYDRATE_TOURNAMENT_DETAILS', tournamentData.id, 'teams:', tournamentData.teams?.length, 'categories:', tournamentData.categories?.length);
-      const newTournaments = state.config.tournaments.map(t =>
-        t.id === tournamentData.id ? { ...t, ...tournamentData } : t
-      );
-      newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
+      console.log('[Reducer] LOAD_TOURNAMENT_CONTEXT', tournamentData.id, 'teams:', tournamentData.teams?.length, 'categories:', tournamentData.categories?.length);
+
+      // Ensure required fields have defaults before setting as active tournament
+      const hydrated: Tournament = {
+        id: tournamentData.id!,
+        name: tournamentData.name || '',
+        status: tournamentData.status || 'active',
+        teams: tournamentData.teams || [],
+        categories: tournamentData.categories || [],
+        matches: tournamentData.matches || [],
+        staff: tournamentData.staff,
+      };
+
+      newState = {
+        ...state,
+        config: {
+          ...state.config,
+          activeTournament: hydrated
+        }
+      };
       break;
     }
     case 'SET_STATE_FROM_LOCAL_BROADCAST': {
@@ -520,7 +539,23 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const isFinishingSoon = state.live.clock.isClockRunning && state.live.clock.currentTime < 500;
       const anyPenaltyEndingSoon = [...live.penalties.home, ...live.penalties.away].some(p => p.expirationTime && (p.expirationTime - state.live.clock._liveAbsoluteElapsedTimeCs) < 1500);
       if (!isFinishingSoon && !anyPenaltyEndingSoon) {
-        const teamData = config.tournaments.find(t => t.id === config.selectedTournamentId)?.teams.find(t => t.name === live[`${teamScored}TeamName`] && (t.subName || undefined) === (live[`${teamScored}TeamSubName`] || undefined) && t.category === config.selectedMatchCategory);
+        // Build teamData from matchContext roster (for player photos) instead of activeTournament
+        const mc = live.matchContext;
+        let teamData: TeamData | undefined;
+        if (mc) {
+          const roster = teamScored === 'home' ? mc.homeRoster : mc.awayRoster;
+          teamData = {
+            id: teamScored === 'home' ? mc.homeTeamId : mc.awayTeamId,
+            name: live[`${teamScored}TeamName`],
+            subName: live[`${teamScored}TeamSubName`],
+            logoDataUrl: teamScored === 'home' ? mc.homeTeamLogoDataUrl : mc.awayTeamLogoDataUrl,
+            players: roster,
+            category: mc.categoryId,
+          };
+        } else {
+          // Fallback to activeTournament for backward compat
+          teamData = config.activeTournament?.id === config.selectedTournamentId ? config.activeTournament.teams.find(t => t.name === live[`${teamScored}TeamName`] && (t.subName || undefined) === (live[`${teamScored}TeamSubName`] || undefined) && t.category === config.selectedMatchCategory) : undefined;
+        }
         goalCelebration = { id: safeUUID(), goal: newGoal, teamData };
       }
 
@@ -703,8 +738,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       }
 
       const newPenaltyId = safeUUID();
-      const teamDetails = config.tournaments.find(t => t.id === config.selectedTournamentId)?.teams.find(t => t.name === live[`${team}TeamName`] && (t.subName || undefined) === (live[`${team}TeamSubName`] || undefined) && t.category === config.selectedMatchCategory);
-      const playerDetails = teamDetails?.players.find(p => p.number === playerNumber);
+      // Use attendance for player lookup (source of truth during games)
+      const attendancePlayers = live.attendance[team] || [];
+      const playerDetails = attendancePlayers.find(p => p.number === playerNumber);
 
       const newPenaltyLog: PenaltyLog = {
         id: newPenaltyId,
@@ -1522,100 +1558,145 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'SET_CATEGORIES_FOR_TOURNAMENT': {
-      newState = { ...state, config: { ...state.config, tournaments: (state.config.tournaments || []).map(t => t.id === action.payload.tournamentId ? { ...t, categories: action.payload.categories } : t) } };
+      if (state.config.activeTournament?.id === action.payload.tournamentId) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: { ...state.config.activeTournament, categories: action.payload.categories }
+          }
+        };
+      } else {
+        console.warn(`[Reducer] SET_CATEGORIES_FOR_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
+      }
       break;
     }
     case 'ADD_CATEGORIES_TO_TOURNAMENT': {
-      newState = { ...state, config: { ...state.config, tournaments: (state.config.tournaments || []).map(t => t.id === action.payload.tournamentId ? { ...t, categories: [...(t.categories || []), ...action.payload.categories] } : t) } };
+      if (state.config.activeTournament?.id === action.payload.tournamentId) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              categories: [...(state.config.activeTournament.categories || []), ...action.payload.categories]
+            }
+          }
+        };
+      } else {
+        console.warn(`[Reducer] ADD_CATEGORIES_TO_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
+      }
       break;
     }
     case 'SET_SELECTED_MATCH_CATEGORY': newState = { ...state, config: { ...state.config, selectedMatchCategory: action.payload } }; toastMessage = { title: "Categoría del Partido Actualizada" }; break;
     case 'UPDATE_TUNNEL_STATE': newState = { ...state, config: { ...state.config, tunnel: { ...state.config.tunnel, ...action.payload } } }; break;
     case 'ADD_TOURNAMENT': {
-      const newTournament: Tournament = {
+      const newTournament: TournamentMetadata = {
         id: safeUUID(),
         name: action.payload.name,
         status: action.payload.status,
-        teams: [],
-        categories: [],
-        matches: [],
       };
       newState = { ...state, config: { ...state.config, tournaments: [...(state.config.tournaments || []), newTournament] } };
       break;
     }
     case 'UPDATE_TOURNAMENT': {
-      newState = { ...state, config: { ...state.config, tournaments: (state.config.tournaments || []).map(t => t.id === action.payload.id ? { ...t, ...action.payload } : t) } };
+      const updatedTournaments = (state.config.tournaments || []).map(t => t.id === action.payload.id ? { ...t, ...action.payload } : t);
+      let updatedActiveTournament = state.config.activeTournament;
+      if (updatedActiveTournament?.id === action.payload.id) {
+        updatedActiveTournament = { ...updatedActiveTournament, ...action.payload };
+      }
+      newState = { ...state, config: { ...state.config, tournaments: updatedTournaments, activeTournament: updatedActiveTournament } };
       break;
     }
     case 'DELETE_TOURNAMENT': {
-      newState = { ...state, config: { ...state.config, tournaments: (state.config.tournaments || []).filter(t => t.id !== action.payload.id) } };
+      let updatedActiveTournament = state.config.activeTournament;
+      if (updatedActiveTournament?.id === action.payload.id) {
+        updatedActiveTournament = null;
+      }
+      newState = { ...state, config: { ...state.config, tournaments: (state.config.tournaments || []).filter(t => t.id !== action.payload.id), activeTournament: updatedActiveTournament } };
       break;
     }
     case 'SET_ACTIVE_TOURNAMENT': {
-      const selectedTournament = (state.config.tournaments || []).find(t => t.id === action.payload.tournamentId);
-      const selectedCategory = (selectedTournament?.categories || [])[0]?.id || '';
+      // Use activeTournament for categories if it matches, otherwise reset category
+      const activeCategories = state.config.activeTournament?.id === action.payload.tournamentId
+        ? state.config.activeTournament.categories
+        : [];
+      const selectedCategory = (activeCategories || [])[0]?.id || '';
       newState = { ...state, config: { ...state.config, selectedTournamentId: action.payload.tournamentId, selectedMatchCategory: selectedCategory } };
       break;
     }
     case 'ADD_MATCH_TO_TOURNAMENT': {
       const { tournamentId, match } = action.payload;
-      // Correct way: create a new tournaments array, then map over it.
-      const newTournaments = state.config.tournaments.map(t => {
-        if (t.id === tournamentId) {
-          // Create a new tournament object with a new matches array, ensuring the new match has an ID.
-          return { ...t, matches: [...(t.matches || []), { ...match, id: match.id || safeUUID() }] };
-        }
-        return t;
-      });
-      newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              matches: [...(state.config.activeTournament.matches || []), { ...match, id: match.id || safeUUID() }]
+            }
+          }
+        };
+      } else {
+        console.warn(`[Reducer] ADD_MATCH_TO_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${tournamentId})`);
+      }
       break;
     }
     case 'UPDATE_MATCH_IN_TOURNAMENT': {
       const { tournamentId, match } = action.payload;
-      const newTournaments = state.config.tournaments.map(t => {
-        if (t.id === tournamentId) {
-          // Create a new tournament object with a new matches array
-          const newMatches = (t.matches || []).map(m => m.id === match.id ? match : m);
-          return { ...t, matches: newMatches };
-        }
-        return t;
-      });
-      newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
+      if (state.config.activeTournament?.id === tournamentId) {
+        const newMatches = (state.config.activeTournament.matches || []).map(m => m.id === match.id ? match : m);
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: { ...state.config.activeTournament, matches: newMatches }
+          }
+        };
+      } else {
+        console.warn(`[Reducer] UPDATE_MATCH_IN_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${tournamentId})`);
+      }
       break;
     }
     case 'DELETE_MATCH_FROM_TOURNAMENT': {
       const { tournamentId, matchId } = action.payload;
-
-      const newTournaments = state.config.tournaments.map(t => {
-        if (t.id === tournamentId) {
-          const newMatches = (t.matches || []).filter(m => m.id !== matchId);
-          return { ...t, matches: newMatches };
-        }
-        return t;
-      });
-      newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
-      toastMessage = { title: "Partido Eliminado", description: "El partido y su resumen han sido movidos a la carpeta de eliminados." };
+      if (state.config.activeTournament?.id === tournamentId) {
+        const newMatches = (state.config.activeTournament.matches || []).filter(m => m.id !== matchId);
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: { ...state.config.activeTournament, matches: newMatches }
+          }
+        };
+        toastMessage = { title: "Partido Eliminado", description: "El partido y su resumen han sido movidos a la carpeta de eliminados." };
+      } else {
+        console.warn(`[Reducer] DELETE_MATCH_FROM_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${tournamentId})`);
+      }
       break;
     }
     case 'CLEAN_MATCH_SUMMARY': {
       const { tournamentId, matchId } = action.payload;
-
-      // Remove summary from match in state
-      const newTournaments = state.config.tournaments.map(t => {
-        if (t.id === tournamentId) {
-          const newMatches = (t.matches || []).map(m => {
-            if (m.id === matchId) {
-              const { summary, ...matchWithoutSummary } = m;
-              return matchWithoutSummary;
-            }
-            return m;
-          });
-          return { ...t, matches: newMatches };
-        }
-        return t;
-      });
-      newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
-      toastMessage = { title: "Partido Limpiado", description: "El resumen del partido ha sido movido a la carpeta de eliminados." };
+      if (state.config.activeTournament?.id === tournamentId) {
+        const newMatches = (state.config.activeTournament.matches || []).map(m => {
+          if (m.id === matchId) {
+            const { summary, ...matchWithoutSummary } = m;
+            return matchWithoutSummary;
+          }
+          return m;
+        });
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: { ...state.config.activeTournament, matches: newMatches }
+          }
+        };
+        toastMessage = { title: "Partido Limpiado", description: "El resumen del partido ha sido movido a la carpeta de eliminados." };
+      } else {
+        console.warn(`[Reducer] CLEAN_MATCH_SUMMARY ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
+      }
       break;
     }
     case 'TRIGGER_SUMMARY_GENERATION': {
@@ -1640,297 +1721,216 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const { matchId, summary } = action.payload;
       const tournamentId = state.config.selectedTournamentId;
       console.log('[GameState] UPDATE_MATCH_SUMMARY_IN_STATE - matchId:', matchId, 'tournamentId:', tournamentId);
-      if (!tournamentId) break;
+      
+      if (!tournamentId || state.config.activeTournament?.id !== tournamentId) break;
 
       let playoffMatchesUpdated = false;
+      const t = state.config.activeTournament;
+      
+      let newMatches = (t.matches || []).map(m => {
+        if (m.id === matchId) {
+          return { ...m, summary };
+        }
+        return m;
+      });
 
-      const newTournaments = state.config.tournaments.map(t => {
-        if (t.id === tournamentId) {
-          let newMatches = (t.matches || []).map(m => {
-            if (m.id === matchId) {
-              return { ...m, summary };
-            }
-            return m;
-          });
+      // Si el partido que terminó es una semifinal, actualizar final y 3er puesto
+      const finishedMatch = newMatches.find(m => m.id === matchId);
+      console.log('[GameState] Finished match:', finishedMatch?.phase, finishedMatch?.playoffType);
 
-          // Si el partido que terminó es una semifinal, actualizar final y 3er puesto
-          const finishedMatch = newMatches.find(m => m.id === matchId);
-          console.log('[GameState] Finished match:', finishedMatch?.phase, finishedMatch?.playoffType);
+      if (finishedMatch?.phase === 'playoffs' && finishedMatch?.playoffType === 'semifinal' && summary) {
+        try {
+          const scores = calculateScoreFromSummary(summary);
+          if (scores.home !== scores.away) {
+            const winnerId = scores.home > scores.away ? finishedMatch.homeTeamId : finishedMatch.awayTeamId;
+            const loserId = scores.home > scores.away ? finishedMatch.awayTeamId : finishedMatch.homeTeamId;
 
-          if (finishedMatch?.phase === 'playoffs' && finishedMatch?.playoffType === 'semifinal' && summary) {
-            try {
-              // Calcular ganador y perdedor de la semifinal usando la función helper
-              const scores = calculateScoreFromSummary(summary);
-              console.log('[GameState] Semifinal scores:', scores);
-
-              // Solo proceder si hay un resultado definitivo
-              if (scores.home === scores.away) {
-                // En caso de empate, no actualizar (no debería pasar en playoffs pero por si acaso)
-                console.log('[GameState] Tied game, not updating playoff matches');
-                return { ...t, matches: newMatches };
-              }
-
-              const winnerId = scores.home > scores.away ? finishedMatch.homeTeamId : finishedMatch.awayTeamId;
-              const loserId = scores.home > scores.away ? finishedMatch.awayTeamId : finishedMatch.homeTeamId;
-
-              console.log('[GameState] Winner:', winnerId, 'Loser:', loserId);
-
-              // Validar que ambos IDs existan
-              if (!winnerId || !loserId) {
-                console.log('[GameState] Missing winner or loser ID, not updating');
-                return { ...t, matches: newMatches };
-              }
-
-              // Actualizar partidos de la misma categoría
-              console.log('[GameState] Looking for playoff matches to update in category:', finishedMatch.categoryId);
+            if (winnerId && loserId) {
               newMatches = newMatches.map(m => {
-                // Solo actualizar partidos de la misma categoría
-                if (m.categoryId !== finishedMatch.categoryId || m.phase !== 'playoffs') {
-                  return m;
-                }
-
-                // Actualizar Final con el ganador
+                if (m.categoryId !== finishedMatch.categoryId || m.phase !== 'playoffs') return m;
                 if (m.playoffType === 'final') {
-                  console.log('[GameState] Found final match:', m.id, 'homeTeamId:', m.homeTeamId, 'awayTeamId:', m.awayTeamId, 'winnerId:', winnerId);
-
                   const hasHomeTeam = !!(m.homeTeamId && m.homeTeamId.trim() !== '');
                   const hasAwayTeam = !!(m.awayTeamId && m.awayTeamId.trim() !== '');
                   const homeIsWinner = m.homeTeamId === winnerId;
                   const awayIsWinner = m.awayTeamId === winnerId;
-
-                  console.log('[GameState] hasHomeTeam:', hasHomeTeam, 'hasAwayTeam:', hasAwayTeam, 'homeIsWinner:', homeIsWinner, 'awayIsWinner:', awayIsWinner);
-
-                  // Solo agregar si no está ya presente el ganador
                   if (!hasHomeTeam && !awayIsWinner) {
-                    console.log('[GameState] ✅ Assigning winner to final homeTeamId');
                     playoffMatchesUpdated = true;
                     return { ...m, homeTeamId: winnerId };
                   } else if (!hasAwayTeam && !homeIsWinner) {
-                    console.log('[GameState] ✅ Assigning winner to final awayTeamId');
                     playoffMatchesUpdated = true;
                     return { ...m, awayTeamId: winnerId };
                   }
-                  console.log('[GameState] ❌ Final already has both teams or winner already assigned');
-                  return m; // Si ambos están llenos o el ganador ya está, no cambiar
                 }
-
-                // Actualizar 3er Puesto con el perdedor
                 if (m.playoffType === '3er-puesto') {
-                  console.log('[GameState] Found 3rd place match:', m.id, 'homeTeamId:', m.homeTeamId, 'awayTeamId:', m.awayTeamId, 'loserId:', loserId);
-
                   const hasHomeTeam = !!(m.homeTeamId && m.homeTeamId.trim() !== '');
                   const hasAwayTeam = !!(m.awayTeamId && m.awayTeamId.trim() !== '');
                   const homeIsLoser = m.homeTeamId === loserId;
                   const awayIsLoser = m.awayTeamId === loserId;
-
-                  console.log('[GameState] hasHomeTeam:', hasHomeTeam, 'hasAwayTeam:', hasAwayTeam, 'homeIsLoser:', homeIsLoser, 'awayIsLoser:', awayIsLoser);
-
-                  // Solo agregar si no está ya presente el perdedor
                   if (!hasHomeTeam && !awayIsLoser) {
-                    console.log('[GameState] ✅ Assigning loser to 3rd place homeTeamId');
                     playoffMatchesUpdated = true;
                     return { ...m, homeTeamId: loserId };
                   } else if (!hasAwayTeam && !homeIsLoser) {
-                    console.log('[GameState] ✅ Assigning loser to 3rd place awayTeamId');
                     playoffMatchesUpdated = true;
                     return { ...m, awayTeamId: loserId };
                   }
-                  console.log('[GameState] ❌ 3rd place already has both teams or loser already assigned');
-                  return m; // Si ambos están llenos o el perdedor ya está, no cambiar
                 }
-
                 return m;
               });
-            } catch (error) {
-              console.error('[GameState] Error updating playoff matches after semifinal:', error);
-              // Si hay error, simplemente no actualizamos los partidos
             }
           }
-
-          return { ...t, matches: newMatches };
+        } catch (error) {
+          console.error('[GameState] Error updating playoff matches after semifinal:', error);
         }
-        return t;
-      });
-
-      newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
-
-      // Si se actualizaron partidos de playoffs, guardar el torneo inmediatamente
-      console.log('[GameState] playoffMatchesUpdated:', playoffMatchesUpdated);
-      if (playoffMatchesUpdated && tournamentId) {
-        const updatedTournament = newTournaments.find(t => t.id === tournamentId);
-        if (updatedTournament) {
-          console.log('[GameState] Playoff matches updated, saving tournament immediately...');
-          saveTournamentOnServer(updatedTournament);
-        }
-      } else {
-        console.log('[GameState] Not saving - playoffMatchesUpdated:', playoffMatchesUpdated, 'tournamentId:', tournamentId);
       }
 
+      const updatedActiveTournament = { ...t, matches: newMatches };
+      newState = { ...state, config: { ...state.config, activeTournament: updatedActiveTournament } };
+
+      if (playoffMatchesUpdated) {
+        console.log('[GameState] Playoff matches updated, saving tournament immediately...');
+        saveTournamentOnServer(updatedActiveTournament);
+      }
       break;
     }
     case 'SAVE_MATCH_SUMMARY': {
       const { matchId, summary } = action.payload;
       const tournamentId = state.config.selectedTournamentId;
-      if (!tournamentId) break;
+      if (!tournamentId || state.config.activeTournament?.id !== tournamentId) break;
 
-      // Save summary file asynchronously (non-blocking)
       fetch('/api/match-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tournamentId, matchId, summary })
       })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            console.log(`[GameState] Summary saved for match ${matchId} (only this file was modified)`);
-          } else {
-            console.error('[GameState] Failed to save summary:', data.error);
-          }
-        })
-        .catch(err => console.error('[GameState] Error saving summary:', err));
+      .then(res => res.json())
+      .catch(err => console.error('[GameState] Error saving summary:', err));
 
-      const newTournaments = state.config.tournaments.map(t => {
-        if (t.id === tournamentId) {
-          const newMatches = (t.matches || []).map(m => {
-            if (m.id === matchId) {
-              // Just save the summary - score and OT/SO info will be calculated from it when needed
-              return { ...m, summary };
-            }
-            return m;
-          });
-          return { ...t, matches: newMatches };
-        }
-        return t;
-      });
-      newState = { ...state, config: { ...state.config, tournaments: newTournaments } };
+      const t = state.config.activeTournament;
+      const newMatches = (t.matches || []).map(m => m.id === matchId ? { ...m, summary } : m);
+      newState = { ...state, config: { ...state.config, activeTournament: { ...t, matches: newMatches } } };
       break;
     }
     case 'ADD_TEAM_TO_TOURNAMENT': {
       const { tournamentId, team } = action.payload;
-      newState = {
-        ...state, config: {
-          ...state.config, tournaments: state.config.tournaments.map(t => {
-            if (t.id === tournamentId) {
-              const newTeams = [...(t.teams || []), { ...team, id: team.id || safeUUID() }];
-              return { ...t, teams: newTeams };
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state, config: {
+            ...state.config, 
+            activeTournament: {
+              ...state.config.activeTournament,
+              teams: [...(state.config.activeTournament.teams || []), { ...team, id: team.id || safeUUID() }]
             }
-            return t;
-          })
-        }
-      };
+          }
+        };
+      }
       break;
     }
     case 'DELETE_TEAMS_FROM_TOURNAMENT': {
       const { tournamentId, teamIds } = action.payload;
-      newState = {
-        ...state, config: {
-          ...state.config, tournaments: state.config.tournaments.map(t => {
-            if (t.id === tournamentId) {
-              if (!t.teams) return t;
-              return { ...t, teams: t.teams.filter(team => !teamIds.includes(team.id)) };
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state, config: {
+            ...state.config, 
+            activeTournament: {
+              ...state.config.activeTournament,
+              teams: state.config.activeTournament.teams.filter(team => !teamIds.includes(team.id))
             }
-            return t;
-          })
-        }
-      };
+          }
+        };
+      }
       break;
     }
     case 'UPDATE_TEAM_DETAILS': {
       const { teamId, ...updates } = action.payload;
-      newState = {
-        ...state,
-        config: {
-          ...state.config,
-          tournaments: state.config.tournaments.map(t => {
-            if (!t.teams) return t; // Safety check
-            return {
-              ...t,
-              teams: t.teams.map(team =>
+      if (state.config.activeTournament) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              teams: state.config.activeTournament.teams.map(team =>
                 team.id === teamId ? { ...team, ...updates } : team
               ),
-            };
-          }),
-        },
-      };
-      toastMessage = { title: "Equipo Actualizado", description: `El equipo "${updates.name}" ha sido actualizado.` };
+            },
+          },
+        };
+        toastMessage = { title: "Equipo Actualizado", description: `El equipo "${updates.name}" ha sido actualizado.` };
+      }
       break;
     }
     case 'ADD_PLAYER_TO_TEAM': {
       const { teamId, player } = action.payload;
-      const newPlayerId = player.id || safeUUID();
-      const newPlayer = { ...player, id: newPlayerId };
+      if (state.config.activeTournament) {
+        const newPlayerId = player.id || safeUUID();
+        const newPlayer = { ...player, id: newPlayerId };
 
-      // 1. Update permanent config
-      newState = {
-        ...state, config: {
-          ...state.config, tournaments: state.config.tournaments.map(t => {
-            if (!t.teams) return t;
-            return {
-              ...t,
-              teams: t.teams.map(team =>
+        // 1. Update activeTournament
+        newState = {
+          ...state, config: {
+            ...state.config, 
+            activeTournament: {
+              ...state.config.activeTournament,
+              teams: state.config.activeTournament.teams.map(team =>
                 team.id === teamId
                   ? { ...team, players: [...(team.players || []), newPlayer] }
                   : team
               )
-            };
-          })
-        }
-      };
+            }
+          }
+        };
 
-      // 2. Also add to live attendance if this team is in the current match
-      const homeTeam = state.config.tournaments
-        .flatMap(t => t.teams)
-        .find(t => t?.name === state.live.homeTeamName &&
+        // 2. Also add to live attendance if this team is in the current match
+        const updatedTournament = newState.config.activeTournament!;
+        const homeTeam = updatedTournament.teams.find(t =>
+          t?.name === state.live.homeTeamName &&
           (t.subName || undefined) === (state.live.homeTeamSubName || undefined) &&
           t.category === state.config.selectedMatchCategory);
 
-      const awayTeam = state.config.tournaments
-        .flatMap(t => t.teams)
-        .find(t => t?.name === state.live.awayTeamName &&
+        const awayTeam = updatedTournament.teams.find(t =>
+          t?.name === state.live.awayTeamName &&
           (t.subName || undefined) === (state.live.awayTeamSubName || undefined) &&
           t.category === state.config.selectedMatchCategory);
 
-      let teamType: 'home' | 'away' | null = null;
-      if (homeTeam?.id === teamId) teamType = 'home';
-      else if (awayTeam?.id === teamId) teamType = 'away';
+        let teamType: 'home' | 'away' | null = null;
+        if (homeTeam?.id === teamId) teamType = 'home';
+        else if (awayTeam?.id === teamId) teamType = 'away';
 
-      if (teamType) {
-        const currentAttendanceList = newState.live.attendance[teamType] || [];
-        // Only add if not already there (safety check)
-        if (!currentAttendanceList.some(p => p.id === newPlayerId)) {
-          newState = {
-            ...newState,
-            live: {
-              ...newState.live,
-              attendance: {
-                ...newState.live.attendance,
-                [teamType]: [...currentAttendanceList, {
-                  id: newPlayerId,
-                  name: newPlayer.name,
-                  number: newPlayer.number,
-                  type: newPlayer.type,
-                  isPresent: true // Newly added players in controls are usually present
-                }]
+        if (teamType) {
+          const currentAttendanceList = newState.live.attendance[teamType] || [];
+          if (!currentAttendanceList.some(p => p.id === newPlayerId)) {
+            newState = {
+              ...newState,
+              live: {
+                ...newState.live,
+                attendance: {
+                  ...newState.live.attendance,
+                  [teamType]: [...currentAttendanceList, {
+                    id: newPlayerId,
+                    name: newPlayer.name,
+                    number: newPlayer.number,
+                    type: newPlayer.type,
+                    isPresent: true
+                  }]
+                }
               }
-            }
-          };
+            };
+          }
         }
+        toastMessage = { title: "Jugador Añadido", description: `Jugador ${player.number ? `#${player.number} ` : ''}${player.name} añadido.` };
       }
-
-      toastMessage = { title: "Jugador Añadido", description: `Jugador ${player.number ? `#${player.number} ` : ''}${player.name} añadido.` };
       break;
     }
     case 'UPDATE_PLAYER_IN_TEAM': {
       const { teamId, playerId, updates } = action.payload;
-      newState = {
-        ...state,
-        config: {
-          ...state.config,
-          tournaments: state.config.tournaments.map(t => {
-            if (!t.teams) return t; // Safety check
-            return {
-              ...t,
-              teams: t.teams.map(team =>
+      if (state.config.activeTournament) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              teams: state.config.activeTournament.teams.map(team =>
                 team.id === teamId
                   ? {
                     ...team,
@@ -1940,23 +1940,22 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
                   }
                   : team
               ),
-            };
-          }),
-        },
-      };
+            },
+          },
+        };
+      }
       break;
     }
     case 'REMOVE_PLAYER_FROM_TEAM': {
       const { teamId, playerId } = action.payload;
-      newState = {
-        ...state,
-        config: {
-          ...state.config,
-          tournaments: state.config.tournaments.map(t => {
-            if (!t.teams) return t; // Safety check
-            return {
-              ...t,
-              teams: t.teams.map(team =>
+      if (state.config.activeTournament) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              teams: state.config.activeTournament.teams.map(team =>
                 team.id === teamId
                   ? {
                     ...team,
@@ -1964,67 +1963,67 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
                   }
                   : team
               ),
-            };
-          }),
-        },
-      };
+            },
+          },
+        };
+      }
       break;
     }
     case 'ADD_STAFF_TO_TOURNAMENT': {
       const { tournamentId, staff } = action.payload;
-      const staffId = staff.id || safeUUID();
-      newState = {
-        ...state,
-        config: {
-          ...state.config,
-          tournaments: state.config.tournaments.map(t =>
-            t.id === tournamentId
-              ? { ...t, staff: [...(t.staff || []), { ...staff, id: staffId }] }
-              : t
-          ),
-        },
-      };
-      toastMessage = {
-        title: "Staff Agregado",
-        description: `${staff.firstName} ${staff.lastName} ha sido agregado.`
-      };
+      if (state.config.activeTournament?.id === tournamentId) {
+        const staffId = staff.id || safeUUID();
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              staff: [...(state.config.activeTournament.staff || []), { ...staff, id: staffId }]
+            }
+          },
+        };
+        toastMessage = {
+          title: "Staff Agregado",
+          description: `${staff.firstName} ${staff.lastName} ha sido agregado.`
+        };
+      }
       break;
     }
     case 'UPDATE_STAFF_IN_TOURNAMENT': {
       const { tournamentId, staffId, updates } = action.payload;
-      newState = {
-        ...state,
-        config: {
-          ...state.config,
-          tournaments: state.config.tournaments.map(t =>
-            t.id === tournamentId
-              ? {
-                ...t,
-                staff: (t.staff || []).map(s =>
-                  s.id === staffId ? { ...s, ...updates } : s
-                ),
-              }
-              : t
-          ),
-        },
-      };
-      toastMessage = { title: "Staff Actualizado" };
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              staff: (state.config.activeTournament.staff || []).map(s =>
+                s.id === staffId ? { ...s, ...updates } : s
+              ),
+            },
+          },
+        };
+        toastMessage = { title: "Staff Actualizado" };
+      }
       break;
     }
     case 'REMOVE_STAFF_FROM_TOURNAMENT': {
       const { tournamentId, staffId } = action.payload;
-      newState = {
-        ...state,
-        config: {
-          ...state.config,
-          tournaments: state.config.tournaments.map(t =>
-            t.id === tournamentId
-              ? { ...t, staff: (t.staff || []).filter(s => s.id !== staffId) }
-              : t
-          ),
-        },
-      };
-      toastMessage = { title: "Staff Eliminado" };
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              staff: (state.config.activeTournament.staff || []).filter(s => s.id !== staffId),
+            },
+          },
+        };
+        toastMessage = { title: "Staff Eliminado" };
+      }
       break;
     }
     case 'SET_MATCH_STAFF': {
@@ -2040,13 +2039,24 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'SET_TEAM_ATTENDANCE': {
       const { team, playerIds } = action.payload;
-      const tournamentId = state.config.selectedTournamentId;
-      const selectedTournament = state.config.tournaments.find(t => t.id === tournamentId);
-      const teamData = selectedTournament?.teams.find(t =>
-        t.name === state.live[`${team}TeamName`] &&
-        (t.subName || undefined) === (state.live[`${team}TeamSubName`] || undefined) &&
-        t.category === state.config.selectedMatchCategory
-      );
+      // Prefer matchContext roster, fall back to activeTournament
+      const mc = state.live.matchContext;
+      let rosterPlayers: PlayerData[] | undefined;
+      if (mc) {
+        rosterPlayers = team === 'home' ? mc.homeRoster : mc.awayRoster;
+      }
+      const teamData = rosterPlayers
+        ? { players: rosterPlayers }
+        : (() => {
+            const tournamentId = state.config.selectedTournamentId;
+            const t = state.config.activeTournament;
+            const found = (t?.id === tournamentId) ? t.teams.find(t =>
+              t.name === state.live[`${team}TeamName`] &&
+              (t.subName || undefined) === (state.live[`${team}TeamSubName`] || undefined) &&
+              t.category === state.config.selectedMatchCategory
+            ) : undefined;
+            return found;
+          })();
 
       const currentAttendance = state.live.attendance[team] || [];
 
@@ -2109,14 +2119,21 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         );
       } else {
         // Find player in roster to initialize their data if they're not in attendance yet
-        const tournamentId = state.config.selectedTournamentId;
-        const selectedTournament = state.config.tournaments.find(t => t.id === tournamentId);
-        const teamData = selectedTournament?.teams.find(t =>
-          t.name === state.live[`${team}TeamName`] &&
-          (t.subName || undefined) === (state.live[`${team}TeamSubName`] || undefined) &&
-          t.category === state.config.selectedMatchCategory
-        );
-        const rosterPlayer = teamData?.players.find(p => p.id === playerId);
+        const mcForAttUpdate = state.live.matchContext;
+        let rosterForLookup: PlayerData[] | undefined;
+        if (mcForAttUpdate) {
+          rosterForLookup = team === 'home' ? mcForAttUpdate.homeRoster : mcForAttUpdate.awayRoster;
+        } else {
+          const tournamentId = state.config.selectedTournamentId;
+          const t = state.config.activeTournament;
+          const teamDataFallback = (t?.id === tournamentId) ? t.teams.find(t =>
+            t.name === state.live[`${team}TeamName`] &&
+            (t.subName || undefined) === (state.live[`${team}TeamSubName`] || undefined) &&
+            t.category === state.config.selectedMatchCategory
+          ) : undefined;
+          rosterForLookup = teamDataFallback?.players;
+        }
+        const rosterPlayer = rosterForLookup?.find(p => p.id === playerId);
 
         if (rosterPlayer) {
           newAttendanceList = [...currentAttendance, {
@@ -2296,7 +2313,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
   }
 
-  const nonOriginatingActionTypes: GameAction['type'][] = ['HYDRATE_FROM_SERVER', 'HYDRATE_TOURNAMENT_DETAILS', 'SET_STATE_FROM_LOCAL_BROADCAST'];
+  const nonOriginatingActionTypes: GameAction['type'][] = ['INITIALIZE_STATE', 'LOAD_TOURNAMENT_CONTEXT', 'SET_STATE_FROM_LOCAL_BROADCAST'];
   if (action.type === 'TICK') return newState;
   if (nonOriginatingActionTypes.includes(action.type)) return { ...newState, _lastActionOriginator: undefined };
 
@@ -2354,35 +2371,15 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
       if (!res.ok) throw new Error('Failed to fetch initial data');
       const data = await res.json();
 
-      dispatch({ type: 'HYDRATE_FROM_SERVER', payload: data });
+      dispatch({ type: 'INITIALIZE_STATE', payload: data });
 
     } catch (error) {
       console.error("Failed to fetch initial state from server:", error);
-      dispatch({ type: 'HYDRATE_FROM_SERVER', payload: getInitialState() });
+      dispatch({ type: 'INITIALIZE_STATE', payload: getInitialState() });
     } finally {
       setIsLoading(false);
     }
   }, []);
-
-  const fetchTournamentDetails = useCallback(async (tournamentId: string) => {
-    try {
-      const res = await fetch(`/api/tournaments/${tournamentId}`);
-      if (!res.ok) {
-        console.warn(`[GameState] Tournament ${tournamentId} not found, clearing selectedTournamentId`);
-        // If tournament not found, clear the selectedTournamentId
-        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
-        return;
-      }
-      const data = await res.json();
-      if (data.tournament) {
-        dispatch({ type: 'HYDRATE_TOURNAMENT_DETAILS', payload: { tournamentData: data.tournament } });
-      }
-    } catch (error) {
-      console.error("Error fetching tournament details:", error);
-      // On error, also clear the selectedTournamentId to prevent repeated errors
-      dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
-    }
-  }, [dispatch]);
 
   useEffect(() => {
     fetchInitialData();
@@ -2412,27 +2409,53 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
 
   // Effect to fetch full tournament data when selectedTournamentId changes
   useEffect(() => {
-    const { selectedTournamentId, tournaments } = state.config;
+    const { selectedTournamentId, activeTournament, tournaments } = state.config;
+    let cancelled = false;
+
+    // Skip while initial data is still loading — tournaments array is empty until INITIALIZE_STATE
+    if (isLoading) return;
+
     if (selectedTournamentId) {
-      const tournament = tournaments.find(t => t.id === selectedTournamentId);
+      // Check if the selected tournament is already the active one
+      if (activeTournament && activeTournament.id === selectedTournamentId) {
+        return;
+      }
+
+      const tournamentMeta = tournaments.find(t => t.id === selectedTournamentId);
 
       // If tournament not found in the array, clear the selectedTournamentId
-      if (!tournament) {
+      if (!tournamentMeta) {
         console.warn('[GameState] Selected tournament not found in tournaments array, clearing selectedTournamentId');
         dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
         return;
       }
 
-      console.log('[GameState] Selected tournament:', selectedTournamentId, 'Has teams?', !!tournament?.teams);
-      // Fetch details only if we don't have them (i.e., no teams or matches array)
-      if (!tournament.teams) {
-        console.log('[GameState] Fetching tournament details for', selectedTournamentId);
-        fetchTournamentDetails(selectedTournamentId);
-      }
+      console.log('[GameState] Selected tournament:', selectedTournamentId, 'Fetching details...');
+      (async () => {
+        try {
+          const res = await fetch(`/api/tournaments/${selectedTournamentId}`);
+          if (cancelled) return;
+          if (!res.ok) {
+            console.warn(`[GameState] Tournament ${selectedTournamentId} not found, clearing selectedTournamentId`);
+            dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
+            return;
+          }
+          const data = await res.json();
+          if (cancelled) return;
+          if (data.tournament) {
+            dispatch({ type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: data.tournament } });
+          }
+        } catch (error) {
+          if (cancelled) return;
+          console.error("Error fetching tournament details:", error);
+          dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
+        }
+      })();
     }
-    // Only trigger when selectedTournamentId changes, NOT when tournaments array changes
+
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.config.selectedTournamentId, fetchTournamentDetails]);
+  }, [state.config.selectedTournamentId, isLoading]);
 
 
   const prevStateRef = useRef<GameState>(state);
@@ -2458,20 +2481,14 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
         if (hasConfigChanged) {
           updateConfigOnServer(state.config);
         }
-        // Logic to save individual tournament if it changes
-        // BUT skip if the last action was SAVE_MATCH_SUMMARY or TRIGGER_SUMMARY_GENERATION
-        // (they handle saving themselves)
+        // Logic to save active tournament if it changes
         if (state._lastActionType !== 'SAVE_MATCH_SUMMARY' &&
           state._lastActionType !== 'TRIGGER_SUMMARY_GENERATION' &&
           state._lastActionType !== 'UPDATE_MATCH_SUMMARY_IN_STATE') {
-          const changedTournament = state.config.tournaments.find((newTournament, index) => {
-            const oldTournament = oldState.config.tournaments.find(t => t.id === newTournament.id);
-            return oldTournament && !isEqual(newTournament, oldTournament);
-          });
-
-          if (changedTournament) {
-            console.log('[GameState] Tournament changed, saving entire tournament...', changedTournament.id);
-            saveTournamentOnServer(changedTournament);
+          
+          if (state.config.activeTournament && !isEqual(state.config.activeTournament, oldState.config.activeTournament)) {
+            console.log('[GameState] Active tournament changed, saving...', state.config.activeTournament.id);
+            saveTournamentOnServer(state.config.activeTournament);
           }
         } else {
           console.log(`[GameState] Skipping saveTournamentOnServer because last action was ${state._lastActionType}`);

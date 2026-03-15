@@ -2,8 +2,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useGameState, formatTime, getActualPeriodText, getPeriodText, centisecondsToDisplayMinutes, getCategoryNameById, type TeamData } from '@/contexts/game-state-context';
-import type { Team, PlayerData } from '@/types';
+import { useGameState, formatTime, getActualPeriodText, getPeriodText, centisecondsToDisplayMinutes, getCategoryNameById } from '@/contexts/game-state-context';
+import type { Team, PlayerData, TeamData } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -365,7 +365,10 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
 
     // Define the final action to execute
     const executeAction = () => {
-      if (state.live.clock.currentPeriod === 0 && state.live.clock.periodDisplayOverride === "Warm-up") {
+      if (state.live.clock.periodDisplayOverride === "Pre Warm-up") {
+        dispatch({ type: 'START_WARMUP' });
+        toast({ title: "Entrada en Calor", description: "Transición a Entrada en Calor." });
+      } else if (state.live.clock.currentPeriod === 0 && state.live.clock.periodDisplayOverride === "Warm-up") {
         dispatch({ type: 'SET_PERIOD', payload: 1 });
         toast({ title: "1er Período Iniciado", description: `Reloj de 1er Período (${centisecondsToDisplayMinutes(state.config.defaultPeriodDuration)} min) pausado.` });
       } else if (state.live.clock.periodDisplayOverride === "Break" || state.live.clock.periodDisplayOverride === "Pre-OT Break") {
@@ -410,7 +413,9 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
 
 
   let nextActionButtonText = "Siguiente";
-  if (state.live.clock.periodDisplayOverride === "Time Out" && state.live.clock.currentTime <= 0) {
+  if (state.live.clock.periodDisplayOverride === "Pre Warm-up" && state.live.clock.currentTime <= 0) {
+    nextActionButtonText = "Comenzar Partido";
+  } else if (state.live.clock.periodDisplayOverride === "Time Out" && state.live.clock.currentTime <= 0) {
     nextActionButtonText = "Finalizar Time Out";
   } else if (state.live.clock.currentPeriod === 0 && state.live.clock.periodDisplayOverride === "Warm-up" && state.live.clock.currentTime <= 0) {
     if (MAX_TOTAL_GAME_PERIODS > 0) {
@@ -507,7 +512,7 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
   };
 
   const filteredTeamsForSearch = (searchTerm: string) => {
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
+    const selectedTournament = state.config.activeTournament;
     if (!selectedTournament || !selectedTournament.teams) return [];
 
     return selectedTournament.teams.filter(team =>
@@ -539,29 +544,13 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
 
   const matchedHomeTeamId = useMemo(() => {
     if (!state.config.enableTeamSelectionInMiniScoreboard) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
-
-    const matched = selectedTournament.teams.find(t =>
-      t.name === state.live.homeTeamName &&
-      (t.subName || undefined) === (state.live.homeTeamSubName || undefined) &&
-      t.category === state.config.selectedMatchCategory
-    );
-    return matched ? matched.id : null;
-  }, [state.live.homeTeamName, state.live.homeTeamSubName, state.config.tournaments, state.config.selectedTournamentId, state.config.selectedMatchCategory, state.config.enableTeamSelectionInMiniScoreboard]);
+    return state.live.matchContext?.homeTeamId || null;
+  }, [state.live.matchContext, state.config.enableTeamSelectionInMiniScoreboard]);
 
   const matchedAwayTeamId = useMemo(() => {
     if (!state.config.enableTeamSelectionInMiniScoreboard) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
-
-    const matched = selectedTournament.teams.find(t =>
-      t.name === state.live.awayTeamName &&
-      (t.subName || undefined) === (state.live.awayTeamSubName || undefined) &&
-      t.category === state.config.selectedMatchCategory
-    );
-    return matched ? matched.id : null;
-  }, [state.live.awayTeamName, state.live.awayTeamSubName, state.config.tournaments, state.config.selectedTournamentId, state.config.selectedMatchCategory, state.config.enableTeamSelectionInMiniScoreboard]);
+    return state.live.matchContext?.awayTeamId || null;
+  }, [state.live.matchContext, state.config.enableTeamSelectionInMiniScoreboard]);
 
   const showHomeSearchIcon = state.config.enableTeamSelectionInMiniScoreboard && state.config.tournaments.length > 0 && !isMatchFromFixture;
   const showAwaySearchIcon = state.config.enableTeamSelectionInMiniScoreboard && state.config.tournaments.length > 0 && !isMatchFromFixture;
@@ -627,7 +616,7 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
   const isPreWarmup = state.live.clock.periodDisplayOverride === 'Pre Warm-up';
   const showClock = !isShootout && !isFinalState && !isPreWarmup;
 
-  const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
+  const selectedTournament = state.config.activeTournament;
   const availableCategories = selectedTournament?.categories || [];
 
 

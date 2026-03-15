@@ -7,24 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TeamData } from "@/types";
 import { DefaultTeamLogo } from "./default-team-logo";
 import { Users, ListFilter } from "lucide-react";
-import { useGameState, getCategoryNameById } from "@/contexts/game-state-context";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface TeamListItemProps {
   team: TeamData;
+  categoryName: string;
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: (teamId: string) => void;
 }
 
-export function TeamListItem({ team, isSelectionMode = false, isSelected = false, onToggleSelection }: TeamListItemProps) {
-  const { state } = useGameState();
-
-  const tournament = (state.config.tournaments || []).find(t => t.teams.some(tm => tm.id === team.id));
-  const categoryName = getCategoryNameById(team.category, tournament?.categories);
-
+export function TeamListItem({ team, categoryName, isSelectionMode = false, isSelected = false, onToggleSelection }: TeamListItemProps) {
   const handleCardInteraction = (e: React.MouseEvent) => {
     if (isSelectionMode && onToggleSelection) {
       e.preventDefault(); 

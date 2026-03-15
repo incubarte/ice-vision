@@ -78,12 +78,10 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
         return;
       }
 
-      // Find tournament ID from matchId
-      const tournament = state.config.tournaments?.find(t =>
-        t.matches?.some(m => m.id === state.live.matchId)
-      );
+      // Find tournament from activeTournament
+      const tournament = state.config.activeTournament;
 
-      if (!tournament) {
+      if (!tournament || !tournament.matches?.some(m => m.id === state.live.matchId)) {
         console.log('[PlayerPhoto] Tournament not found');
         setPhotoUrl(null);
         setIsLoading(false);

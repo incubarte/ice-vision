@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useGameState, type FormatAndTimingsProfileData } from "@/contexts/game-state-context";
-import type { TeamData } from "@/types";
+import type { TeamData, MatchContext } from "@/types";
 import {
   Command,
   CommandEmpty,
@@ -128,8 +128,8 @@ export function GameSetupDialog({ isOpen, onOpenChange, onGameReset, startTab = 
   
   const [activeTab, setActiveTab] = useState(startTab);
   
-  const { selectedTournamentId, tournaments } = state.config;
-  const selectedTournament = useMemo(() => tournaments.find(t => t.id === selectedTournamentId), [tournaments, selectedTournamentId]);
+  const { selectedTournamentId, tournaments, activeTournament } = state.config;
+  const selectedTournament = activeTournament;
   
   // Team selection state
   const [useManualTeamNames, setUseManualTeamNames] = useState(false);
@@ -239,10 +239,37 @@ export function GameSetupDialog({ isOpen, onOpenChange, onGameReset, startTab = 
     }
 
     dispatch({ type: 'UPDATE_SELECTED_FT_PROFILE_DATA', payload: tempFormatSettings });
-    
+
     const matchIdToSet = state.live.pendingMatchConfig?.matchId || null;
     dispatch({ type: 'UPDATE_LIVE_STATE', payload: { matchId: matchIdToSet } });
-    
+
+    // Set match context snapshot for tournament matches
+    if (!useManualTeamNames && selectedTournament && selectedTournamentId) {
+        const homeTeam = teamsInCategory.find(t => t.id === homeTeamId);
+        const awayTeam = teamsInCategory.find(t => t.id === awayTeamId);
+        const matchData = matchIdToSet ? selectedTournament.matches?.find(m => m.id === matchIdToSet) : null;
+        const categoryName = selectedTournament.categories?.find(c => c.id === localCategoryId)?.name || '';
+
+        if (homeTeam && awayTeam) {
+            const matchContext: MatchContext = {
+                tournamentId: selectedTournamentId,
+                tournamentName: selectedTournament.name,
+                categoryId: localCategoryId,
+                categoryName,
+                matchPhase: matchData?.phase || null,
+                matchPlayoffType: matchData?.playoffType || null,
+                homeTeamId: homeTeam.id,
+                awayTeamId: awayTeam.id,
+                homeTeamLogoDataUrl: homeTeam.logoDataUrl || null,
+                awayTeamLogoDataUrl: awayTeam.logoDataUrl || null,
+                homeRoster: homeTeam.players,
+                awayRoster: awayTeam.players,
+                staff: selectedTournament.staff || [],
+            };
+            dispatch({ type: 'UPDATE_LIVE_STATE', payload: { matchContext } });
+        }
+    }
+
     toast({ title: "¡Partido Listo!", description: "Se ha configurado un nuevo partido. Redirigiendo a controles..." });
     onOpenChange(false);
     router.push('/controls');

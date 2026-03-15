@@ -39,12 +39,7 @@ export function PreWarmupIntro({ logo, onComplete, mode = 'explosion' }: PreWarm
   const { state } = useGameState();
 
   // Detect if this is a final match
-  const isFinal = state?.live?.matchId && state?.config?.tournaments?.some(t =>
-    t.matches?.some(m =>
-      m.id === state.live.matchId &&
-      m.playoffType === 'final'
-    )
-  );
+  const isFinal = state?.live?.matchContext?.matchPlayoffType === 'final';
 
   // Keep ref updated
   useEffect(() => {

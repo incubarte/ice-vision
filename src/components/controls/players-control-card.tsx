@@ -22,20 +22,19 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
 
-  // Get team data
+  // Get team data from match context roster (for full player info like type)
+  const matchContext = state.live.matchContext;
   const teamData = useMemo(() => {
-    const selectedTournament = (state.config.tournaments || []).find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
-
-    const teamNameToMatch = state.live[`${team}TeamName`];
-    const teamSubNameToMatch = state.live[`${team}TeamSubName`];
-
-    return selectedTournament.teams.find(t =>
-      t.name === teamNameToMatch &&
-      (t.subName || undefined) === (teamSubNameToMatch || undefined) &&
-      t.category === state.config.selectedMatchCategory
-    );
-  }, [state.config.tournaments, state.config.selectedTournamentId, state.live, team, state.config.selectedMatchCategory]);
+    if (!matchContext) return null;
+    const roster = team === 'home' ? matchContext.homeRoster : matchContext.awayRoster;
+    const teamName = state.live[`${team}TeamName`];
+    return {
+      id: team === 'home' ? matchContext.homeTeamId : matchContext.awayTeamId,
+      name: teamName,
+      players: roster,
+      category: matchContext.categoryId,
+    };
+  }, [matchContext, team, state.live]);
 
   // Get attendance
   const attendance = state.live.attendance[team] || [];
@@ -166,7 +165,10 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
   };
 
   const handleSaveNumber = (playerId: string, currentNumber: string) => {
-    const newNumber = editingNumbers[playerId]?.trim() || '';
+    // If the player was never edited (just focused and blurred), do nothing
+    if (!(playerId in editingNumbers)) return;
+
+    const newNumber = editingNumbers[playerId].trim();
 
     if (newNumber === currentNumber) {
       // No change

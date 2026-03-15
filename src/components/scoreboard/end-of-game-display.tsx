@@ -32,20 +32,18 @@ export function EndOfGameDisplay({
   const awayWon = awayScore > homeScore;
 
   // Obtener datos del partido para verificar si es playoff
-  const matchData = state.config.tournaments
-    ?.flatMap(t => t.matches || [])
-    .find(m => m?.id === matchId);
-  const isPlayoffMatch = matchData?.phase === 'playoffs';
-  const isSemifinal = matchData?.playoffType === 'semifinal';
+  const matchContext = state.live.matchContext;
+  const activeTournament = state.config.activeTournament;
+  const isPlayoffMatch = matchContext?.matchPhase === 'playoffs';
+  const isSemifinal = matchContext?.matchPlayoffType === 'semifinal';
 
   const winnerTeamName = homeWon ? homeTeamName : awayTeamName;
   const winnerLogoDataUrl = homeWon ? homeLogoDataUrl : awayLogoDataUrl;
-  const winnerTeamId = homeWon ? matchData?.homeTeamId : matchData?.awayTeamId;
+  const winnerTeamId = homeWon ? matchContext?.homeTeamId : matchContext?.awayTeamId;
 
-  // Si es semifinal, obtener datos del partido final
-  const tournament = state.config.tournaments?.find(t =>
-    t.matches?.some(m => m?.id === matchId)
-  );
+  // Si es semifinal, obtener datos del partido final (needs tournament-level data)
+  const tournament = activeTournament;
+  const matchData = activeTournament?.matches?.find(m => m?.id === matchId);
 
   const finalMatch = isSemifinal && tournament
     ? tournament.matches?.find(m =>

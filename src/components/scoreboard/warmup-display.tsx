@@ -32,12 +32,7 @@ export function WarmupDisplay({
   const { scoreboardLayout } = state.config;
 
   // Detect if this is a final match
-  const isFinal = state.live.matchId && state.config.tournaments?.some(t =>
-    t.matches?.some(m =>
-      m.id === state.live.matchId &&
-      m.playoffType === 'final'
-    )
-  );
+  const isFinal = state.live.matchContext?.matchPlayoffType === 'final';
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">

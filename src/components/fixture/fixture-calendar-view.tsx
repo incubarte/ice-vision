@@ -12,7 +12,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { AddEditMatchDialog } from './add-edit-match-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
-import type { MatchData, TeamData } from '@/types';
+import { type MatchData, type TeamData, type Tournament, isTournamentHydrated } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Checkbox } from '../ui/checkbox';
 import { Input } from '../ui/input';
 import { calculateScoreFromSummary } from '@/lib/match-helpers';
+import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 
 // Helper para obtener el nombre del equipo o posición
 function getTeamOrPositionName(teamId: string | undefined, teams: TeamData[] | undefined): string {
@@ -96,7 +97,7 @@ export function FixtureCalendarView({ tournamentId }: FixtureCalendarViewProps =
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const router = useRouter();
-  const { selectedTournamentId, tournaments } = state.config;
+  const { selectedTournamentId, tournaments, activeTournament } = state.config;
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentCenterDate, setCurrentCenterDate] = useState(startOfDay(new Date())); // Para vista mobile de 3 días
 
@@ -118,34 +119,56 @@ export function FixtureCalendarView({ tournamentId }: FixtureCalendarViewProps =
   const activeTournamentId = tournamentId || selectedTournamentId;
 
   const selectedTournament = useMemo(() => {
-    return tournaments.find(t => t.id === activeTournamentId);
-  }, [tournaments, activeTournamentId]);
+    if (activeTournament && activeTournament.id === activeTournamentId) {
+      return activeTournament;
+    }
+    return (tournaments || []).find(t => t.id === activeTournamentId);
+  }, [tournaments, activeTournamentId, activeTournament]);
+
+  const isHydrated = isTournamentHydrated(selectedTournament);
 
   const matches = useMemo(() => {
-    return selectedTournament?.matches || [];
-  }, [selectedTournament]);
+    return isHydrated ? (selectedTournament as Tournament).matches : [];
+  }, [selectedTournament, isHydrated]);
 
   const filteredMatchIds = useMemo(() => {
     const isAnyFilterActive = categoryFilter.length > 0 || teamSearch.trim() !== '';
-    if (!isAnyFilterActive) return null; // Return null if no filters are active
+    if (!isAnyFilterActive || !isHydrated) return null; // Return null if no filters are active
 
     const lowerCaseSearch = teamSearch.toLowerCase();
 
     return new Set(
       matches
-        .filter(match => {
+        .filter((match: MatchData) => {
           const categoryMatch = categoryFilter.length === 0 || categoryFilter.includes(match.categoryId);
 
-          const { home: homeName, away: awayName } = getMatchupDisplay(match, selectedTournament?.teams);
+          const { home: homeName, away: awayName } = getMatchupDisplay(match, (selectedTournament as Tournament).teams);
           const teamMatch = !lowerCaseSearch ||
             homeName.toLowerCase().includes(lowerCaseSearch) ||
             awayName.toLowerCase().includes(lowerCaseSearch);
 
           return categoryMatch && teamMatch;
         })
-        .map(match => match.id)
+        .map((match: MatchData) => match.id)
     );
-  }, [matches, categoryFilter, teamSearch, selectedTournament?.teams]);
+  }, [matches, categoryFilter, teamSearch, selectedTournament, isHydrated]);
+
+  if (!selectedTournament) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Selecciona un torneo para ver el calendario.</p>
+      </div>
+    );
+  }
+
+  if (!isHydrated) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <HockeyPuckSpinner />
+        <p className="text-muted-foreground animate-pulse">Cargando calendario...</p>
+      </div>
+    );
+  }
 
   const handleDayClick = (day: Date) => {
     if (isReadOnly) return;

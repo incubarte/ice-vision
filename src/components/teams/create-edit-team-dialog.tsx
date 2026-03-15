@@ -52,6 +52,7 @@ interface CreateEditTeamDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   teamToEdit?: TeamData | null;
   onTeamSaved: (teamId: string) => void;
+  tournamentId?: string;
 }
 
 export function CreateEditTeamDialog({
@@ -59,6 +60,7 @@ export function CreateEditTeamDialog({
   onOpenChange,
   teamToEdit,
   onTeamSaved,
+  tournamentId,
 }: CreateEditTeamDialogProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
@@ -68,8 +70,9 @@ export function CreateEditTeamDialog({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { tournaments, selectedTournamentId } = state.config;
-  const selectedTournament = tournaments.find(t => t.id === selectedTournamentId);
+  const { activeTournament, selectedTournamentId: globalSelectedTournamentId } = state.config;
+  const activeTournamentId = tournamentId || globalSelectedTournamentId;
+  const selectedTournament = activeTournament;
   const availableCategories = selectedTournament?.categories || [];
   const teams = selectedTournament?.teams || [];
 
@@ -141,7 +144,7 @@ export function CreateEditTeamDialog({
     const trimmedTeamName = teamName.trim();
     const trimmedTeamSubName = teamSubName.trim();
     
-    if (!selectedTournamentId) {
+    if (!activeTournamentId) {
       toast({ title: "Error", description: "No hay un torneo seleccionado.", variant: "destructive" });
       return;
     }
@@ -227,7 +230,7 @@ export function CreateEditTeamDialog({
       };
       dispatch({
         type: "ADD_TEAM_TO_TOURNAMENT",
-        payload: { tournamentId: selectedTournamentId, team: teamPayload },
+        payload: { tournamentId: activeTournamentId, team: teamPayload },
       });
       toast({
         title: "Equipo Creado",

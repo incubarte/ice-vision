@@ -1,6 +1,6 @@
 "use client";
 
-import { useGameState, getCategoryNameById } from '@/contexts/game-state-context';
+import { useGameState } from '@/contexts/game-state-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { ClockDisplay } from './clock-display';
 import { TeamScoreDisplay } from './team-score-display';
@@ -15,35 +15,11 @@ export function useTeamLogos() {
     return { homeLogoDataUrl: null, awayLogoDataUrl: null };
   }
 
-  const { config, live } = state;
-  const { tournaments, selectedTournamentId, selectedMatchCategory } = config;
-  const { homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName } = live;
-
-  const selectedTournament = useMemo(() => {
-    return (tournaments || []).find(t => t.id === selectedTournamentId);
-  }, [tournaments, selectedTournamentId]);
-
-  const homeTeamData = useMemo(() => {
-    if (!selectedTournament || !selectedTournament.teams) return null;
-    return selectedTournament.teams.find(t =>
-      t.name === homeTeamName &&
-      (t.subName || undefined) === (homeTeamSubName || undefined) &&
-      t.category === selectedMatchCategory
-    );
-  }, [selectedTournament, homeTeamName, homeTeamSubName, selectedMatchCategory]);
-
-  const awayTeamData = useMemo(() => {
-    if (!selectedTournament || !selectedTournament.teams) return null;
-    return selectedTournament.teams.find(t =>
-      t.name === awayTeamName &&
-      (t.subName || undefined) === (awayTeamSubName || undefined) &&
-      t.category === selectedMatchCategory
-    );
-  }, [selectedTournament, awayTeamName, awayTeamSubName, selectedMatchCategory]);
+  const matchContext = state.live.matchContext;
 
   return {
-    homeLogoDataUrl: homeTeamData?.logoDataUrl || null,
-    awayLogoDataUrl: awayTeamData?.logoDataUrl || null,
+    homeLogoDataUrl: matchContext?.homeTeamLogoDataUrl || null,
+    awayLogoDataUrl: matchContext?.awayTeamLogoDataUrl || null,
   };
 }
 
@@ -55,8 +31,8 @@ export function CompactHeaderScoreboard() {
   }
 
   const { config, live } = state;
-  const { tournaments, selectedTournamentId, scoreboardLayout, playersPerTeamOnIce, selectedMatchCategory } = config;
-  const { penalties, score, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName } = live;
+  const { scoreboardLayout, playersPerTeamOnIce } = config;
+  const { penalties, score, homeTeamName, awayTeamName, matchContext } = live;
 
   const activeHomePenaltiesCount = penalties.home.filter(p => p._status === 'running' && (p.reducesPlayerCount && !p._doesNotReducePlayerCountOverride)).length;
   const playersOnIceForHome = Math.max(0, playersPerTeamOnIce - activeHomePenaltiesCount);
@@ -64,29 +40,7 @@ export function CompactHeaderScoreboard() {
   const activeAwayPenaltiesCount = penalties.away.filter(p => p._status === 'running' && (p.reducesPlayerCount && !p._doesNotReducePlayerCountOverride)).length;
   const playersOnIceForAway = Math.max(0, playersPerTeamOnIce - activeAwayPenaltiesCount);
 
-  const selectedTournament = useMemo(() => {
-    return (tournaments || []).find(t => t.id === selectedTournamentId);
-  }, [tournaments, selectedTournamentId]);
-
-  const homeTeamData = useMemo(() => {
-    if (!selectedTournament || !selectedTournament.teams) return null;
-    return selectedTournament.teams.find(t =>
-      t.name === homeTeamName &&
-      (t.subName || undefined) === (homeTeamSubName || undefined) &&
-      t.category === selectedMatchCategory
-    );
-  }, [selectedTournament, homeTeamName, homeTeamSubName, selectedMatchCategory]);
-
-  const awayTeamData = useMemo(() => {
-    if (!selectedTournament || !selectedTournament.teams) return null;
-    return selectedTournament.teams.find(t =>
-      t.name === awayTeamName &&
-      (t.subName || undefined) === (awayTeamSubName || undefined) &&
-      t.category === selectedMatchCategory
-    );
-  }, [selectedTournament, awayTeamName, awayTeamSubName, selectedMatchCategory]);
-
-  const matchCategoryName = getCategoryNameById(selectedMatchCategory, selectedTournament?.categories);
+  const matchCategoryName = matchContext?.categoryName || null;
 
   return (
     <Card className="bg-card shadow-xl relative">
@@ -107,17 +61,17 @@ export function CompactHeaderScoreboard() {
           playersOnIce={playersOnIceForHome}
           configuredPlayersPerTeam={playersPerTeamOnIce}
           layout={scoreboardLayout}
-          logoDataUrl={homeTeamData?.logoDataUrl}
+          logoDataUrl={matchContext?.homeTeamLogoDataUrl}
         />
         <ClockDisplay />
-        <TeamScoreDisplay 
-          teamActualName={awayTeamName} 
-          teamDisplayName="Visitante" 
-          score={score.away} 
+        <TeamScoreDisplay
+          teamActualName={awayTeamName}
+          teamDisplayName="Visitante"
+          score={score.away}
           playersOnIce={playersOnIceForAway}
           configuredPlayersPerTeam={playersPerTeamOnIce}
           layout={scoreboardLayout}
-          logoDataUrl={awayTeamData?.logoDataUrl}
+          logoDataUrl={matchContext?.awayTeamLogoDataUrl}
         />
       </CardContent>
     </Card>

@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useGameState, getPeriodText, type Team, type GoalLog, type PlayerData, getActualPeriodText, formatTime } from "@/contexts/game-state-context";
+import { useGameState, getPeriodText, getActualPeriodText, formatTime } from "@/contexts/game-state-context";
+import type { Team, GoalLog } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -30,36 +31,20 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
   const [positives, setPositives] = useState<string[]>(['', '', '', '', '']);
   const [negatives, setNegatives] = useState<string[]>(['', '', '', '', '']);
 
-  const teamData = useMemo(() => {
-    if (!state.config || !state.live || !state.config.tournaments) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
+  const teamAttendance = useMemo(() => state.live.attendance[team] || [], [state.live.attendance, team]);
+  const opposingTeam: Team = team === 'home' ? 'away' : 'home';
+  const opposingTeamAttendance = useMemo(() => state.live.attendance[opposingTeam] || [], [state.live.attendance, opposingTeam]);
 
-    const teamName = team === 'home' ? state.live.homeTeamName : state.live.awayTeamName;
-    const teamSubName = team === 'home' ? state.live.homeTeamSubName : state.live.awayTeamSubName;
-    return selectedTournament.teams.find(t => t.name === teamName && (t.subName || undefined) === (teamSubName || undefined) && t.category === state.config.selectedMatchCategory);
-  }, [team, state.live, state.config]);
+  const selectedPlayer = useMemo(() => teamAttendance.find(p => p.number === scorerNumber), [teamAttendance, scorerNumber]);
+  const selectedAssistPlayer = useMemo(() => teamAttendance.find(p => p.number === assistNumber), [teamAttendance, assistNumber]);
+  const selectedAssist2Player = useMemo(() => teamAttendance.find(p => p.number === assist2Number), [teamAttendance, assist2Number]);
 
-  const opposingTeamData = useMemo(() => {
-    if (!state.config || !state.live || !state.config.tournaments) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
-
-    const opposingTeamName = team === 'home' ? state.live.awayTeamName : state.live.homeTeamName;
-    const opposingTeamSubName = team === 'home' ? state.live.awayTeamSubName : state.live.homeTeamSubName;
-    return selectedTournament.teams.find(t => t.name === opposingTeamName && (t.subName || undefined) === (opposingTeamSubName || undefined) && t.category === state.config.selectedMatchCategory);
-  }, [team, state.live, state.config]);
-
-  const selectedPlayer = useMemo(() => teamData?.players.find(p => p.number === scorerNumber), [teamData, scorerNumber]);
-  const selectedAssistPlayer = useMemo(() => teamData?.players.find(p => p.number === assistNumber), [teamData, assistNumber]);
-  const selectedAssist2Player = useMemo(() => teamData?.players.find(p => p.number === assist2Number), [teamData, assist2Number]);
-
-  const getPlayersByNumbers = (numbers: string[], fromOpposingTeam = false) => {
-    const sourceTeam = fromOpposingTeam ? opposingTeamData : teamData;
-    return numbers.map(num => num ? sourceTeam?.players.find(p => p.number === num) : null);
+  const getPlayersByNumbers = (numbers: string[], fromOpposing = false) => {
+    const source = fromOpposing ? opposingTeamAttendance : teamAttendance;
+    return numbers.map(num => num ? source.find(p => p.number === num) || null : null);
   };
-  const selectedPositivePlayers = useMemo(() => getPlayersByNumbers(positives, false), [teamData, positives]);
-  const selectedNegativePlayers = useMemo(() => getPlayersByNumbers(negatives, true), [opposingTeamData, negatives]);
+  const selectedPositivePlayers = useMemo(() => getPlayersByNumbers(positives, false), [teamAttendance, positives]);
+  const selectedNegativePlayers = useMemo(() => getPlayersByNumbers(negatives, true), [opposingTeamAttendance, negatives]);
 
   // Detect duplicates
   const duplicateChecker = useMemo(() => {
@@ -347,37 +332,22 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
     }
   }, [isEditing, goal]);
 
-  const teamData = useMemo(() => {
-    if (!state.config || !state.live || !state.config.tournaments) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
-
-    const teamName = goal.team === 'home' ? state.live.homeTeamName : state.live.awayTeamName;
-    const teamSubName = goal.team === 'home' ? state.live.homeTeamSubName : state.live.awayTeamSubName;
-    return selectedTournament.teams.find(t => t.name === teamName && (t.subName || undefined) === (teamSubName || undefined) && t.category === state.config.selectedMatchCategory);
-  }, [goal.team, state.live, state.config]);
-
-  const opposingTeamData = useMemo(() => {
-    if (!state.config || !state.live || !state.config.tournaments) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
-
-    const opposingTeamName = goal.team === 'home' ? state.live.awayTeamName : state.live.homeTeamName;
-    const opposingTeamSubName = goal.team === 'home' ? state.live.awayTeamSubName : state.live.homeTeamSubName;
-    return selectedTournament.teams.find(t => t.name === opposingTeamName && (t.subName || undefined) === (opposingTeamSubName || undefined) && t.category === state.config.selectedMatchCategory);
-  }, [goal.team, state.live, state.config]);
+  const goalTeam: Team = goal.team;
+  const teamAttendance = useMemo(() => state.live.attendance[goalTeam] || [], [state.live.attendance, goalTeam]);
+  const opposingTeamKey: Team = goalTeam === 'home' ? 'away' : 'home';
+  const opposingTeamAttendance = useMemo(() => state.live.attendance[opposingTeamKey] || [], [state.live.attendance, opposingTeamKey]);
 
   // Player resolution
-  const selectedScorerPlayer = useMemo(() => teamData?.players.find(p => p.number === scorerNumberInput), [teamData, scorerNumberInput]);
-  const selectedAssistPlayer = useMemo(() => teamData?.players.find(p => p.number === assistNumberInput), [teamData, assistNumberInput]);
-  const selectedAssist2Player = useMemo(() => teamData?.players.find(p => p.number === assist2NumberInput), [teamData, assist2NumberInput]);
+  const selectedScorerPlayer = useMemo(() => teamAttendance.find(p => p.number === scorerNumberInput), [teamAttendance, scorerNumberInput]);
+  const selectedAssistPlayer = useMemo(() => teamAttendance.find(p => p.number === assistNumberInput), [teamAttendance, assistNumberInput]);
+  const selectedAssist2Player = useMemo(() => teamAttendance.find(p => p.number === assist2NumberInput), [teamAttendance, assist2NumberInput]);
 
-  const getPlayersByNumbers = (numbers: string[], fromOpposingTeam = false) => {
-    const sourceTeam = fromOpposingTeam ? opposingTeamData : teamData;
-    return numbers.map(num => num ? sourceTeam?.players.find(p => p.number === num) : null);
+  const getPlayersByNumbers = (numbers: string[], fromOpposing = false) => {
+    const source = fromOpposing ? opposingTeamAttendance : teamAttendance;
+    return numbers.map(num => num ? source.find(p => p.number === num) || null : null);
   };
-  const selectedPositivePlayers = useMemo(() => getPlayersByNumbers(positivesInput, false), [teamData, positivesInput]);
-  const selectedNegativePlayers = useMemo(() => getPlayersByNumbers(negativesInput, true), [opposingTeamData, negativesInput]);
+  const selectedPositivePlayers = useMemo(() => getPlayersByNumbers(positivesInput, false), [teamAttendance, positivesInput]);
+  const selectedNegativePlayers = useMemo(() => getPlayersByNumbers(negativesInput, true), [opposingTeamAttendance, negativesInput]);
 
   // Detect duplicates
   const duplicateChecker = useMemo(() => {
@@ -461,7 +431,7 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
     const secs = parseInt(secInput, 10) || 0;
     const newGameTime = (mins * 60 + secs) * 100;
 
-    const scorerPlayer = teamData?.players.find(p => p.number === trimmedScorerNumber);
+    const scorerPlayer = teamAttendance.find(p => p.number === trimmedScorerNumber);
 
     const updates: Partial<GoalLog> = {};
     if (newGameTime !== goal.gameTime) updates.gameTime = newGameTime;
@@ -475,7 +445,7 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
     }
     if (trimmedAssistNumber !== (goal.assist?.playerNumber || '') || (!trimmedAssistNumber && goal.assist)) {
         if (trimmedAssistNumber) {
-            const assistPlayer = teamData?.players.find(p => p.number === trimmedAssistNumber);
+            const assistPlayer = teamAttendance.find(p => p.number === trimmedAssistNumber);
             updates.assist = {
                 playerId: assistPlayer?.id, // Guardar ID del jugador
                 playerNumber: trimmedAssistNumber,
@@ -487,7 +457,7 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
     }
     if (trimmedAssist2Number !== (goal.assist2?.playerNumber || '') || (!trimmedAssist2Number && goal.assist2)) {
         if (trimmedAssist2Number) {
-            const assist2Player = teamData?.players.find(p => p.number === trimmedAssist2Number);
+            const assist2Player = teamAttendance.find(p => p.number === trimmedAssist2Number);
             updates.assist2 = {
                 playerId: assist2Player?.id, // Guardar ID del jugador
                 playerNumber: trimmedAssist2Number,
@@ -607,9 +577,9 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
                 <Label className="text-xs font-semibold">Positivas</Label>
                 <div className="grid grid-cols-5 gap-2">
                     {positivesInput.map((pos, idx) => {
-                        const isReadonly = (idx === 0 && scorerNumberInput.trim()) ||
-                                         (idx === 1 && assistNumberInput.trim()) ||
-                                         (idx === 2 && assist2NumberInput.trim());
+                        const isReadonly = (idx === 0 && !!scorerNumberInput.trim()) ||
+                                         (idx === 1 && !!assistNumberInput.trim()) ||
+                                         (idx === 2 && !!assist2NumberInput.trim());
                         const isDuplicate = duplicateChecker.positives[idx];
                         const isComplete = pos.trim();
 

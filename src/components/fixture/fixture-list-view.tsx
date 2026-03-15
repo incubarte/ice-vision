@@ -11,7 +11,7 @@ import { format, parseISO, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddEditMatchDialog } from './add-edit-match-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import type { MatchData, TeamData } from '@/types';
+import { type MatchData, type TeamData, isTournamentHydrated } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FixtureMatchSummaryDialog } from './fixture-match-summary-dialog';
@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 import { deleteMatchWithSummary, cleanMatchSummary } from '@/lib/summary-management';
+import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 
 // Helper para obtener el nombre del equipo o posición
 function getTeamOrPositionName(teamId: string | undefined, teams: TeamData[] | undefined): string {
@@ -100,7 +101,7 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { selectedTournamentId, tournaments } = state.config;
+  const { selectedTournamentId, tournaments, activeTournament } = state.config;
 
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
 
@@ -132,11 +133,16 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
   const activeTournamentId = tournamentId || selectedTournamentId;
 
   const selectedTournament = useMemo(() => {
+    if (activeTournament && activeTournament.id === activeTournamentId) {
+      return activeTournament;
+    }
     return tournaments.find(t => t.id === activeTournamentId);
-  }, [tournaments, activeTournamentId]);
+  }, [tournaments, activeTournamentId, activeTournament]);
+
+  const isHydrated = isTournamentHydrated(selectedTournament);
 
   const sortedMatches = useMemo(() => {
-    if (!selectedTournament?.matches) return [];
+    if (!isHydrated || !selectedTournament?.matches) return [];
 
     let filtered = [...selectedTournament.matches];
 
@@ -182,7 +188,16 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
     }
 
     return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [selectedTournament, categoryFilter, teamSearch, dateFilter, statusFilter, teamFilter]);
+  }, [selectedTournament, categoryFilter, teamSearch, dateFilter, statusFilter, teamFilter, isHydrated]);
+
+  if (!isHydrated) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <HockeyPuckSpinner />
+        <p className="text-muted-foreground animate-pulse">Cargando fixture...</p>
+      </div>
+    );
+  }
 
   const handleEditMatch = (match: MatchData) => {
     if (isReadOnly) return;

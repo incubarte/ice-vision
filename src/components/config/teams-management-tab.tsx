@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { PlusCircle, Search, Users, Info, Upload, Download, ListFilter, FileText, Trash2, X } from "lucide-react";
 import { TeamListItem } from "@/components/teams/team-list-item";
 import { CreateEditTeamDialog } from "@/components/teams/create-edit-team-dialog";
+import { HockeyPuckSpinner } from "@/components/ui/hockey-puck-spinner";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import type { TeamData } from "@/types";
+import type { TeamData, Tournament } from "@/types";
+import { getCategoryNameById } from "@/lib/game-helpers";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
@@ -41,7 +43,7 @@ interface TeamsManagementTabProps {
 
 export function TeamsManagementTab({ tournamentId }: TeamsManagementTabProps = {}) {
   const { state, dispatch, isLoading } = useGameState();
-  const { tournaments, selectedTournamentId } = state.config;
+  const { tournaments, selectedTournamentId, activeTournament } = state.config;
   const router = useRouter();
   const { toast } = useToast();
 
@@ -51,11 +53,16 @@ export function TeamsManagementTab({ tournamentId }: TeamsManagementTabProps = {
   const activeTournamentId = tournamentId || selectedTournamentId;
 
   const selectedTournament = useMemo(() => {
-    return tournaments.find(t => t.id === activeTournamentId);
-  }, [tournaments, activeTournamentId]);
+    if (activeTournament?.id === activeTournamentId) {
+      return activeTournament;
+    }
+    // Fallback to metadata for basic info, but we won't have teams/categories
+    return (tournaments || []).find(t => t.id === activeTournamentId);
+  }, [activeTournament, activeTournamentId, tournaments]);
 
-  const teams = selectedTournament?.teams || [];
-  const availableCategories = selectedTournament?.categories || [];
+  const isHydrated = !!(selectedTournament && 'teams' in selectedTournament);
+  const teams = isHydrated ? (selectedTournament as Tournament).teams : [];
+  const availableCategories = isHydrated ? (selectedTournament as Tournament).categories : [];
 
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES_FILTER_KEY);
@@ -162,6 +169,15 @@ export function TeamsManagementTab({ tournamentId }: TeamsManagementTabProps = {
     );
   }
 
+  if (!isHydrated) {
+    return (
+      <div className="text-center py-12">
+        <HockeyPuckSpinner className="h-12 w-12 text-primary mx-auto mb-4" />
+        <p className="text-muted-foreground">Hydrating tournament data...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -218,6 +234,7 @@ export function TeamsManagementTab({ tournamentId }: TeamsManagementTabProps = {
             <TeamListItem
               key={team.id}
               team={team}
+              categoryName={getCategoryNameById(team.category, availableCategories) || "Sin Categoría"}
               isSelectionMode={isDeleteSelectionMode}
               isSelected={selectedTeamIdsForDeletion.includes(team.id)}
               onToggleSelection={handleToggleTeamSelectionForDeletion}
@@ -310,6 +327,7 @@ export function TeamsManagementTab({ tournamentId }: TeamsManagementTabProps = {
         isOpen={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onTeamSaved={() => { }}
+        tournamentId={activeTournamentId}
       />
 
       {isExportDialogOpen && (
@@ -340,7 +358,7 @@ export function TeamsManagementTab({ tournamentId }: TeamsManagementTabProps = {
       <ImportTeamsDialog
         isOpen={isImportDialogOpen}
         onOpenChange={setIsImportDialogOpen}
-        tournament={selectedTournament}
+        tournament={isHydrated ? (selectedTournament as Tournament) : null}
       />
 
       {isConfirmMassDeleteOpen && (

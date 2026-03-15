@@ -20,7 +20,7 @@ export function StaffManagementTab({ tournamentId }: StaffManagementTabProps) {
   const { toast } = useToast();
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
 
-  const tournament = state.config.tournaments.find(t => t.id === tournamentId);
+  const tournament = state.config.activeTournament;
   const staff = tournament?.staff || [];
 
   const [showAddForm, setShowAddForm] = useState(false);

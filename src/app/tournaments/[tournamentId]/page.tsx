@@ -22,13 +22,19 @@ export default function TournamentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { state, isLoading: isGameStateLoading } = useGameState();
+  const { state, dispatch, isLoading: isGameStateLoading } = useGameState();
 
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
   const showTeamsInReadOnly = process.env.NEXT_PUBLIC_SHOW_TEAMS_IN_READONLY === 'true';
   const shouldShowTeams = !isReadOnly || showTeamsInReadOnly;
 
   const tournamentId = typeof params.tournamentId === 'string' ? params.tournamentId : undefined;
+
+  useEffect(() => {
+    if (tournamentId && state.config.selectedTournamentId !== tournamentId) {
+      dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: tournamentId } });
+    }
+  }, [tournamentId, state.config.selectedTournamentId, dispatch]);
   const initialTab = searchParams.get('tab') || (shouldShowTeams ? 'teamsAndCategories' : 'fixture');
   const initialFixtureView = searchParams.get('view') === 'list' ? 'list' : 'calendar';
 

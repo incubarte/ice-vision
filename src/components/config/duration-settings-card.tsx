@@ -3,12 +3,12 @@
 "use client";
 
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
-import { 
-  useGameState, 
-  centisecondsToDisplayMinutes, 
+import {
+  useGameState,
+  centisecondsToDisplayMinutes,
   centisecondsToDisplaySeconds,
-  type FormatAndTimingsProfileData
 } from "@/contexts/game-state-context";
+import type { FormatAndTimingsProfileData } from "@/types";
 import { ControlCardWrapper } from "@/components/controls/control-card-wrapper";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";

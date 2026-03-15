@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
-import { useGameState, type GameAction } from '@/contexts/game-state-context';
+import { useGameState } from '@/contexts/game-state-context';
+import type { GameAction } from '@/types';
 import { CompactHeaderScoreboard, useTeamLogos } from './compact-header-scoreboard';
 import { PenaltiesDisplay } from './penalties-display';
 import { ShootoutDisplay, MAX_DISPLAY_SLOTS } from './shootout-display';
@@ -181,9 +182,8 @@ export function FullScoreboard({ className }: { className?: string }) {
       console.log('Was showing standings before transition:', wasShowingStandingsBeforeTransition);
 
       // Determinar si el partido actual es de playoffs
-      const currentMatchData = config.tournaments
-        ?.flatMap(t => t.matches || [])
-        .find(m => m.id === live.matchId);
+      const currentMatchData = config.activeTournament
+        ?.matches?.find(m => m.id === live.matchId);
       const isCurrentPlayoffMatch = currentMatchData?.phase === 'playoffs';
 
       // Capturar el contenido COMPLETO de warmup ESTÁTICO (sin animaciones) para la transición
@@ -199,7 +199,7 @@ export function FullScoreboard({ className }: { className?: string }) {
               tournamentLogoId={config.selectedTournamentId}
             >
               <PlayoffBracketPreview
-                tournament={currentTournament}
+                tournament={activeTournament}
                 currentMatch={currentMatchData}
                 homeTeam={homeTeam}
                 awayTeam={awayTeam}
@@ -397,17 +397,14 @@ export function FullScoreboard({ className }: { className?: string }) {
       : true); // En partidos standalone, siempre mostrar excepto en Shootout
 
   // Obtener datos del partido para verificar si es playoff
-  const matchData = config.tournaments
-    ?.flatMap(t => t.matches || [])
-    .find(m => m.id === matchId);
-  const isPlayoffMatch = matchData?.phase === 'playoffs';
+  const matchContext = live.matchContext;
+  const activeTournament = config.activeTournament;
+  const isPlayoffMatch = matchContext?.matchPhase === 'playoffs';
 
-  // Obtener tournament y teams para PlayoffBracketPreview
-  const currentTournament = config.tournaments?.find(t =>
-    t.id === config.selectedTournamentId
-  );
-  const homeTeam = currentTournament?.teams?.find(t => t.id === matchData?.homeTeamId);
-  const awayTeam = currentTournament?.teams?.find(t => t.id === matchData?.awayTeamId);
+  // Obtener tournament y teams para PlayoffBracketPreview (intentionally coupled - needs tournament data)
+  const matchData = activeTournament?.matches?.find(m => m.id === matchId);
+  const homeTeam = activeTournament?.teams?.find(t => t.id === matchContext?.homeTeamId);
+  const awayTeam = activeTournament?.teams?.find(t => t.id === matchContext?.awayTeamId);
 
   // Debug log for goal celebration
   console.log('[FullScoreboard] goalCelebration:', goalCelebration);
@@ -639,11 +636,11 @@ export function FullScoreboard({ className }: { className?: string }) {
                           awayLogoDataUrl={awayLogoDataUrl}
                           tournamentLogoId={config.selectedTournamentId}
                         />
-                        {shouldShowRosterPresentation && homeTeam && awayTeam && currentTournament && (
+                        {shouldShowRosterPresentation && homeTeam && awayTeam && activeTournament && (
                           <RosterPresentation
                             homeTeam={homeTeam}
                             awayTeam={awayTeam}
-                            tournament={currentTournament}
+                            tournament={activeTournament}
                             homePresentPlayerIds={homePresentPlayerIds}
                             awayPresentPlayerIds={awayPresentPlayerIds}
                             showHomeTeam={homeTeamHasPhotos}
@@ -662,7 +659,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                           <StandingsDisplay />
                         </div>
                       </WarmupDisplay>
-                    ) : shouldShowPlayoffBracket && matchData && currentTournament ? (
+                    ) : shouldShowPlayoffBracket && matchData && activeTournament ? (
                       <WarmupDisplay
                         homeLogoDataUrl={homeLogoDataUrl}
                         awayLogoDataUrl={awayLogoDataUrl}
@@ -670,7 +667,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                         tournamentLogoId={config.selectedTournamentId}
                       >
                         <PlayoffBracketPreview
-                          tournament={currentTournament}
+                          tournament={activeTournament}
                           currentMatch={matchData}
                           homeTeam={homeTeam}
                           awayTeam={awayTeam}

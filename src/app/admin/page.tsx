@@ -601,7 +601,7 @@ function SyncAnalysisCard() {
             console.log('[Admin] Tournaments count:', data.config?.tournaments?.length || 0);
 
             // Hydrate the state with fresh data
-            dispatch({ type: 'HYDRATE_FROM_SERVER', payload: data });
+            dispatch({ type: 'INITIALIZE_STATE', payload: data });
 
             toast({
                 title: "✅ Contexto Recargado",

@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useGameState, type Team, type PlayerData, getActualPeriodText } from "@/contexts/game-state-context";
+import { useGameState, getActualPeriodText } from "@/contexts/game-state-context";
+import type { Team } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -23,22 +24,12 @@ export function GoldenGoalDialog({ isOpen, onOpenChange }: GoldenGoalDialogProps
   const [scorerNumber, setScorerNumber] = useState('');
   const [assistNumber, setAssistNumber] = useState('');
 
-  const homeTeamData = useMemo(() => {
-    const selectedTournament = (state.config.tournaments || []).find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament) return null;
-    return selectedTournament.teams.find(t => t.name === state.live.homeTeamName && (t.subName || undefined) === (state.live.homeTeamSubName || undefined) && t.category === state.config.selectedMatchCategory);
-  }, [state]);
+  const homeAttendance = useMemo(() => state.live.attendance.home || [], [state.live.attendance]);
+  const awayAttendance = useMemo(() => state.live.attendance.away || [], [state.live.attendance]);
 
-  const awayTeamData = useMemo(() => {
-    const selectedTournament = (state.config.tournaments || []).find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament) return null;
-    return selectedTournament.teams.find(t => t.name === state.live.awayTeamName && (t.subName || undefined) === (state.live.awayTeamSubName || undefined) && t.category === state.config.selectedMatchCategory);
-  }, [state]);
-
-
-  const selectedTeamData = selectedTeam === 'home' ? homeTeamData : awayTeamData;
-  const scorerPlayer = useMemo(() => selectedTeamData?.players.find(p => p.number === scorerNumber), [selectedTeamData, scorerNumber]);
-  const assistPlayer = useMemo(() => selectedTeamData?.players.find(p => p.number === assistNumber), [selectedTeamData, assistNumber]);
+  const selectedTeamAttendance = selectedTeam === 'home' ? homeAttendance : awayAttendance;
+  const scorerPlayer = useMemo(() => selectedTeamAttendance.find(p => p.number === scorerNumber), [selectedTeamAttendance, scorerNumber]);
+  const assistPlayer = useMemo(() => selectedTeamAttendance.find(p => p.number === assistNumber), [selectedTeamAttendance, assistNumber]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

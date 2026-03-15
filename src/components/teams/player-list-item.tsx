@@ -37,8 +37,8 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
   // Check if current player's number is duplicated
   const hasDuplicateNumber = allPlayers.filter(p => p.number && p.number.trim() === player.number?.trim()).length > 1;
 
-  // Get tournament and team info
-  const tournament = state.config.tournaments?.find(t => t.teams.some(tm => tm.id === teamId));
+  // Get tournament and team info from activeTournament
+  const tournament = state.config.activeTournament;
   const team = tournament?.teams.find(t => t.id === teamId);
 
   // Get current photo URL if exists
@@ -252,9 +252,11 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
         return;
       }
 
-      // Correctly find the tournament and then the team
-      const tournamentWithTeam = (state.config.tournaments || []).find(t => t.teams.some(tm => tm.id === teamId));
-      const currentTeam = tournamentWithTeam?.teams.find(t => t.id === teamId);
+      // Get team from active tournament
+      const currentTournament = state.config.activeTournament;
+      const currentTeam = currentTournament?.teams?.some(tm => tm.id === teamId)
+        ? currentTournament.teams.find(t => t.id === teamId)
+        : undefined;
 
       if (currentTeam && currentTeam.players.some(p => p.id !== player.id && p.number === trimmedNumber)) {
         toast({

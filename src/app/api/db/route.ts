@@ -1,18 +1,37 @@
 
 import { NextResponse } from 'next/server';
-import type { GameState, ConfigState, LiveState, TournamentsData, ShotsMetrics } from '@/types';
+import type { GameState, ConfigState, LiveState, TournamentsData, ShotsMetrics, Tournament } from '@/types';
 import { setGameState, setConfig, getGameState, getConfig, setTournaments, getTournaments, setShotsMetrics, getShotsMetrics } from '@/lib/server-side-store';
-import { readConfig, writeConfig, readLiveState, writeLiveState, readTournaments, writeTournaments, readShotsMetrics, writeShotsMetrics } from '@/lib/data-access';
+import { readConfig, writeConfig, readLiveState, writeLiveState, readTournaments, writeTournaments, readShotsMetrics, writeShotsMetrics, readTournament } from '@/lib/data-access';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const [config, liveState, shotsMetrics] = await Promise.all([
+    const [config, liveState, shotsMetrics, tournamentsData] = await Promise.all([
         getConfig(),
         getGameState(),
-        getShotsMetrics()
+        getShotsMetrics(),
+        getTournaments()
     ]);
+
+    // Server-side hydration: If a tournament is selected, load its full data
+    let activeTournament: Tournament | null = null;
+    if (config?.selectedTournamentId) {
+      const tournamentMeta = tournamentsData?.tournaments?.find(t => t.id === config.selectedTournamentId);
+      if (tournamentMeta) {
+        const fullTournament = await readTournament(config.selectedTournamentId);
+        if (fullTournament) {
+          activeTournament = {
+            ...tournamentMeta,
+            teams: fullTournament.teams || [],
+            categories: fullTournament.categories || [],
+            matches: fullTournament.matches || [],
+            staff: fullTournament.staff,
+          };
+        }
+      }
+    }
 
     // Merge shotsMetrics into liveState for backward compatibility
     const mergedLiveState = liveState ? {
@@ -22,7 +41,11 @@ export async function GET(request: Request) {
     } : undefined;
 
     const initialState: Partial<GameState> = {
-      config: config || undefined,
+      config: config ? { 
+        ...config, 
+        tournaments: tournamentsData?.tournaments || [],
+        activeTournament
+      } : undefined,
       live: mergedLiveState,
       _initialConfigLoadComplete: false,
     }

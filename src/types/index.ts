@@ -86,14 +86,22 @@ export interface AssignedStaffInfo {
   order: number;  // 1 = Principal, 2 = Segundo, 3 = Tercero
 }
 
-export interface Tournament {
+export interface TournamentMetadata {
   id: string;
   name: string;
   status: 'active' | 'inactive' | 'finished';
+}
+
+export interface Tournament extends TournamentMetadata {
   teams: TeamData[];
   categories: CategoryData[];
   matches: MatchData[];
   staff?: StaffMember[];  // Optional for backwards compatibility
+}
+
+/** Type guard to check if a TournamentMetadata has been fully hydrated into a Tournament */
+export function isTournamentHydrated(t: TournamentMetadata | Tournament | null | undefined): t is Tournament {
+  return !!t && 'matches' in t && 'teams' in t && 'categories' in t;
 }
 
 export interface CategoryData {
@@ -341,7 +349,7 @@ export interface ConfigFields { // Interface for easier picking of fields
 
 // Separate type for tournaments data (stored in tournaments.json)
 export interface TournamentsData {
-  tournaments: Tournament[];
+  tournaments: TournamentMetadata[];
 }
 
 // Sync manifest types
@@ -440,7 +448,8 @@ export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'n
   selectedFormatAndTimingsProfileId: string | null;
   scoreboardLayout: ScoreboardLayoutSettings;
   selectedScoreboardLayoutProfileId: string | null;
-  tournaments: Tournament[]; // Still part of runtime state, but loaded from tournaments.json
+  tournaments: TournamentMetadata[]; // Still part of runtime state, but loaded from tournaments.json
+  activeTournament: Tournament | null; // Added for the full hydrated tournament
   selectedTournamentId: string | null;
   selectedMatchCategory: string;
 }
@@ -543,6 +552,23 @@ export interface ShotsMetrics {
   goalkeeperChangesLog: { home: GoalkeeperChangeLog[], away: GoalkeeperChangeLog[] };
 }
 
+// Match context snapshot - copied at setup, read-only during game
+export interface MatchContext {
+  tournamentId: string;
+  tournamentName: string;
+  categoryId: string;
+  categoryName: string;
+  matchPhase: MatchPhase | null;
+  matchPlayoffType: PlayoffMatchType | null;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeTeamLogoDataUrl: string | null;
+  awayTeamLogoDataUrl: string | null;
+  homeRoster: PlayerData[];    // full roster snapshot for photos (has photoFileName)
+  awayRoster: PlayerData[];    // full roster snapshot for photos
+  staff: StaffMember[];        // resolved staff list
+}
+
 // This is the model for live, in-game data
 export interface LiveState {
   clock: ClockState;
@@ -587,6 +613,7 @@ export interface LiveState {
     teamData?: TeamData;
   } | null;
   matchId: string | null;
+  matchContext: MatchContext | null;  // Snapshot of tournament data at game setup
   playedPeriods: string[];
   assignedStaff?: MatchStaffAssignment;  // Staff assigned to this match
   periodStartTimestamps?: Record<string, string>;  // Period name -> ISO timestamp when it started
@@ -710,8 +737,8 @@ export type GameAction =
   | { type: 'DELETE_MATCH_FROM_TOURNAMENT'; payload: { tournamentId: string; matchId: string } }
   | { type: 'CLEAN_MATCH_SUMMARY'; payload: { tournamentId: string; matchId: string } }
   | { type: 'SAVE_MATCH_SUMMARY'; payload: { matchId: string; summary: GameSummary; } }
-  | { type: 'HYDRATE_FROM_SERVER'; payload: Partial<GameState> }
-  | { type: 'HYDRATE_TOURNAMENT_DETAILS', payload: { tournamentData: Partial<Tournament> } }
+  | { type: 'INITIALIZE_STATE'; payload: Partial<GameState> }
+  | { type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: Partial<Tournament> } }
   | { type: 'SET_STATE_FROM_LOCAL_BROADCAST'; payload: GameState }
   | { type: 'UPDATE_LIVE_STATE', payload: Partial<LiveState> }
   | { type: 'RESET_CONFIG_TO_DEFAULTS' }

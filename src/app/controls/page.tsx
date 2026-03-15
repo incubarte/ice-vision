@@ -9,7 +9,8 @@ import { GoalManagementDialog } from '@/components/controls/goal-management-dial
 import { GoldenGoalDialog } from '@/components/controls/golden-goal-dialog';
 import { ShootoutControl } from '@/components/controls/shootout-control';
 import { PenaltyNotifications } from '@/components/scoreboard/penalty-notifications';
-import { useGameState, type Team, type GoalLog, type PenaltyLog, getCategoryNameById, getActualPeriodText, formatTime, type GameState } from '@/contexts/game-state-context';
+import { useGameState, getCategoryNameById, getActualPeriodText, formatTime } from '@/contexts/game-state-context';
+import type { Team, GoalLog, PenaltyLog, GameState } from '@/types';
 import type { PlayerData, RemoteCommand, AccessRequest, TunnelState, MatchData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -219,23 +220,23 @@ const EditableGoalRow = ({ goal, onCancel, onSave }: { goal: GoalLog; onCancel: 
 
   // Get team data
   const teamData = useMemo(() => {
-    if (!state.config || !state.live || !state.config.tournaments) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
+    if (!state.config || !state.live) return null;
+    const tournament = state.config.activeTournament;
+    if (!tournament || tournament.id !== state.config.selectedTournamentId || !tournament.teams) return null;
 
     const teamName = goal.team === 'home' ? state.live.homeTeamName : state.live.awayTeamName;
     const teamSubName = goal.team === 'home' ? state.live.homeTeamSubName : state.live.awayTeamSubName;
-    return selectedTournament.teams.find(t => t.name === teamName && (t.subName || undefined) === (teamSubName || undefined) && t.category === state.config.selectedMatchCategory);
+    return tournament.teams.find((t: any) => t.name === teamName && (t.subName || undefined) === (teamSubName || undefined) && t.category === state.config.selectedMatchCategory);
   }, [goal.team, state.live, state.config]);
 
   const opposingTeamData = useMemo(() => {
-    if (!state.config || !state.live || !state.config.tournaments) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament || !selectedTournament.teams) return null;
+    if (!state.config || !state.live) return null;
+    const tournament = state.config.activeTournament;
+    if (!tournament || tournament.id !== state.config.selectedTournamentId || !tournament.teams) return null;
 
     const opposingTeamName = goal.team === 'home' ? state.live.awayTeamName : state.live.homeTeamName;
     const opposingTeamSubName = goal.team === 'home' ? state.live.awayTeamSubName : state.live.homeTeamSubName;
-    return selectedTournament.teams.find(t => t.name === opposingTeamName && (t.subName || undefined) === (opposingTeamSubName || undefined) && t.category === state.config.selectedMatchCategory);
+    return tournament.teams.find((t: any) => t.name === opposingTeamName && (t.subName || undefined) === (opposingTeamSubName || undefined) && t.category === state.config.selectedMatchCategory);
   }, [goal.team, state.live, state.config]);
 
   // Get selected players
@@ -409,9 +410,9 @@ const EditableGoalRow = ({ goal, onCancel, onSave }: { goal: GoalLog; onCancel: 
           <Label className="text-xs font-semibold">Positivas</Label>
           <div className="grid grid-cols-5 gap-1 mt-1">
             {positives.map((pos, idx) => {
-              const isReadonly = (idx === 0 && scorerNumber.trim()) ||
-                (idx === 1 && assistNumber.trim()) ||
-                (idx === 2 && assist2Number.trim());
+              const isReadonly = (idx === 0 && !!scorerNumber.trim()) ||
+                (idx === 1 && !!assistNumber.trim()) ||
+                (idx === 2 && !!assist2Number.trim());
               const isDuplicate = duplicateChecker.positives[idx];
               const isComplete = pos.trim();
 
@@ -906,8 +907,8 @@ export default function ControlsPage() {
         if (command.type === 'ADD_GOAL') {
           const { team, scorerNumber, assistNumber } = command.payload;
 
-          const selectedTournament = (currentConfig.tournaments || []).find(t => t.id === currentConfig.selectedTournamentId);
-          const teamData = selectedTournament?.teams.find(t => t.name === currentLive[`${team}TeamName`] && (t.subName || undefined) === (currentLive[`${team}TeamSubName`] || undefined) && t.category === currentConfig.selectedMatchCategory);
+          const selectedTournament = currentConfig.activeTournament?.id === currentConfig.selectedTournamentId ? currentConfig.activeTournament : null;
+          const teamData = selectedTournament?.teams.find((t: any) => t.name === currentLive[`${team}TeamName`] && (t.subName || undefined) === (currentLive[`${team}TeamSubName`] || undefined) && t.category === currentConfig.selectedMatchCategory);
           const scorerPlayer = teamData?.players.find(p => p.number === scorerNumber);
           const assistPlayer = assistNumber ? teamData?.players.find(p => p.number === assistNumber) : undefined;
 
@@ -1214,10 +1215,10 @@ export default function ControlsPage() {
     if (state.live.clock.periodDisplayOverride !== 'End of Game' || !state.live.matchId) {
       return null;
     }
-    const tournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
-    if (!tournament || !tournament.matches) return null;
-    return tournament.matches.find(m => m.id === state.live.matchId);
-  }, [state.live.clock.periodDisplayOverride, state.live.matchId, state.config.tournaments, state.config.selectedTournamentId]);
+    const tournament = state.config.activeTournament;
+    if (!tournament || tournament.id !== state.config.selectedTournamentId || !tournament.matches) return null;
+    return tournament.matches.find((m: MatchData) => m.id === state.live.matchId);
+  }, [state.live.clock.periodDisplayOverride, state.live.matchId, state.config.activeTournament, state.config.selectedTournamentId]);
 
 
   if (authStatus === 'loading' || isGameStateLoading || !state.live || !state.config || !state.live.penalties) {

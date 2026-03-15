@@ -195,7 +195,7 @@ export function EditPlayerDialog({
         }
 
         // Check for duplicate number
-        const tournament = state.config.tournaments?.find(t => t.id === tournamentId);
+        const tournament = state.config.activeTournament;
         const team = tournament?.teams.find(t => t.id === teamId);
         if (team && trimmedNumber && team.players.some(p => p.id !== player.id && p.number === trimmedNumber)) {
             toast({

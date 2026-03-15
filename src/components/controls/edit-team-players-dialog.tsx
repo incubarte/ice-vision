@@ -56,11 +56,25 @@ export function EditTeamPlayersDialog({
   const [justAddedPlayerId, setJustAddedPlayerId] = useState<string | null>(null);
 
   const teamDetails = useMemo(() => {
-    if (!state.config || !state.config.tournaments) return null;
-    const selectedTournament = state.config.tournaments.find(t => t.id === state.config.selectedTournamentId);
+    // Prefer matchContext roster (snapshot at game setup) for live game independence
+    const mc = state.live.matchContext;
+    if (mc) {
+      const isHome = mc.homeTeamId === teamId;
+      const isAway = mc.awayTeamId === teamId;
+      if (isHome || isAway) {
+        return {
+          id: teamId,
+          name: isHome ? state.live.homeTeamName : state.live.awayTeamName,
+          players: isHome ? mc.homeRoster : mc.awayRoster,
+          category: mc.categoryId,
+        };
+      }
+    }
+    // Fallback to activeTournament for backward compat
+    const selectedTournament = state.config.activeTournament;
     if (!selectedTournament || !selectedTournament.teams) return null;
     return selectedTournament.teams.find(t => t.id === teamId);
-  }, [state.config.tournaments, state.config.selectedTournamentId, teamId]);
+  }, [state.live.matchContext, state.config.activeTournament, teamId, state.live.homeTeamName, state.live.awayTeamName]);
 
   // Function to refresh local state from global state
   const refreshFromGlobalState = () => {
@@ -85,75 +99,42 @@ export function EditTeamPlayersDialog({
     setActiveGoalkeeperId(activeGoalkeeperId);
   };
 
-  // Track if dialog was just opened to prevent reloading data while editing
-  const dialogOpenedRef = useRef(false);
+  // Track whether we've already loaded data for this dialog session
+  const hasLoadedRef = useRef(false);
 
+  // Reset the flag when dialog closes
   useEffect(() => {
-    if (isOpen && !dialogOpenedRef.current) {
-      dialogOpenedRef.current = true;
-    } else if (!isOpen) {
-      dialogOpenedRef.current = false;
+    if (!isOpen) {
+      hasLoadedRef.current = false;
     }
   }, [isOpen]);
+
+  // Load data exactly once when dialog opens (and teamDetails is available)
+  useEffect(() => {
+    if (isOpen && teamDetails && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      refreshFromGlobalState();
+    }
+  }, [isOpen, teamDetails]);
 
   // Auto-refresh when a player is added
   useEffect(() => {
     if (justAddedPlayerId && teamDetails) {
-      // Check if the new player exists in teamDetails
       const playerExists = teamDetails.players.some(p => p.id === justAddedPlayerId);
 
       if (playerExists) {
-        // Player has been added to global state, refresh local state
         refreshFromGlobalState();
 
-        // Automatically mark the new player as attended
         setAttendedPlayerIds(prev => {
           const newIds = new Set(prev);
           newIds.add(justAddedPlayerId);
           return newIds;
         });
 
-        // Clear the flag
         setJustAddedPlayerId(null);
       }
     }
-  }, [justAddedPlayerId, teamDetails, state.config.tournaments]);
-
-  useEffect(() => {
-    // Only reload data when dialog first opens, NOT on every teamDetails change
-    // This prevents losing unsaved edits when other tabs broadcast state updates
-    if (isOpen && teamDetails && dialogOpenedRef.current) {
-      // Check if there are unsaved changes
-      const hasUnsavedChanges = editablePlayers.some(p => p.isModified);
-
-      // Only reload if there are no unsaved changes
-      if (!hasUnsavedChanges) {
-        const sortedPlayers = [...teamDetails.players].sort((a, b) => {
-          // Rule 1: Goalkeepers come before players.
-          if (a.type === 'goalkeeper' && b.type !== 'goalkeeper') return -1;
-          if (a.type !== 'goalkeeper' && b.type === 'goalkeeper') return 1;
-
-          // Rule 2: Within the same type (goalkeeper or player), sort by name alphabetically.
-          return a.name.localeCompare(b.name);
-        });
-
-        setEditablePlayers(
-          sortedPlayers.map(p => ({ ...p, localNumber: p.number, isModified: false }))
-        );
-
-        const attendedInfo = state.live?.attendance?.[teamType] || [];
-        setAttendedPlayerIds(new Set(attendedInfo.filter(p => p.isPresent !== false).map(p => p.id)));
-
-        // Load active goalkeeper from global state
-        const activeGoalkeeperId = teamType === 'home'
-          ? state.live.homeActiveGoalkeeperId
-          : state.live.awayActiveGoalkeeperId;
-        setActiveGoalkeeperId(activeGoalkeeperId);
-
-        dialogOpenedRef.current = false; // Reset flag after initial load
-      }
-    }
-  }, [isOpen, teamDetails, state.live.attendance, state.live.homeActiveGoalkeeperId, state.live.awayActiveGoalkeeperId, teamType, editablePlayers]);
+  }, [justAddedPlayerId, teamDetails]);
 
   const handlePlayerNumberChange = (playerId: string, newNumber: string) => {
     if (/^\d*$/.test(newNumber)) {
@@ -360,7 +341,8 @@ export function EditTeamPlayersDialog({
       if (player.isModified) {
         const newNumber = player.localNumber;
         if (newNumber !== player.number) {
-          // Update attendance only (match state), not team roster
+          // Update attendance only — jersey number changes are match-specific
+          // and must NOT modify the roster (UPDATE_PLAYER_IN_TEAM)
           dispatch({
             type: "UPDATE_ATTENDANCE_PLAYER",
             payload: {

@@ -12,12 +12,15 @@ import { useStandings } from '@/hooks/use-standings';
 
 export function StandingsDisplay() {
   const { state } = useGameState();
-  const { tournaments, selectedTournamentId, selectedMatchCategory, scoreboardLayout } = state.config;
+  const { activeTournament, selectedTournamentId, selectedMatchCategory, scoreboardLayout } = state.config;
   const { matchId, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName } = state.live;
 
   const currentTournament = useMemo(() => {
-    return (tournaments || []).find(t => t.id === selectedTournamentId);
-  }, [tournaments, selectedTournamentId]);
+    if (activeTournament?.id === selectedTournamentId) {
+      return activeTournament;
+    }
+    return null;
+  }, [activeTournament, selectedTournamentId]);
 
   const currentMatch = useMemo(() => {
     if (!currentTournament || !matchId || !currentTournament.matches) return null;

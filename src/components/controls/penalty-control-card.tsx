@@ -4,7 +4,7 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameState, formatTime, getPeriodText, getPeriodContextFromAbsoluteTime } from '@/contexts/game-state-context';
-import type { Penalty, Team, PlayerData, PenaltyTypeDefinition } from '@/types';
+import type { Penalty, Team, PenaltyTypeDefinition } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -101,18 +101,9 @@ const PenaltyItem = ({ penalty, team, isEditing, onEditStart, onEditConfirm, onE
     const { state, dispatch } = useGameState();
     const [editTimeValue, setEditTimeValue] = useState('');
 
-    const teamSubName = team === 'home' ? state.live.homeTeamSubName : state.live.awayTeamSubName;
-    const matchedTeam = useMemo(() => {
-      const selectedTournament = (state.config.tournaments || []).find(t => t.id === state.config.selectedTournamentId);
-      if (!selectedTournament || !selectedTournament.teams) return null;
-      return selectedTournament.teams.find(t =>
-          t.name === state.live[`${team}TeamName`] &&
-          (t.subName || undefined) === (teamSubName || undefined) &&
-          t.category === state.config.selectedMatchCategory
-      );
-    }, [state.config.tournaments, state.config.selectedTournamentId, state.config.selectedMatchCategory, state.live, team, teamSubName]);
-    
-    const matchedPlayerForPenaltyDisplay = matchedTeam?.players.find(
+    const attendancePlayers = state.live.attendance[team] || [];
+
+    const matchedPlayerForPenaltyDisplay = attendancePlayers.find(
       pData => pData.number === penalty.playerNumber || (penalty.playerNumber === "S/N" && !pData.number)
     );
 
@@ -426,25 +417,16 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
     .map(item => item.penalty);
 
   const teamSubName = team === 'home' ? state.live.homeTeamSubName : state.live.awayTeamSubName;
+  const attendancePlayers = useMemo(() => state.live.attendance[team] || [], [state.live.attendance, team]);
 
-  const matchedTeam = useMemo(() => {
-      const selectedTournament = (state.config.tournaments || []).find(t => t.id === state.config.selectedTournamentId);
-      if (!selectedTournament || !selectedTournament.teams) return null;
-      return selectedTournament.teams.find(t =>
-        t.name === teamName &&
-        (t.subName || undefined) === (teamSubName || undefined) &&
-        t.category === state.config.selectedMatchCategory
-      );
-  }, [state.config.tournaments, state.config.selectedTournamentId, teamName, teamSubName, state.config.selectedMatchCategory]);
-  
   const teamHasPlayers = useMemo(() => {
       if (!state.config.enablePlayerSelectionForPenalties) return false;
-      return matchedTeam && matchedTeam.players.length > 0;
-  }, [matchedTeam, state.config.enablePlayerSelectionForPenalties]);
+      return attendancePlayers.length > 0;
+  }, [attendancePlayers, state.config.enablePlayerSelectionForPenalties]);
 
   const filteredPlayers = useMemo(() => {
-    if (!matchedTeam || !teamHasPlayers) return [];
-    let playersToFilter = matchedTeam.players.filter(p => p.number && p.number.trim() !== '');
+    if (!teamHasPlayers) return [];
+    let playersToFilter = attendancePlayers.filter(p => p.number && p.number.trim() !== '');
     playersToFilter.sort((a, b) => {
       const numA = parseInt(a.number, 10);
       const numB = parseInt(b.number, 10);
@@ -458,11 +440,11 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
     if (!searchTermLower.trim()) return playersToFilter;
 
     return playersToFilter.filter(
-      (player: PlayerData) =>
+      (player) =>
         (player.number.toLowerCase().includes(searchTermLower)) ||
         (state.config.showAliasInPenaltyPlayerSelector && player.name.toLowerCase().includes(searchTermLower))
     );
-  }, [matchedTeam, teamHasPlayers, playerSearchTerm, state.config.showAliasInPenaltyPlayerSelector]);
+  }, [attendancePlayers, teamHasPlayers, playerSearchTerm, state.config.showAliasInPenaltyPlayerSelector]);
 
   const handleAddPenalty = (e: React.FormEvent) => {
     e.preventDefault();
@@ -623,7 +605,7 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
 
 
   const renderPlayerNumberInput = () => {
-    if (teamHasPlayers && matchedTeam) { 
+    if (teamHasPlayers && attendancePlayers.length > 0) {
       return (
         <Popover
             open={isPlayerPopoverOpen}
@@ -689,7 +671,7 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
                   )}
                 </CommandEmpty>
                 <CommandGroup>
-                  {filteredPlayers.map((player: PlayerData) => (
+                  {filteredPlayers.map((player) => (
                     <CommandItem
                       key={player.id}
                       value={`${player.number} - ${state.config.showAliasInPenaltyPlayerSelector ? player.name : ''}`}

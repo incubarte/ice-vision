@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Home, Settings, Wrench, MonitorPlay, Loader2, Trophy, ChevronsUpDown, Video } from 'lucide-react';
+import { Home, Settings, Wrench, MonitorPlay, Loader2, Trophy, ChevronsUpDown, Video, Check } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FullscreenToggle } from './fullscreen-toggle';
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useGameState } from '@/contexts/game-state-context';
 import { TournamentLogo } from '../tournaments/tournament-logo';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const EXTERNAL_WINDOW_CONFIG_KEY = 'externalWindowConfig';
 
@@ -39,6 +40,10 @@ export function Header() {
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingSwitchTournamentId, setPendingSwitchTournamentId] = useState<string | null>(null);
+
+  const hasActiveMatch = !!state.live?.matchId;
+  const isEndOfGameFlowPending = !!state._pendingSummaryGeneration;
 
   useEffect(() => {
     // When the pathname changes, the new page has loaded, so we hide the loader.
@@ -70,11 +75,20 @@ export function Header() {
   }, [tournaments, selectedTournamentId]);
 
   const handleSelectTournament = (tournamentId: string) => {
-    dispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { tournamentId } });
-    const tournament = tournaments.find(t => t.id === tournamentId);
-    if (tournament) {
-      toast({ title: 'Torneo Activo Cambiado', description: `Ahora estás viendo "${tournament.name}".` });
+    if (hasActiveMatch || isEndOfGameFlowPending) {
+      setPendingSwitchTournamentId(tournamentId);
+      return;
     }
+    dispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { tournamentId } });
+    router.push(`/tournaments/${tournamentId}`);
+  };
+
+  const handleConfirmDiscardMatch = () => {
+    if (!pendingSwitchTournamentId) return;
+    dispatch({ type: 'RESET_GAME_STATE' });
+    dispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { tournamentId: pendingSwitchTournamentId } });
+    router.push(`/tournaments/${pendingSwitchTournamentId}`);
+    setPendingSwitchTournamentId(null);
   };
 
 
@@ -294,30 +308,26 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {selectedTournament && (
-                  <>
-                  <DropdownMenuItem onClick={() => router.push(`/tournaments/${selectedTournament.id}`)}>
-                    Ver Torneo Actual
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  </>
-                )}
-                <DropdownMenuLabel>Cambiar Torneo Activo</DropdownMenuLabel>
-                 {otherActiveTournaments.length > 0 ? (
-                  otherActiveTournaments.map(tournament => (
-                    <DropdownMenuItem key={tournament.id} onClick={() => handleSelectTournament(tournament.id)}>
+                {activeTournaments.map(tournament => {
+                  const isSelected = tournament.id === selectedTournamentId;
+                  return (
+                    <DropdownMenuItem
+                      key={tournament.id}
+                      onClick={() => !isSelected && handleSelectTournament(tournament.id)}
+                      className={isSelected ? "font-semibold" : ""}
+                    >
+                      <Check className={cn("h-4 w-4 mr-2", isSelected ? "opacity-100" : "opacity-0")} />
                       {tournament.name}
                     </DropdownMenuItem>
-                  ))
-                ) : (
-                  <DropdownMenuItem disabled>No hay otros torneos activos</DropdownMenuItem>
+                  );
+                })}
+                {activeTournaments.length === 0 && (
+                  <DropdownMenuItem disabled>No hay torneos activos</DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                {!isReadOnly && (
-                  <DropdownMenuItem onClick={() => router.push('/tournaments')}>
-                    Administrar Torneos
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem onClick={() => router.push('/tournaments')}>
+                  Administrar Torneos
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -361,6 +371,26 @@ export function Header() {
         </div>
       </div>
     </header>
+
+    <AlertDialog open={!!pendingSwitchTournamentId} onOpenChange={(open) => !open && setPendingSwitchTournamentId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Hay un partido en curso</AlertDialogTitle>
+          <AlertDialogDescription>
+            {isEndOfGameFlowPending
+              ? "El partido finalizó pero el resumen aún se está generando. Si cambias de torneo ahora, se descartará el proceso."
+              : "Si cambias de torneo, el partido actual será descartado y se perderán todos los datos no guardados."
+            }
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmDiscardMatch} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Descartar partido y cambiar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }

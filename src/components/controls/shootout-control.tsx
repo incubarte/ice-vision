@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useGameState, type Team, type PlayerData, type ShootoutAttempt } from '@/contexts/game-state-context';
+import { useGameState } from '@/contexts/game-state-context';
+import type { Team, ShootoutAttempt } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -43,19 +44,11 @@ const ShooterSelector = ({
   const [playerSearchTerm, setPlayerSearchTerm] = useState('');
   const justSelectedPlayerRef = useRef(false);
   
-  const teamData = useMemo(() => {
-    const selectedTournament = (state.config.tournaments || []).find(t => t.id === state.config.selectedTournamentId);
-    if (!selectedTournament) return null;
-    return selectedTournament.teams.find(t =>
-        t.name === state.live[`${team}TeamName`] &&
-        (t.subName || undefined) === (state.live[`${team}TeamSubName`] || undefined) &&
-        t.category === state.config.selectedMatchCategory
-    );
-  }, [state, team]);
+  const attendancePlayers = useMemo(() => state.live.attendance[team] || [], [state.live.attendance, team]);
 
   const filteredPlayers = useMemo(() => {
-    if (!teamData) return [];
-    let playersToFilter = teamData.players.filter(p => p.number && p.number.trim() !== '');
+    if (attendancePlayers.length === 0) return [];
+    let playersToFilter = attendancePlayers.filter(p => p.number && p.number.trim() !== '');
     playersToFilter.sort((a, b) => (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0));
     
     const searchTermLower = playerSearchTerm.toLowerCase();
@@ -65,7 +58,7 @@ const ShooterSelector = ({
         p.number.toLowerCase().includes(searchTermLower) ||
         p.name.toLowerCase().includes(searchTermLower)
     );
-  }, [teamData, playerSearchTerm]);
+  }, [attendancePlayers, playerSearchTerm]);
   
   // Effect to handle state clearing via keyProp change
   useEffect(() => {
@@ -82,7 +75,7 @@ const ShooterSelector = ({
     }
   }, [onSelect]);
 
-  const handleSelectPlayer = useCallback((player: PlayerData) => {
+  const handleSelectPlayer = useCallback((player: { number: string; name: string }) => {
     setPlayerNumber(player.number);
     setPlayerName(player.name);
     onSelect(player.number, player.name);
@@ -218,7 +211,7 @@ export const ShootoutControl = () => {
 
         // If the number of attempts is equal, it's the initiator's turn for the new round.
         if (homeAttempts.length === awayAttempts.length) {
-            return initiator;
+            return initiator || 'both';
         }
 
         // Otherwise, it's the turn of the team with fewer attempts.
@@ -260,13 +253,8 @@ export const ShootoutControl = () => {
             return;
         }
 
-        const selectedTournament = (state.config.tournaments || []).find(t => t.id === state.config.selectedTournamentId);
-        const teamData = selectedTournament?.teams.find(t =>
-            t.name === state.live[`${team}TeamName`] &&
-            (t.subName || undefined) === (state.live[`${team}TeamSubName`] || undefined) &&
-            t.category === state.config.selectedMatchCategory
-        );
-        const playerDetails = teamData?.players.find(p => p.number === selection.number);
+        const teamAttendance = state.live.attendance[team] || [];
+        const playerDetails = teamAttendance.find(p => p.number === selection.number);
 
         dispatch({ type: 'RECORD_SHOOTOUT_ATTEMPT', payload: {
           team,

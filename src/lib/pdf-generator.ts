@@ -93,7 +93,7 @@ export const exportGameSummaryPDF = (state: GameState) => {
     const { config, live } = state;
     const doc = new jsPDF();
     const teamTitle = `${live.homeTeamName} vs ${live.awayTeamName}`;
-    const tournament = (config.tournaments || []).find(t => t.id === config.selectedTournamentId);
+    const tournament = config.activeTournament;
     const categoryName = getCategoryNameById(config.selectedMatchCategory, tournament?.categories) || 'N/A';
     
     const date = new Date();

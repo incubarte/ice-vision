@@ -3,13 +3,14 @@
 
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useGameState, type FormatAndTimingsProfileData } from '@/contexts/game-state-context';
+import { useGameState } from '@/contexts/game-state-context';
+import type { FormatAndTimingsProfileData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import type { TeamData, MatchData } from '@/types';
+import type { TeamData, MatchData, MatchContext } from '@/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown, CalendarCheck, ArrowLeft, AlertTriangle, Calendar as CalendarIcon } from 'lucide-react';
@@ -103,8 +104,8 @@ function SetupPageContent() {
 
     const [activeTab, setActiveTab] = useState('teams');
     
-    const { selectedTournamentId, tournaments } = state.config;
-    const selectedTournament = useMemo(() => tournaments.find(t => t.id === selectedTournamentId), [tournaments, selectedTournamentId]);
+    const { selectedTournamentId, activeTournament } = state.config;
+    const selectedTournament = activeTournament?.id === selectedTournamentId ? activeTournament : null;
     
     const [isTournamentMatch, setIsTournamentMatch] = useState(true);
     const [manualHomeTeamName, setManualHomeTeamName] = useState('Local');
@@ -137,7 +138,6 @@ function SetupPageContent() {
     }, [selectedTournament]);
 
     useEffect(() => {
-        const selectedTournament = (state.config.tournaments || []).find(t => t.id === state.config.selectedTournamentId);
         if (!selectedTournament || !selectedTournament.matches || selectedTournament.matches.length === 0) {
             setTodaysMatches([]);
             return;
@@ -147,7 +147,7 @@ function SetupPageContent() {
             isSameDay(new Date(match.date), selectedMatchDate)
         );
         setTodaysMatches(matchesForDate);
-    }, [state.config.tournaments, state.config.selectedTournamentId, selectedMatchDate]);
+    }, [selectedTournament, selectedMatchDate]);
 
      useEffect(() => {
         setLocalCategoryId(state.config.selectedMatchCategory || availableCategories[0]?.id || '');
@@ -159,8 +159,8 @@ function SetupPageContent() {
         // Al cargar un partido existente, siempre es de torneo
         setIsTournamentMatch(true);
         setLocalCategoryId(match.categoryId);
-        setHomeTeamId(match.homeTeamId);
-        setAwayTeamId(match.awayTeamId);
+        setHomeTeamId(match.homeTeamId || '');
+        setAwayTeamId(match.awayTeamId || '');
         setPendingMatchConfig({ matchId: match.id });
         setActiveTab('rules');
     }, []);
@@ -214,7 +214,8 @@ function SetupPageContent() {
                     categoryId: localCategoryId,
                     homeTeamId: homeTeamId,
                     awayTeamId: awayTeamId,
-                    playersPerTeam: parseInt(String(tempFormatSettings.playersPerTeamOnIce) || '5', 10)
+                    playersPerTeam: parseInt(String(tempFormatSettings.playersPerTeamOnIce) || '5', 10),
+                    phase: 'clasificacion',
                 };
                 if (selectedTournamentId) {
                     dispatch({ type: 'ADD_MATCH_TO_TOURNAMENT', payload: { tournamentId: selectedTournamentId, match: newMatch } });
@@ -278,6 +279,33 @@ function SetupPageContent() {
 
         dispatch({ type: 'UPDATE_SELECTED_FT_PROFILE_DATA', payload: tempFormatSettings });
         dispatch({ type: 'UPDATE_LIVE_STATE', payload: { matchId: matchIdToSet } });
+
+        // Set match context snapshot for tournament matches
+        if (isTournamentMatch && selectedTournament && selectedTournamentId) {
+            const homeTeam = teamsInCategory.find(t => t.id === homeTeamId);
+            const awayTeam = teamsInCategory.find(t => t.id === awayTeamId);
+            const matchData = matchIdToSet ? selectedTournament.matches?.find(m => m.id === matchIdToSet) : null;
+            const categoryName = selectedTournament.categories?.find(c => c.id === localCategoryId)?.name || '';
+
+            if (homeTeam && awayTeam) {
+                const matchContext: MatchContext = {
+                    tournamentId: selectedTournamentId,
+                    tournamentName: selectedTournament.name,
+                    categoryId: localCategoryId,
+                    categoryName,
+                    matchPhase: matchData?.phase || null,
+                    matchPlayoffType: matchData?.playoffType || null,
+                    homeTeamId: homeTeam.id,
+                    awayTeamId: awayTeam.id,
+                    homeTeamLogoDataUrl: homeTeam.logoDataUrl || null,
+                    awayTeamLogoDataUrl: awayTeam.logoDataUrl || null,
+                    homeRoster: homeTeam.players,
+                    awayRoster: awayTeam.players,
+                    staff: selectedTournament.staff || [],
+                };
+                dispatch({ type: 'UPDATE_LIVE_STATE', payload: { matchContext } });
+            }
+        }
 
         // Set staff assignment for tournament matches
         // Staff is saved in live.assignedStaff and will be included in the summary when the match ends

@@ -1,0 +1,1844 @@
+[
+  {
+    "id": "860043c7-3140-4d79-afc7-9cb5396cdca8",
+    "name": "ACEMHH",
+    "logoDataUrl": "/logos/Logo-ACEMHH.png",
+    "category": "89e25708-38d4-446f-bb29-c4d2c923e48d",
+    "players": [
+      {
+        "number": "17",
+        "name": "SAVCHUK ROMAN",
+        "type": "player",
+        "id": "eb3ac4c3-69a0-499c-b33a-0486ee1ab40c",
+        "photoFileName": "savchuk_roman_ec16.png"
+      },
+      {
+        "number": "10",
+        "name": "SAN MILLAN LIONEL",
+        "type": "player",
+        "id": "fbdb7cf3-a6d6-4016-9a9a-0ec7ac3bb4b9",
+        "photoFileName": "san_millan_lionel_7239.png"
+      },
+      {
+        "number": "99",
+        "name": "ESEISA MICHEL",
+        "type": "player",
+        "id": "1c0af10b-e09b-458f-baba-2dd3064f6301",
+        "photoFileName": "eseisa_michel_7637.png"
+      },
+      {
+        "number": "18",
+        "name": "CLEMENTINO RENZO",
+        "type": "player",
+        "id": "45db74a1-a9aa-4b79-b6c7-81de3fbf9f51",
+        "photoFileName": "clementino_renzo_2071.png"
+      },
+      {
+        "number": "63",
+        "name": "LA GRECA NICOLAS",
+        "type": "player",
+        "id": "949158f3-4780-4147-93d7-c77fbbbbfa7b",
+        "photoFileName": "la_greca_nicolas_def9.png"
+      },
+      {
+        "number": "93",
+        "name": "HERTNER GIANNI",
+        "type": "player",
+        "id": "93366262-09c1-45fc-b010-1d93a6cd43ba"
+      },
+      {
+        "number": "",
+        "name": "ROBAINA LUCAS",
+        "type": "player",
+        "id": "810243e6-2d1a-425b-8e8d-6fa7f56db8e2"
+      },
+      {
+        "number": "25",
+        "name": "DEL GUESSO TOMAS",
+        "type": "player",
+        "id": "f72f27d0-3c6d-4ae0-b056-a94856e4ccca"
+      },
+      {
+        "number": "9",
+        "name": "CRISTALDO ARNALDO",
+        "type": "player",
+        "id": "19be38a8-8024-4682-880b-a74413c7ca38"
+      },
+      {
+        "number": "3",
+        "name": "CONTI SOFIA",
+        "type": "goalkeeper",
+        "id": "cdecdb9c-5252-4094-b522-6c9a3d17fe81"
+      },
+      {
+        "number": "67",
+        "name": "TUBIO DAMIAN",
+        "type": "goalkeeper",
+        "id": "e8e2bd2c-db6e-48b6-a05f-d2dce8526009"
+      },
+      {
+        "number": "",
+        "name": "CHEVALLIER JOSE",
+        "type": "goalkeeper",
+        "id": "feb29aa6-05f2-4873-8739-4edfb805f0aa"
+      },
+      {
+        "number": "",
+        "name": "LOPEZ SILVA FERMÍN",
+        "type": "player",
+        "id": "9e2bf332-1bef-44aa-97e5-c776b401467d"
+      },
+      {
+        "number": "51",
+        "name": "MONTES LUCAS",
+        "type": "player",
+        "id": "cc24058b-7c4d-4706-b37f-08ffa91ce62e"
+      },
+      {
+        "number": "16",
+        "name": "NORMAN UDDSTROM CHAD",
+        "type": "player",
+        "id": "954a7e53-be12-4039-a74c-76c9d5e3fd58"
+      },
+      {
+        "number": "94",
+        "name": "BARVINOK SERGEI",
+        "type": "player",
+        "id": "98903ab0-703a-45a9-a5b4-8913121c2c74"
+      }
+    ]
+  },
+  {
+    "id": "136252e7-089f-4fbc-8353-b7ee21bbe570",
+    "name": "ACEMHH",
+    "logoDataUrl": "/logos/Logo-ACEMHH.png",
+    "category": "6fd778ac-7682-4740-99af-131551aff7a2",
+    "players": [
+      {
+        "number": "47",
+        "name": "BURGESS-WEBB BENICIO",
+        "type": "player",
+        "id": "5f8335f0-20bf-49b9-aa90-d81ab8f62149",
+        "photoFileName": "burgesswebb_benicio_774a.png"
+      },
+      {
+        "number": "77",
+        "name": "BURGESS-WEBB ADAM",
+        "type": "player",
+        "id": "672d60fb-0a0b-4346-9ca0-5e206cb9c0a3",
+        "photoFileName": "burgesswebb_adam_15a8.png"
+      },
+      {
+        "number": "",
+        "name": "CASANOVA FRANCO",
+        "type": "player",
+        "id": "b375f4e3-3c28-43d1-8573-5ac8c16a57ba",
+        "photoFileName": "casanova_franco_124e.png"
+      },
+      {
+        "number": "10",
+        "name": "SUEZ TOMÁS",
+        "type": "player",
+        "id": "502883c0-1a96-47e2-bebf-740bc6cb464d"
+      },
+      {
+        "number": "59",
+        "name": "DE LIO ALEJANDRO",
+        "type": "player",
+        "id": "f50f97de-eeb2-447b-abef-ad1abf879d57",
+        "photoFileName": "de_lio_alejandro_2c28.png"
+      },
+      {
+        "number": "25",
+        "name": "BARCIA SEBASTIAN",
+        "type": "player",
+        "id": "7a551f51-d8fc-4ca0-81c5-c995a13aeea0",
+        "photoFileName": "barcia_sebastian_2ad8.png"
+      },
+      {
+        "number": "17",
+        "name": "AGUIRRE LEILA",
+        "type": "player",
+        "id": "147dce1a-0de7-4a0d-98e9-10c92f81a1d5"
+      },
+      {
+        "number": "22",
+        "name": "NAREDO LUCIANO",
+        "type": "player",
+        "id": "edcbaae2-4b55-4ada-b028-192dea3632d5"
+      },
+      {
+        "number": "16",
+        "name": "CERSOSIMO MAXIMILIANO",
+        "type": "player",
+        "id": "27d07186-9bdd-4f8b-9ef7-9f519e579a54"
+      },
+      {
+        "number": "9",
+        "name": "FORNARI MARIANO",
+        "type": "player",
+        "id": "3718fe7d-24bf-4ab0-a75b-5c8169bc55b7",
+        "photoFileName": "fornari_mariano_529b.png"
+      },
+      {
+        "number": "28",
+        "name": "BERKOVICS DIEGO",
+        "type": "player",
+        "id": "93522022-4cbd-4288-83b7-bdc05f7c52b5",
+        "photoFileName": "berkovics_diego_f33e.png"
+      },
+      {
+        "number": "2",
+        "name": "LACH LUCIANA",
+        "type": "player",
+        "id": "767fbd4c-03e9-464e-9edd-fb1734d473fc"
+      },
+      {
+        "number": "1",
+        "name": "PARODI JUAN CRUZ",
+        "type": "goalkeeper",
+        "id": "a1dde9dd-b0b7-42c6-9026-363dc3ba3497",
+        "photoFileName": "parodi_juan_cruz_a727.png"
+      }
+    ]
+  },
+  {
+    "id": "3bda1838-8aa4-4a8a-aab1-39738dcff423",
+    "name": "ACEMHH C1",
+    "logoDataUrl": "/logos/Logo-ACEMHH.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "51",
+        "name": "KITAURA ANDRES",
+        "type": "player",
+        "id": "6ea22980-50d7-440e-a1f4-40a39414e4f3"
+      },
+      {
+        "number": "91",
+        "name": "MAZZALUPO ADRIAN",
+        "type": "player",
+        "id": "d73a7879-c6d4-41bd-9fcd-2e9b49e42e8c",
+        "photoFileName": "mazzalupo_adrian_30ac.png"
+      },
+      {
+        "number": "38",
+        "name": "DRESCO JAVIER",
+        "type": "player",
+        "id": "3489d252-f261-4e2b-8c93-b946acc91848",
+        "photoFileName": "dresco_javier_5635.png"
+      },
+      {
+        "number": "94",
+        "name": "DI LEONE DANIEL",
+        "type": "player",
+        "id": "2fcc63a9-3573-417a-8809-3289bef1b324"
+      },
+      {
+        "number": "11",
+        "name": "SANCHEZ HÉCTOR",
+        "type": "player",
+        "id": "349e775e-3dda-4e06-acb1-b6426035973b"
+      },
+      {
+        "number": "23",
+        "name": "DIGANGI DANIEL",
+        "type": "player",
+        "id": "dbde8c13-b0f9-4b5f-8d1d-212c4f03fc60"
+      },
+      {
+        "number": "3",
+        "name": "ROMERO ANTÓN",
+        "type": "player",
+        "id": "da759b0a-e3f1-4789-90d2-47efb5640816",
+        "photoFileName": "romero_antn_5d75.png"
+      },
+      {
+        "number": "21",
+        "name": "SANZ BENICIO",
+        "type": "player",
+        "id": "d656af81-1398-40d4-9fbc-2505bdddebf8",
+        "photoFileName": "sanz_benicio_b597.png"
+      },
+      {
+        "number": "81",
+        "name": "PIAGGIO SANTIAGO",
+        "type": "player",
+        "id": "85d2727f-e983-4a41-bcb2-f5fb5eb410c7",
+        "photoFileName": "piaggio_santiago_1772.png"
+      },
+      {
+        "number": "28",
+        "name": "MAMANI NAZARENO",
+        "type": "player",
+        "id": "10449a44-c93e-4b45-8fc7-b33d8aa7b12a"
+      },
+      {
+        "number": "13",
+        "name": "ESPOSITO FACUNDO",
+        "type": "player",
+        "id": "345bbd82-701a-4d31-b3e3-25ed8a974de2",
+        "photoFileName": "esposito_facundo_aed7.png"
+      },
+      {
+        "number": "31",
+        "name": "ZAMBRANO HUMBERTO",
+        "type": "goalkeeper",
+        "id": "5530c759-dcb9-429c-8b9a-ea2cdabfb813"
+      }
+    ]
+  },
+  {
+    "id": "0a5acd23-fccf-41b0-909e-07c8142fecba",
+    "name": "ACEMHH C2",
+    "logoDataUrl": "/logos/Logo-ACEMHH.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "91",
+        "name": "CASTRO ABRIL",
+        "type": "player",
+        "id": "c996adeb-fb9b-4a74-b18d-d9ba6f271222",
+        "photoFileName": "castro_abril_af50.png"
+      },
+      {
+        "number": "",
+        "name": "CARRASCOSA JOAQUIN",
+        "type": "player",
+        "id": "d8d4b3d5-f619-4668-a114-dc76802d128b",
+        "photoFileName": "carrascosa_joaquin_9482.png"
+      },
+      {
+        "number": "",
+        "name": "MAZZA FACUNDO",
+        "type": "player",
+        "id": "c17f12b1-2bb1-4191-9971-68a1404236b7",
+        "photoFileName": "mazza_facundo_687a.png"
+      },
+      {
+        "number": "21",
+        "name": "LOSTE AYRTON",
+        "type": "player",
+        "id": "517f9df5-ce20-4b46-8eaf-dadfaaeab79d",
+        "photoFileName": "loste_ayrton_47cb.png"
+      },
+      {
+        "number": "7",
+        "name": "BURGUESS-WEBB MILO",
+        "type": "player",
+        "id": "3ff16090-4e82-49b2-a642-87437da5601e",
+        "photoFileName": "burguesswebb_milo_9658.png"
+      },
+      {
+        "number": "58",
+        "name": "GADEA SOFÍA",
+        "type": "player",
+        "id": "dfd1fda5-d873-4c6f-9e8c-e41e9bae4203",
+        "photoFileName": "gadea_sofa_1504.png"
+      },
+      {
+        "number": "5",
+        "name": "CHAPERÓN ABASTO VALENTINA",
+        "type": "player",
+        "id": "d7c83b1c-93b3-42a8-a380-e312a4451b52",
+        "photoFileName": "chapern_abasto_valentina_d900.png"
+      },
+      {
+        "number": "46",
+        "name": "DETTO ROMINA",
+        "type": "player",
+        "id": "3830502d-f73a-437f-aeff-6c908fadfcbb",
+        "photoFileName": "detto_romina_5eb6.png"
+      },
+      {
+        "number": "69",
+        "name": "DE LA CRUZ LUCIANO",
+        "type": "player",
+        "id": "4fc3758f-2d07-43c9-a9fc-763228928c4b",
+        "photoFileName": "de_la_cruz_luciano_e43f.png"
+      },
+      {
+        "number": "93",
+        "name": "TEDONE MARIANO",
+        "type": "player",
+        "id": "7f9358d0-f65d-4710-a578-240931cf4a52"
+      },
+      {
+        "number": "17",
+        "name": "BEREZYUK RUSLAN",
+        "type": "player",
+        "id": "9d4f3d85-69b2-4ad0-9c8c-0211c6d67295",
+        "photoFileName": "berezyuk_ruslan_263a.png"
+      },
+      {
+        "number": "1",
+        "name": "ANON JUAN PABLO",
+        "type": "goalkeeper",
+        "id": "0227686f-ecfd-45a2-bd44-849ee8134f80",
+        "photoFileName": "anon_juan_pablo_0a9f.png"
+      },
+      {
+        "number": "37",
+        "name": "PONS EDWARD",
+        "type": "goalkeeper",
+        "id": "5f641616-50f2-46e1-861e-174a1b4b44cc",
+        "photoFileName": "pons_edward_350d.png"
+      },
+      {
+        "number": "14",
+        "name": "BLANCO ALAN EZEQUIEL",
+        "type": "player",
+        "id": "6d3385aa-2160-4184-a2f1-a2f4ec5767a2",
+        "photoFileName": "blanco_alan_ezequiel_6b66.png"
+      },
+      {
+        "number": "",
+        "name": "ROSA FRANCISCO",
+        "type": "player",
+        "id": "1ac70c79-3113-40b6-a368-895872f0141b"
+      }
+    ]
+  },
+  {
+    "id": "1f022153-d9ff-4c53-b92e-c6ab0eaf691e",
+    "name": "CAHHL",
+    "logoDataUrl": "/logos/Logo-CAHHL.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "98",
+        "name": "LOMBRAÑA LUCIANO",
+        "type": "goalkeeper",
+        "id": "c85eee2b-b847-4915-b499-bd016a0be0da"
+      },
+      {
+        "number": "36",
+        "name": "RICCIOTTI MILENA",
+        "type": "goalkeeper",
+        "id": "a2d78554-6e0a-4b5e-b819-f5195abf4115"
+      },
+      {
+        "number": "13",
+        "name": "GUITELMAN TIN",
+        "type": "player",
+        "id": "18f3934a-8ed4-4764-9172-022a25f938a7"
+      },
+      {
+        "number": "23",
+        "name": "GUITELMAN CIRO",
+        "type": "player",
+        "id": "85a1a802-942e-4b22-bee0-156ae419b9b4"
+      },
+      {
+        "number": "12",
+        "name": "ALTAMURA MANUELA",
+        "type": "player",
+        "id": "c945cb56-bf2e-4ccf-a9dd-c519dc212ee7"
+      },
+      {
+        "number": "24",
+        "name": "COVERNTON GUILLERMO",
+        "type": "player",
+        "id": "872de539-f1d5-41c1-8b84-3987923757f4"
+      },
+      {
+        "number": "",
+        "name": "VILLAGRA ROBERTO",
+        "type": "player",
+        "id": "0097a0c2-3a3b-48d4-aad2-21e7597c3a5f"
+      },
+      {
+        "number": "20",
+        "name": "VILLAGRA JUANCHI",
+        "type": "player",
+        "id": "eaa9d50a-ce36-4893-91b8-d52dc3a993ef"
+      },
+      {
+        "number": "19",
+        "name": "BARRIONUEVO ANDREA",
+        "type": "player",
+        "id": "46ea9bfb-a5cb-419f-a0b0-0d3894d873d4"
+      },
+      {
+        "number": "16",
+        "name": "MARINELLI FRAN",
+        "type": "player",
+        "id": "d0978e2c-fa1b-4dff-b96f-ec3b2c85ea05"
+      },
+      {
+        "number": "75",
+        "name": "OLIVERA PAULA",
+        "type": "player",
+        "id": "7374bb9a-8bcd-4cfa-80e8-d74b9e65d32b"
+      },
+      {
+        "number": "",
+        "name": "STEINER CRISTOFER",
+        "type": "player",
+        "id": "b1c9fed2-f505-49dc-95ce-5978b434c1ff"
+      },
+      {
+        "number": "22",
+        "name": "FULUGONIO ESTEBAN ARTURO",
+        "type": "player",
+        "id": "c46a3560-2fc4-4971-93b1-7aeb2f6a2763"
+      }
+    ]
+  },
+  {
+    "id": "cef47ca4-5574-477f-917e-f161d0b15a19",
+    "name": "CAHHL AZUL",
+    "logoDataUrl": "/logos/Logo-CAHHL.png",
+    "category": "89e25708-38d4-446f-bb29-c4d2c923e48d",
+    "players": [
+      {
+        "number": "70",
+        "name": "COPELLO AUGUSTO",
+        "type": "goalkeeper",
+        "id": "aa47f8cc-3c9c-4ed0-a9d0-d1a96185e0b2"
+      },
+      {
+        "number": "9",
+        "name": "BARRA FELIPE",
+        "type": "player",
+        "id": "542903b4-3f87-4675-9b5a-e091b2fbd8a3"
+      },
+      {
+        "number": "8",
+        "name": "PEREZ PASTORINO MATÍAS",
+        "type": "player",
+        "id": "ff4a84fd-7743-4a84-aea2-cc7fd05af1de"
+      },
+      {
+        "number": "12",
+        "name": "GRABENHEIMER NICOLAS",
+        "type": "player",
+        "id": "f3fc6ec1-f1ec-4b61-bd49-9ad3383606f4"
+      },
+      {
+        "number": "",
+        "name": "SAAD LEON",
+        "type": "player",
+        "id": "09b85ee9-5592-4c5b-ae13-a1d4314b8cf3"
+      },
+      {
+        "number": "16",
+        "name": "ANTICO ANDRES",
+        "type": "player",
+        "id": "a022c163-ef19-44a7-8631-1582cff68f03"
+      },
+      {
+        "number": "13",
+        "name": "SOIZA MANUEL",
+        "type": "player",
+        "id": "60e62c8c-14a6-4160-b14e-9b5c4add62c4"
+      },
+      {
+        "number": "6",
+        "name": "BUSTOS SEBASTIAN",
+        "type": "player",
+        "id": "b06deb13-ba3f-4cf7-bb3d-6019adddea3d"
+      },
+      {
+        "number": "25",
+        "name": "GIULIODORO AGUSTÍN",
+        "type": "player",
+        "id": "d3b37af4-28f9-48d9-af69-b2ce3b9e8a84"
+      },
+      {
+        "number": "3",
+        "name": "GONZALEZ LEONI MARIANO",
+        "type": "player",
+        "id": "2d2abc9f-38a4-40ab-aad6-d11e9d31631e"
+      },
+      {
+        "number": "11",
+        "name": "HAIEK JORGE",
+        "type": "player",
+        "id": "505d2fe7-63a1-4ef6-b04a-afb125940226"
+      },
+      {
+        "number": "4",
+        "name": "MAC ARDLE JUAN",
+        "type": "player",
+        "id": "a2af6d99-82bf-4ad9-847a-c834e5867e13"
+      },
+      {
+        "number": "",
+        "name": "HAIEK OWEN",
+        "type": "player",
+        "id": "417a108b-9edd-40f6-ac53-7f407aaa2b22"
+      },
+      {
+        "number": "",
+        "name": "SPEZZI PABLO",
+        "type": "player",
+        "id": "6402c77f-1a63-4513-8b61-cdfcf88fe610"
+      },
+      {
+        "number": "81",
+        "name": "ORTEGA MUÑOZ DANIEL ALEJANDRO",
+        "type": "player",
+        "id": "3c18a5c1-2785-497e-b4e2-d0ca53d2b961"
+      }
+    ]
+  },
+  {
+    "id": "b363a5fd-d60b-4bab-99d8-e8abb8ff16ae",
+    "name": "CAHHL BLANCO",
+    "logoDataUrl": "/logos/Logo-CAHHL.png",
+    "category": "89e25708-38d4-446f-bb29-c4d2c923e48d",
+    "players": [
+      {
+        "number": "1",
+        "name": "MAZAFERRO ADRIANO",
+        "type": "goalkeeper",
+        "id": "3dd892e9-ca7e-467a-afc7-f031ebe0c457"
+      },
+      {
+        "number": "",
+        "name": "GARCIA FABCISCO",
+        "type": "goalkeeper",
+        "id": "ee106800-59fa-4cbf-95c3-4d69c838d8f5"
+      },
+      {
+        "number": "16",
+        "name": "MARINELLI EDUARDO",
+        "type": "player",
+        "id": "30704142-5e6f-47d1-9a40-a9cbd49ab3f8"
+      },
+      {
+        "number": "77",
+        "name": "CLARET AGUSTIN",
+        "type": "player",
+        "id": "8bc9f121-35c0-47e8-889b-a6cf3069a21f"
+      },
+      {
+        "number": "",
+        "name": "BOIX CRITIAN",
+        "type": "player",
+        "id": "11f2d514-bb81-4bd0-9867-5f825b689298"
+      },
+      {
+        "number": "9",
+        "name": "OCAMPO NICOLAS",
+        "type": "player",
+        "id": "d36eb99e-3ef0-4c06-b44d-91b59e24ad56"
+      },
+      {
+        "number": "2",
+        "name": "BOIX. CONTU",
+        "type": "player",
+        "id": "1171319d-940a-48b5-98b8-d63a05186d2c"
+      },
+      {
+        "number": "81",
+        "name": "BOIX BAUTI",
+        "type": "player",
+        "id": "89b071eb-1c7d-4a4d-912a-e43727c1cd4f"
+      },
+      {
+        "number": "20",
+        "name": "SHENDERA IVAN",
+        "type": "player",
+        "id": "31056777-8dce-4b70-a605-f4506dd52a8d"
+      },
+      {
+        "number": "",
+        "name": "VAL FRAN",
+        "type": "player",
+        "id": "17e720b9-9f19-441c-b84d-525479e5d366"
+      },
+      {
+        "number": "5",
+        "name": "BELLI GUIDO",
+        "type": "player",
+        "id": "c5982762-12df-4df4-9d31-44082ea00ef3"
+      },
+      {
+        "number": "93",
+        "name": "LOMBRAÑA FEDERICO",
+        "type": "player",
+        "id": "4f86e4cc-8a17-4a1d-bfc4-78cd269c88e1"
+      },
+      {
+        "number": "6",
+        "name": "LUTTERAL LIAM",
+        "type": "player",
+        "id": "3a50347d-8304-4bb8-bfae-ef55387c9ebd"
+      }
+    ]
+  },
+  {
+    "id": "2b59a605-fc32-42a0-a941-dfa971421481",
+    "name": "Fantasy Skate",
+    "logoDataUrl": "/logos/Logo-FantasySkate.png",
+    "category": "89e25708-38d4-446f-bb29-c4d2c923e48d",
+    "players": [
+      {
+        "number": "93",
+        "name": "KYSAINOV ALMAT",
+        "type": "player",
+        "id": "6f8381cb-9b1e-43a6-ab07-23d85555358a"
+      },
+      {
+        "number": "10",
+        "name": "SERYY ANDREY",
+        "type": "player",
+        "id": "11f49bd2-afe9-4b7b-98fc-7a04e823bc93"
+      },
+      {
+        "number": "6",
+        "name": "HAROSHKA SIARGEI",
+        "type": "player",
+        "id": "e7c115d5-48ad-476e-b5d1-9acbe6ef1550"
+      },
+      {
+        "number": "92",
+        "name": "EFIMOV GRIGORY",
+        "type": "player",
+        "id": "0ee7c98f-d982-4bbf-990e-764d2b0d5cfa"
+      },
+      {
+        "number": "20",
+        "name": "STOLYAROV VICTOR",
+        "type": "player",
+        "id": "6c70954e-71bf-43c2-a046-3f4184beb43d"
+      },
+      {
+        "number": "14",
+        "name": "LEE MARTIN",
+        "type": "player",
+        "id": "c09f8072-dc50-453c-b6cd-a0959175b908"
+      },
+      {
+        "number": "77",
+        "name": "PEREZ BELLO PATRICIO",
+        "type": "player",
+        "id": "2aa239fd-3a99-4fa7-8386-aaaa4527f463"
+      },
+      {
+        "number": "9",
+        "name": "NOZHNOV ANDREY",
+        "type": "player",
+        "id": "2e99e9a4-8195-4780-90c6-592105ad8857"
+      },
+      {
+        "number": "26",
+        "name": "ARTUROVICH NARULIN ROMAN",
+        "type": "player",
+        "id": "46962c61-aca5-4949-ab2a-54154a802e1f"
+      },
+      {
+        "number": "69",
+        "name": "DE LUCA ELIAS",
+        "type": "player",
+        "id": "f3442620-455e-445c-94e8-9743e6791e6f"
+      },
+      {
+        "number": "8",
+        "name": "POVELIKIN EVGENII",
+        "type": "player",
+        "id": "1dc04019-3c36-42ec-ac60-32469b905851"
+      },
+      {
+        "number": "87",
+        "name": "SEDRAN NICOLAS",
+        "type": "player",
+        "id": "6adb487b-b643-46c3-8c27-66f98eb735c4"
+      },
+      {
+        "number": "1",
+        "name": "RUDENKO DANIL",
+        "type": "goalkeeper",
+        "id": "df2af241-72a7-4c7d-952d-6754c4042308"
+      },
+      {
+        "number": "36",
+        "name": "LOPEZ SILVA GASPAR",
+        "type": "goalkeeper",
+        "id": "a98fe815-f250-4f0e-a71b-22020d2c39f9"
+      }
+    ]
+  },
+  {
+    "id": "3fac80ed-e1d4-461d-9735-990d53ab8197",
+    "name": "Fantasy Skate",
+    "logoDataUrl": "/logos/Logo-FantasySkate.png",
+    "category": "6fd778ac-7682-4740-99af-131551aff7a2",
+    "players": [
+      {
+        "number": "29",
+        "name": "CERVINI GIAN VALENTINO",
+        "type": "player",
+        "id": "da64343f-8345-4e5c-a464-15a1fd19ad35"
+      },
+      {
+        "number": "11",
+        "name": "GRENIER SEBASTIAN",
+        "type": "player",
+        "id": "63f7a111-29e8-449f-945d-27346bdb4c7c"
+      },
+      {
+        "number": "86",
+        "name": "PENNELLA HERNÁN",
+        "type": "player",
+        "id": "e70ebb96-d1af-4595-8817-f5abcb7ef09a"
+      },
+      {
+        "number": "20",
+        "name": "BATISTA FRANCO",
+        "type": "player",
+        "id": "c948132a-fd8b-4c98-a03d-77caa6494bca"
+      },
+      {
+        "number": "94",
+        "name": "AVIGLIANO PATRICIO",
+        "type": "player",
+        "id": "ec167c2a-1518-4f35-8f07-713531f13c0f"
+      },
+      {
+        "number": "96",
+        "name": "BIONDI KEVIN",
+        "type": "player",
+        "id": "634ef0f6-c96e-46a5-ac60-6ccb80caa533"
+      },
+      {
+        "number": "13",
+        "name": "MISHIN ALEX",
+        "type": "player",
+        "id": "f6250573-0ea7-4c5a-b6dd-454a6a693f02"
+      },
+      {
+        "number": "55",
+        "name": "CUADRADO MARCELO",
+        "type": "player",
+        "id": "1cc131f2-b6d8-413e-9c9e-60d45925ca41"
+      },
+      {
+        "number": "32",
+        "name": "GIOVANELLI CHRISTIAN",
+        "type": "player",
+        "id": "db5e11dd-a9b1-43df-9324-03191c034773"
+      },
+      {
+        "number": "17",
+        "name": "MOGOLLÓN LUIS",
+        "type": "player",
+        "id": "81d7b53f-9fee-471b-9800-42a3f08118d9"
+      },
+      {
+        "number": "5",
+        "name": "TIBAUDIN SASHA",
+        "type": "player",
+        "id": "f5d937cb-99bb-4e08-9708-42572b0000d4"
+      },
+      {
+        "number": "21",
+        "name": "TIBAUDIN GUIDO",
+        "type": "player",
+        "id": "edf69ed0-5fdf-4ad0-aa20-b56a8df1c9d3"
+      },
+      {
+        "number": "87",
+        "name": "BAZZI LUCIANO",
+        "type": "player",
+        "id": "6006117a-b898-4e4e-a92e-1037cd90c202"
+      },
+      {
+        "number": "7",
+        "name": "MORAN FERNANDO",
+        "type": "player",
+        "id": "22897f8c-3681-4a48-a21e-7e18a995b1ed"
+      },
+      {
+        "number": "35",
+        "name": "WINSNES FEDERICO",
+        "type": "goalkeeper",
+        "id": "346bc71f-97a6-4526-9e76-01ecbe2d2cf5"
+      },
+      {
+        "number": "12",
+        "name": "DEMICHELIS NOELIA",
+        "type": "goalkeeper",
+        "id": "b83f0caf-6bb8-461a-b0cc-4a7eef0298aa"
+      },
+      {
+        "number": "25",
+        "name": "LABROM MARC",
+        "type": "player",
+        "id": "d69de2e6-aab7-46ae-bd49-1fabde461be6"
+      },
+      {
+        "id": "140deaa6-41a6-4504-a35b-469844011055",
+        "name": "CAMBARERI",
+        "number": "4",
+        "type": "player"
+      }
+    ]
+  },
+  {
+    "id": "cd82ff2a-5025-4d74-bee5-969b2c373c85",
+    "name": "Fantasy Skate CH",
+    "logoDataUrl": "/logos/Logo-FantasySkate.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "17",
+        "name": "LAVALLE AGUSTIN",
+        "type": "player",
+        "id": "06ba1694-fded-4ce1-8d96-8be8fe5d8bf3"
+      },
+      {
+        "number": "21",
+        "name": "AMED NICOLAS",
+        "type": "player",
+        "id": "f851db23-230d-479c-a8f5-6b6eb2bc4893"
+      },
+      {
+        "number": "26",
+        "name": "CATZ DAVID",
+        "type": "player",
+        "id": "68aa67dc-e6a3-4dbe-99fa-f1a87887764e"
+      },
+      {
+        "number": "8",
+        "name": "CARUSO DANILO",
+        "type": "player",
+        "id": "715fc67e-d665-43e3-b83f-a236aad35154"
+      },
+      {
+        "number": "23",
+        "name": "MAIER FERNANDO",
+        "type": "player",
+        "id": "da9d3997-f472-4d9e-82cb-4ac742fc6732"
+      },
+      {
+        "number": "11",
+        "name": "MORRONE SANTINO",
+        "type": "player",
+        "id": "722490f0-d11f-48e6-8ee4-1c1e1edf4c7d"
+      },
+      {
+        "number": "29",
+        "name": "HOFMANN LEANDRO",
+        "type": "player",
+        "id": "57692e4d-8ad1-4057-857e-23943d58fd62"
+      },
+      {
+        "number": "",
+        "name": "NUDELMAN ARIEL",
+        "type": "player",
+        "id": "84752491-50d4-4cf5-9eef-25670f5a8a00"
+      },
+      {
+        "number": "",
+        "name": "CARABELLI SANTIAGO",
+        "type": "player",
+        "id": "4f1c0941-b95b-470c-914b-1097e2d87421"
+      },
+      {
+        "number": "",
+        "name": "VALENTIN MATEO",
+        "type": "player",
+        "id": "cc65481f-2e0a-471e-813e-917b2c60e19c"
+      },
+      {
+        "number": "87",
+        "name": "FRIGERIO FRANCISCO",
+        "type": "player",
+        "id": "224d05cd-fb8b-4196-a803-72be8ef1853b"
+      },
+      {
+        "number": "25",
+        "name": "SUEZ GABRIEL",
+        "type": "goalkeeper",
+        "id": "b69d6d00-1161-46d4-bee7-78a47708ae2c"
+      },
+      {
+        "number": "16",
+        "name": "MARQUEZ NOAH",
+        "type": "player",
+        "id": "fb973b24-60a1-48ca-97be-0ff9cbc06365"
+      },
+      {
+        "id": "9560cb73-bf00-415f-a0ef-df1fecfb1a20",
+        "name": "MACRI DIEGO",
+        "number": "36",
+        "type": "player"
+      }
+    ]
+  },
+  {
+    "id": "efa8b671-a437-4d5e-a0b4-133c83c51e5a",
+    "name": "Fantasy Skate CM",
+    "logoDataUrl": "/logos/Logo-FantasySkate.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "18",
+        "name": "ROJAS ROXANA",
+        "type": "player",
+        "id": "a3499b2a-f7c2-4cc9-834c-048ecf9cffdd"
+      },
+      {
+        "number": "27",
+        "name": "LINK NAIKE",
+        "type": "player",
+        "id": "0098a73f-8c36-4ace-896d-ca25c83d1e06"
+      },
+      {
+        "number": "31",
+        "name": "SOLARI MALENA",
+        "type": "player",
+        "id": "c5dbb13d-4126-459e-a31f-66fa7bad525b"
+      },
+      {
+        "number": "",
+        "name": "ORTIZ ABBY",
+        "type": "player",
+        "id": "87acf672-7908-4d0b-84a8-69371c9fc093"
+      },
+      {
+        "number": "24",
+        "name": "TAPIA NATALIA",
+        "type": "player",
+        "id": "0d3134ec-5be2-4861-b462-b44897e3ef66"
+      },
+      {
+        "number": "7",
+        "name": "SOTO CAROLINA",
+        "type": "player",
+        "id": "aad79619-bbb1-486f-8980-6008c347a478"
+      },
+      {
+        "number": "84",
+        "name": "MICUCCI LUCIANO",
+        "type": "player",
+        "id": "8fa0266f-d8cd-499c-9644-7c3e9d6d86b5"
+      },
+      {
+        "number": "5",
+        "name": "PAPPALARDO MAXIMILIANO",
+        "type": "player",
+        "id": "35ce8ee3-dc0d-4dd6-8562-e10bd84bca39"
+      },
+      {
+        "number": "37",
+        "name": "CODELLA MARIA CECILIA",
+        "type": "player",
+        "id": "c696bb75-8626-4776-8c39-66d54a3849e1"
+      },
+      {
+        "number": "25",
+        "name": "GEREZ NICOLÁS",
+        "type": "player",
+        "id": "47944d22-abfb-4906-abc3-0a72894286e7"
+      },
+      {
+        "number": "33",
+        "name": "MOMPO MACARENA",
+        "type": "player",
+        "id": "054df4ba-5c7c-4f8d-93aa-0ba7831b9a66"
+      },
+      {
+        "number": "12",
+        "name": "FORNARI MARIANO",
+        "type": "goalkeeper",
+        "id": "bf8c85fc-b10c-43f9-86d6-c6224f57aeb5"
+      }
+    ]
+  },
+  {
+    "id": "7bd184ec-38cf-4ff9-9073-59e5cb170d23",
+    "name": "Hazard",
+    "logoDataUrl": "/logos/Logo-Hazard.png",
+    "category": "6fd778ac-7682-4740-99af-131551aff7a2",
+    "players": [
+      {
+        "number": "92",
+        "name": "RUSSO SEBASTIAN",
+        "type": "goalkeeper",
+        "id": "af3777bc-763b-49c3-98a0-f2b417462294"
+      },
+      {
+        "number": "16",
+        "name": "MURIAS MATEO",
+        "type": "goalkeeper",
+        "id": "dc425076-a5f2-495d-a008-30a59bd3fe04"
+      },
+      {
+        "number": "89",
+        "name": "ASTORT PABLO",
+        "type": "player",
+        "id": "ac5f3859-5192-4801-a47c-d805138e6dd3"
+      },
+      {
+        "number": "69",
+        "name": "BAENA DIEGO",
+        "type": "player",
+        "id": "e3138ffc-ca80-4a8d-bcbd-16d3aef6ce78"
+      },
+      {
+        "number": "29",
+        "name": "BRITOS IÑAKI",
+        "type": "player",
+        "id": "4fe31620-37cb-43b2-bfab-9275d07fe0f7"
+      },
+      {
+        "number": "23",
+        "name": "BRITOS MARTIN",
+        "type": "player",
+        "id": "c1ea1d0a-2b91-4fe0-9abd-e243c809cf0a"
+      },
+      {
+        "number": "79",
+        "name": "BOGGIO JULIAN",
+        "type": "player",
+        "id": "f6042689-926e-4cd0-ab3d-780f0a05deb4"
+      },
+      {
+        "number": "19",
+        "name": "BUSTOS WILDE LISANDRO  JOSE",
+        "type": "player",
+        "id": "9612448c-4de4-4826-a56b-679801ee8ea1"
+      },
+      {
+        "number": "28",
+        "name": "CHOMER DAMIAN",
+        "type": "player",
+        "id": "8be26108-9160-4585-b81f-25f3ab3f9ecf"
+      },
+      {
+        "number": "87",
+        "name": "DESLARME FACUNDO MARTIN",
+        "type": "player",
+        "id": "a8ae5f64-483b-4395-814d-44c4cb0aa59d"
+      },
+      {
+        "number": "71",
+        "name": "JIMENEZ FRANCISCO",
+        "type": "player",
+        "id": "f25eaba9-c223-4b06-a22d-d17f771b1565"
+      },
+      {
+        "number": "9",
+        "name": "LAGUARDA ALEXIS",
+        "type": "player",
+        "id": "c8ffca6b-e000-4db0-84eb-89c0af50df5f"
+      },
+      {
+        "number": "80",
+        "name": "MENDIVIL TOMAS",
+        "type": "player",
+        "id": "2455f934-eac6-40c4-b021-4a5c683b31da"
+      },
+      {
+        "number": "33",
+        "name": "SACRAMENTO AGUSTIN",
+        "type": "player",
+        "id": "797a61da-0f4b-4215-b0c5-c2c58967c178"
+      },
+      {
+        "number": "77",
+        "name": "SILES FABIAN ARIEL",
+        "type": "player",
+        "id": "fef7ee8d-98d2-4667-ac86-90a84f8ff88d"
+      },
+      {
+        "number": "14",
+        "name": "WYTRZES JUAN PABLO",
+        "type": "player",
+        "id": "a46d2728-80df-4c67-b171-9305c630ea0b"
+      },
+      {
+        "number": "81",
+        "name": "MAUGER JEAN RAYMOND",
+        "type": "player",
+        "id": "218c4f4d-f6d8-4045-9bd9-141463fd5947"
+      }
+    ]
+  },
+  {
+    "id": "e73c260d-3918-4523-b393-1b4d1b2d961d",
+    "name": "Hazard Blue",
+    "subName": "Blue",
+    "logoDataUrl": "/logos/Logo-Hazard.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "",
+        "name": "SCOTTO DI CARLO NATALIA",
+        "type": "goalkeeper",
+        "id": "dec5ae31-9372-4737-8ca0-ce08d9af9726"
+      },
+      {
+        "number": "0",
+        "name": "BONVEHI SEBASTIAN",
+        "type": "goalkeeper",
+        "id": "477735ae-1590-4ab6-8a19-89538f4baa6a"
+      },
+      {
+        "number": "3",
+        "name": "ACUÑA ERICA",
+        "type": "player",
+        "id": "7201428c-747b-4728-9b15-8fd56e454459"
+      },
+      {
+        "number": "77",
+        "name": "CARRERA JUAN PABLO",
+        "type": "player",
+        "id": "37c927c1-dfc9-457f-a065-bf796d3652d7"
+      },
+      {
+        "number": "38",
+        "name": "CELLI ALEJANDRO",
+        "type": "player",
+        "id": "d2bbdcd4-31bc-4731-9f7b-16244d43b206"
+      },
+      {
+        "number": "71",
+        "name": "CRUZ LIMA JUAN",
+        "type": "player",
+        "id": "d4054cbf-1fd2-4b4d-a649-de612a2278da"
+      },
+      {
+        "number": "11",
+        "name": "DACAL ALEXIS",
+        "type": "player",
+        "id": "b4067125-2132-496d-8eaa-981def651817"
+      },
+      {
+        "number": "24",
+        "name": "FERRARI SOFIA",
+        "type": "player",
+        "id": "c546032c-99f5-411b-8d6c-a1aeea95f163"
+      },
+      {
+        "number": "14",
+        "name": "GALEANI MARIANO",
+        "type": "player",
+        "id": "c2fa74af-e06f-49b1-8992-ef04afe3a181"
+      },
+      {
+        "number": "",
+        "name": "MALPERI DIEGO",
+        "type": "player",
+        "id": "d01bec4a-30e7-46b8-aeb2-6dd505361b92"
+      },
+      {
+        "number": "19",
+        "name": "MOSCARDA NICOLAS",
+        "type": "player",
+        "id": "ef624e43-6237-42b3-acc2-6b22489a1760"
+      },
+      {
+        "number": "43",
+        "name": "NUÑEZ FEDERICO",
+        "type": "player",
+        "id": "0d320940-7a63-4cb4-bf9e-aa80c1fa49b5"
+      },
+      {
+        "number": "21",
+        "name": "PACE EZEQUIEL",
+        "type": "player",
+        "id": "2ae56c2b-7e2f-4093-9624-0bf78b73d923"
+      },
+      {
+        "number": "95",
+        "name": "PIERINI ROBERTINO",
+        "type": "player",
+        "id": "9dde9e6b-49e0-4af3-bb20-8b26ef7d519e"
+      },
+      {
+        "number": "",
+        "name": "RISSO EMANUEL",
+        "type": "player",
+        "id": "75acdce4-928d-4c03-90d4-27715252509c"
+      }
+    ]
+  },
+  {
+    "id": "ed8004f5-0275-4298-80b3-f959f2ac8fb9",
+    "name": "Hazard white",
+    "subName": "white",
+    "logoDataUrl": "/logos/Logo-Hazard.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "25",
+        "name": "SCOTTO DI CARLO NATALIA",
+        "type": "goalkeeper",
+        "id": "d6e873c7-53bb-410e-9fad-b2527e74ef7b"
+      },
+      {
+        "number": "0",
+        "name": "BONVEHI SEBASTIAN",
+        "type": "goalkeeper",
+        "id": "7d0ff242-7c04-4ce5-bade-fd5dda49aa73"
+      },
+      {
+        "number": "52",
+        "name": "BRAVO LAUTARO HERNAN",
+        "type": "player",
+        "id": "f58a083e-7671-49d1-997d-13ef5c8a45df"
+      },
+      {
+        "number": "77",
+        "name": "CACERES LEON CRISTIAN",
+        "type": "player",
+        "id": "4eb4e42b-0fe1-498e-ba22-94b56f243cf9"
+      },
+      {
+        "number": "17",
+        "name": "CARIMATTO JESICA",
+        "type": "player",
+        "id": "eed75a39-b79f-4847-80eb-f478436cd4e7"
+      },
+      {
+        "number": "72",
+        "name": "CRUSES RAMIRO",
+        "type": "player",
+        "id": "bb57690a-d0eb-43a0-b992-78305369a063"
+      },
+      {
+        "number": "18",
+        "name": "DE LA VEGA FLAVIA MICHELLE",
+        "type": "player",
+        "id": "707d056a-7c78-4d38-8384-5de68c1227ab"
+      },
+      {
+        "number": "90",
+        "name": "DUPERRON SANTIAGO",
+        "type": "player",
+        "id": "a104c202-cf44-499c-bd44-b5d2e935947a"
+      },
+      {
+        "number": "30",
+        "name": "GARIBOTTO JULIAN",
+        "type": "player",
+        "id": "432a6548-db33-4d8d-a8aa-f442ec5ff32b"
+      },
+      {
+        "number": "74",
+        "name": "GIULIODORO JUAN CARLOS",
+        "type": "player",
+        "id": "389b2c85-f3d9-4132-a5cb-a114f965e0b9"
+      },
+      {
+        "number": "7",
+        "name": "HERRERA JAVIER",
+        "type": "player",
+        "id": "4e434390-b1ed-416b-8ce9-136ab3c3ad05"
+      },
+      {
+        "number": "",
+        "name": "SUAREZ PABLO",
+        "type": "player",
+        "id": "914c3378-0e71-483e-96b0-291e6ca0a003"
+      },
+      {
+        "number": "27",
+        "name": "SANCHEZ MATIAS",
+        "type": "player",
+        "id": "7930d62a-b8f7-4f2a-acfc-3b988ff829e5"
+      },
+      {
+        "number": "22",
+        "name": "PONCE GERMAN",
+        "type": "player",
+        "id": "c7a533de-88d4-4921-8e1b-6d75d53e2f8c"
+      }
+    ]
+  },
+  {
+    "id": "9f79003f-a013-4d56-883b-32b44ec76fdd",
+    "name": "Ovejas Negras",
+    "logoDataUrl": "/logos/Logo-OvejasNegras.png",
+    "category": "6fd778ac-7682-4740-99af-131551aff7a2",
+    "players": [
+      {
+        "number": "19",
+        "name": "ALBA RAUL DAVID",
+        "type": "player",
+        "id": "ab9b0f21-79ec-4d3a-86c7-bed9d89fb32e"
+      },
+      {
+        "number": "65",
+        "name": "ANDRAIS BRIAN",
+        "type": "player",
+        "id": "85eceef8-c447-444f-9c7d-0ef2d06737c4"
+      },
+      {
+        "number": "15",
+        "name": "DIAZ GUERRA LEANDRO",
+        "type": "player",
+        "id": "258e0242-e06a-4b18-8b6c-365455429226"
+      },
+      {
+        "number": "11",
+        "name": "DÍAZ THOMPSON JUAN FRANCISCO",
+        "type": "player",
+        "id": "4b2fd77f-c629-4551-990f-0015ab19b909"
+      },
+      {
+        "number": "29",
+        "name": "GALCERAN FACUNDO",
+        "type": "player",
+        "id": "0a980b77-aed6-47fc-b834-ed1d209cdec2"
+      },
+      {
+        "number": "97",
+        "name": "GANDO PEDRO",
+        "type": "player",
+        "id": "9af38596-7e47-44ad-9b86-d33b969d7a99"
+      },
+      {
+        "number": "46",
+        "name": "HIPP DEMIAN BRIAN",
+        "type": "player",
+        "id": "8b31afff-5e59-4aac-a882-525717968464"
+      },
+      {
+        "number": "",
+        "name": "IBARRA JUAN MANUEL",
+        "type": "player",
+        "id": "a968220b-f92f-4135-872c-9bcbcf86a778"
+      },
+      {
+        "number": "79",
+        "name": "LUBIAN SANTIAGO",
+        "type": "player",
+        "id": "e55a3c30-b6a0-4d7f-8786-d17adf6bd16b"
+      },
+      {
+        "number": "23",
+        "name": "MARTIN GASPAR",
+        "type": "goalkeeper",
+        "id": "0abff2ef-9611-40e3-8284-ddf906295a37"
+      },
+      {
+        "number": "21",
+        "name": "MARTINEZ JUAN MANUEL",
+        "type": "player",
+        "id": "18fd72ec-9440-44fd-8b20-15434cbeca02"
+      },
+      {
+        "number": "9",
+        "name": "MASTROIANNI ITALO DARIO",
+        "type": "player",
+        "id": "37a57417-6910-4878-ab50-b4923778f1b4"
+      },
+      {
+        "number": "63",
+        "name": "MEDIN FACUNDO",
+        "type": "player",
+        "id": "a44d708d-15ea-4432-8f79-932748eee51f"
+      },
+      {
+        "number": "",
+        "name": "NAUMANN GORGA MELISA EUGENIA",
+        "type": "player",
+        "id": "00ab629b-547a-486a-bb10-887cbf444ec7"
+      },
+      {
+        "number": "72",
+        "name": "TROFIMOV IGOR",
+        "type": "player",
+        "id": "76b2c5e4-627a-42f1-9dc6-0c2b0c26a034"
+      },
+      {
+        "number": "",
+        "name": "BOSTROM VICTOR",
+        "type": "player",
+        "id": "587b1f2f-b390-4e1c-aeb4-7483b8cc0076"
+      },
+      {
+        "number": "",
+        "name": "VILLANUEVA JUAN FRANCISCO",
+        "type": "player",
+        "id": "342142ad-5be7-4f59-b432-007c3bb9398e"
+      }
+    ]
+  },
+  {
+    "id": "e4792779-6622-4ac7-99e4-1531e429f090",
+    "name": "Ovejas Negras Carneros",
+    "subName": "Carneros",
+    "logoDataUrl": "/logos/Logo-OvejasNegras.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "15",
+        "name": "BOTTERO CARCACCI MERLINA",
+        "type": "player",
+        "id": "16a3352e-d3e7-4f0d-8f48-09776d41fbf0"
+      },
+      {
+        "number": "13",
+        "name": "CANITROT VICENTE",
+        "type": "player",
+        "id": "ac915490-99b6-416d-bcf6-38d44a918380"
+      },
+      {
+        "number": "22",
+        "name": "DÍAZ DIDIER",
+        "type": "player",
+        "id": "94df7aea-9a63-4114-bfc5-e5b03c78a87c"
+      },
+      {
+        "number": "1",
+        "name": "FIGUEROA JUAN MANUEL",
+        "type": "player",
+        "id": "9dabbf17-c6d4-4223-bc44-1c8de949f49e"
+      },
+      {
+        "number": "",
+        "name": "GARCIA CANEPA SEBASTIAN",
+        "type": "player",
+        "id": "f308af81-798f-4c8e-9045-bf82d4e679c7"
+      },
+      {
+        "number": "78",
+        "name": "GIORDANI LIZA",
+        "type": "goalkeeper",
+        "id": "ea59e38f-2b27-424b-8179-027f3c7c96aa"
+      },
+      {
+        "number": "37",
+        "name": "GUTIERREZ JIMENEZ FERMIN",
+        "type": "player",
+        "id": "40bf46cf-8d6e-4d92-88a2-287b80576c17"
+      },
+      {
+        "number": "93",
+        "name": "MARTIN ALEJO NICOLÁS",
+        "type": "player",
+        "id": "6ba4940e-bdd7-4c73-bf6a-6bf4f942c6a4"
+      },
+      {
+        "number": "",
+        "name": "MARTINEZ DIAZ PABLO SALVADOR",
+        "type": "goalkeeper",
+        "id": "c259d886-c4c7-4d8e-8e84-ce4e5398d6fb"
+      },
+      {
+        "number": "11",
+        "name": "MARTINEZ DIS FERNANDO",
+        "type": "player",
+        "id": "85f05280-e09b-4fcc-b9c8-139dacb57d70"
+      },
+      {
+        "number": "24",
+        "name": "MAZZUCCHELLI CAMILA",
+        "type": "player",
+        "id": "d81ae8b5-86de-4d4c-9dac-884f88fad7cb"
+      },
+      {
+        "number": "26",
+        "name": "OKIER SEBASTIAN MANUEL",
+        "type": "player",
+        "id": "05112e9f-8c93-4128-9e4b-0f1de850bafe"
+      },
+      {
+        "number": "",
+        "name": "PANGIONE NICOLÁS",
+        "type": "player",
+        "id": "238e8fab-9f7e-4c99-b660-a53284897b75"
+      },
+      {
+        "number": "9",
+        "name": "PELUFFO ELIAS",
+        "type": "player",
+        "id": "0e0f39ac-f0c2-457f-8c7e-689a598b0fc7"
+      },
+      {
+        "number": "27",
+        "name": "PUGA NICOLÁS",
+        "type": "player",
+        "id": "6a905ed5-a167-4610-8176-4f746a14f50b"
+      },
+      {
+        "number": "29",
+        "name": "RAMÍREZ AZUL CAMILA",
+        "type": "player",
+        "id": "a1cf5e46-bff8-4e78-97d6-1ffb3c2a1683"
+      },
+      {
+        "number": "25",
+        "name": "ROST AGUSTÍN",
+        "type": "player",
+        "id": "27369461-219e-4343-b0c1-6422d9b1973e"
+      },
+      {
+        "id": "fe7504a2-625e-42ac-b3cd-f688943690f2",
+        "name": "octavio",
+        "number": "77",
+        "type": "goalkeeper"
+      }
+    ]
+  },
+  {
+    "id": "2a331774-30ca-4f07-9a99-71954f5f4700",
+    "name": "Ovejas Negras Corderos",
+    "subName": "Corderos",
+    "logoDataUrl": "/logos/Logo-OvejasNegras.png",
+    "category": "953bcf73-ee22-4c87-baa7-43b9529420e0",
+    "players": [
+      {
+        "number": "16",
+        "name": "ABEID EZEQUIEL",
+        "type": "player",
+        "id": "6abc0e9a-daef-4e09-b159-02afeb82a0a9"
+      },
+      {
+        "number": "48",
+        "name": "BLANCO LUCAS LEON",
+        "type": "player",
+        "id": "86895292-e797-4472-90e4-cbbe8a2bc589"
+      },
+      {
+        "number": "30",
+        "name": "CASTARÉS JULIETA",
+        "type": "player",
+        "id": "d5b611a6-f6f6-430a-93ee-40c5b59c15f2"
+      },
+      {
+        "number": "6",
+        "name": "EMERSON AXEL",
+        "type": "player",
+        "id": "710ec35b-8e45-48da-9563-0723165012ee"
+      },
+      {
+        "number": "28",
+        "name": "FERNANDEZ CINTIA",
+        "type": "goalkeeper",
+        "id": "a0bb7c1e-263b-4ebd-859f-afd4b8e1deb2"
+      },
+      {
+        "number": "56",
+        "name": "FONDACARO EZEQUIEL",
+        "type": "player",
+        "id": "e45151aa-21a9-4c8a-a1f3-ee3879969176"
+      },
+      {
+        "number": "55",
+        "name": "FONDACARO CRISTIAN",
+        "type": "player",
+        "id": "29aa3582-1093-4c7d-b589-459b91bacb3e"
+      },
+      {
+        "number": "22",
+        "name": "GALINSKI GUILLERMO EDUARDO",
+        "type": "player",
+        "id": "690638c8-0475-4544-982e-0b0c2cb74fb1"
+      },
+      {
+        "number": "18",
+        "name": "GONZALEZ CAMILA",
+        "type": "player",
+        "id": "0da77624-0d23-4880-b99d-52dbb940eda3"
+      },
+      {
+        "number": "77",
+        "name": "LA TERZA OCTAVIO",
+        "type": "goalkeeper",
+        "id": "f5d14d09-6906-43c2-8b16-9f94e7b0ae59"
+      },
+      {
+        "number": "",
+        "name": "LEGUIZA MATIAS",
+        "type": "player",
+        "id": "c8eb1d5f-3357-41ac-8444-2a25bc5960e4"
+      },
+      {
+        "number": "61",
+        "name": "LESCANO IAN GABRIEL",
+        "type": "player",
+        "id": "465d444f-3b02-489c-8a52-812913375997"
+      },
+      {
+        "number": "46",
+        "name": "LOTO FRANCO BENJAMÍN",
+        "type": "player",
+        "id": "7f113f40-baa0-4edb-898a-8b60abe5c690"
+      },
+      {
+        "number": "69",
+        "name": "PEREZ BERNARDI ESTEBAN DANIEL",
+        "type": "player",
+        "id": "00c0eac1-c4ef-4011-92a9-8d0e7ecb5019"
+      },
+      {
+        "number": "63",
+        "name": "TROFIMOV IVÁN",
+        "type": "player",
+        "id": "8934fa9f-b631-45c5-8a74-2964947798f5"
+      },
+      {
+        "number": "88",
+        "name": "VILLAVICENCIO MARIA ANTONELA",
+        "type": "player",
+        "id": "a187bf14-3e9b-406e-95f5-7909d0805cf0"
+      },
+      {
+        "number": "",
+        "name": "VINCENTI MARIA EUGENIA",
+        "type": "player",
+        "id": "e2bc8295-ec83-4188-a82c-1abcd332bb4f"
+      },
+      {
+        "id": "cc45b978-77b0-4dc7-b6fc-353e27f46fa4",
+        "name": "LATERZA",
+        "number": "",
+        "type": "goalkeeper"
+      }
+    ]
+  },
+  {
+    "id": "6f275b20-e0dc-4357-bf1b-25118516889d",
+    "name": "Winter",
+    "logoDataUrl": "/logos/Logo-Winter.png",
+    "category": "6fd778ac-7682-4740-99af-131551aff7a2",
+    "players": [
+      {
+        "number": "15",
+        "name": "PIPMAN ALEJANDRO",
+        "type": "player",
+        "id": "58dbd49e-bd41-439d-a077-d4f505d87571"
+      },
+      {
+        "number": "87",
+        "name": "FREIRE AGUSTIN",
+        "type": "player",
+        "id": "e160c5b4-faf0-4736-b6aa-1a9006a1f409"
+      },
+      {
+        "number": "69",
+        "name": "PINELA FACUNDO JOAQUIN",
+        "type": "player",
+        "id": "dc90b40b-aebf-4b75-a485-0395f9bac95c"
+      },
+      {
+        "number": "10",
+        "name": "LUDOVICO AGUSTIN JOSE",
+        "type": "player",
+        "id": "95b2fc78-785c-41f9-a300-df766fed25a2"
+      },
+      {
+        "number": "",
+        "name": "BAÑA JONATHAN",
+        "type": "player",
+        "id": "91badb34-4366-44d9-b5e8-6ded3ea43853"
+      },
+      {
+        "number": "1",
+        "name": "SOLIMANO CARLOS",
+        "type": "player",
+        "id": "96420eac-a76d-4ad2-8478-75062c6b7f50"
+      },
+      {
+        "number": "27",
+        "name": "SPATOLA SERGIO",
+        "type": "player",
+        "id": "c8abcb81-b0fe-4cc8-94bc-707059e1577b"
+      },
+      {
+        "number": "5",
+        "name": "KNYAZEV ALEXANDER",
+        "type": "player",
+        "id": "4c946380-e086-4879-b3f9-e844189edcec"
+      },
+      {
+        "number": "6",
+        "name": "SOLIMANO BRIAN",
+        "type": "player",
+        "id": "e2aa7ff8-3890-407d-8114-5bfcef5b51de"
+      },
+      {
+        "number": "",
+        "name": "SVERDLICK TOMAS",
+        "type": "player",
+        "id": "cfd45298-fd58-4e4e-b52b-0aa726be072d"
+      },
+      {
+        "number": "14",
+        "name": "FEDOROVSKY MANUEL",
+        "type": "player",
+        "id": "e5473d04-fa85-455f-a21a-20d4a7f03657"
+      },
+      {
+        "number": "22",
+        "name": "SAN ROMÁN GUSTAVO",
+        "type": "player",
+        "id": "7e395da5-477a-4961-b593-9220ee2909ce"
+      },
+      {
+        "number": "",
+        "name": "SENILLOSA DANIELA",
+        "type": "player",
+        "id": "d4ed4fb1-5802-473f-bce5-7cf238ccd964"
+      },
+      {
+        "number": "",
+        "name": "MALETTI SEBASTIÁN",
+        "type": "player",
+        "id": "4df26bf9-cf17-4141-86e8-1bf436e88c5d"
+      },
+      {
+        "number": "",
+        "name": "GUTIÉRREZ MATÍAS",
+        "type": "player",
+        "id": "04c3e113-5e7b-47b3-9ff5-51043d993bbb"
+      },
+      {
+        "number": "",
+        "name": "RUBEN JUNIOR ESPOSITO VIGO",
+        "type": "player",
+        "id": "f34bd160-114e-4733-b5ae-ba60b1431a05"
+      },
+      {
+        "number": "18",
+        "name": "CEJAS BRIAN",
+        "type": "player",
+        "id": "c2c5c09f-aa6d-4311-bcb9-369729ce5036"
+      },
+      {
+        "number": "",
+        "name": "GUILLERMO RIVERA (GK)",
+        "type": "goalkeeper",
+        "id": "2f4c5406-789d-458c-8f54-53c3ce85333c"
+      },
+      {
+        "number": "",
+        "name": "PABLO VILLANUEVA (GK)",
+        "type": "goalkeeper",
+        "id": "734cd540-380c-4e41-a00a-1990c5575aa3"
+      },
+      {
+        "number": "16",
+        "name": "MARTINEZ SANTIAGO",
+        "type": "player",
+        "id": "0ac0bedd-f5e6-480b-b910-bceff59412af"
+      },
+      {
+        "number": "25",
+        "name": "NICOLAS MENGOCHEA",
+        "type": "player",
+        "id": "fd3b93a2-49ca-4bc9-911c-48c1d78079a1"
+      },
+      {
+        "number": "",
+        "name": "GUTIERREZ GONZALO ANDRÉS",
+        "type": "goalkeeper",
+        "id": "7cceaa50-96c9-41c3-841c-8ecbc3835e86"
+      },
+      {
+        "id": "edd01aad-6ce4-46d7-9685-a4024582eda6",
+        "name": "SOLIMANO BRIAN",
+        "number": "8",
+        "type": "goalkeeper"
+      }
+    ]
+  }
+]

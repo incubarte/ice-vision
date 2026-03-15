@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Clock, Info } from 'lucide-react';
-import type { MatchData, TeamData } from '@/types';
+import { type MatchData, type TeamData, isTournamentHydrated } from '@/types';
 import { formatTime } from '@/lib/game-helpers';
 import {
   Collapsible,
@@ -12,6 +12,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown } from 'lucide-react';
+import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 
 interface TodayMatchesSectionProps {
   tournamentId: string;
@@ -19,13 +20,19 @@ interface TodayMatchesSectionProps {
 
 export const TodayMatchesSection: React.FC<TodayMatchesSectionProps> = ({ tournamentId }) => {
   const { state } = useGameState();
+  const { activeTournament, tournaments } = state.config;
 
   const tournament = useMemo(() => {
-    return (state.config.tournaments || []).find(t => t.id === tournamentId);
-  }, [state.config.tournaments, tournamentId]);
+    if (activeTournament && activeTournament.id === tournamentId) {
+      return activeTournament;
+    }
+    return (tournaments || []).find(t => t.id === tournamentId);
+  }, [tournaments, activeTournament, tournamentId]);
+
+  const isHydrated = isTournamentHydrated(tournament);
 
   const todayMatches = useMemo(() => {
-    if (!tournament) return [];
+    if (!isHydrated || !tournament) return [];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -37,7 +44,7 @@ export const TodayMatchesSection: React.FC<TodayMatchesSectionProps> = ({ tourna
       matchDate.setHours(0, 0, 0, 0);
       return matchDate >= today && matchDate < tomorrow;
     });
-  }, [tournament]);
+  }, [tournament, isHydrated]);
 
   const liveMatch = useMemo(() => {
     // Check if there's a live match (matchId in live state matches one of today's matches)
@@ -54,7 +61,7 @@ export const TodayMatchesSection: React.FC<TodayMatchesSectionProps> = ({ tourna
 
   const getTeamName = (teamId: string | undefined) => {
     if (!teamId) return 'TBD';
-    const team = tournament?.teams.find(t => t.id === teamId);
+    const team = (tournament as any)?.teams?.find((t: TeamData) => t.id === teamId);
     return team?.name || 'TBD';
   };
 
@@ -106,9 +113,17 @@ export const TodayMatchesSection: React.FC<TodayMatchesSectionProps> = ({ tourna
 
   const getCategoryName = (categoryId: string | undefined) => {
     if (!categoryId) return null;
-    const category = tournament?.categories.find(c => c.id === categoryId);
+    const category = (tournament as any)?.categories?.find((c: any) => c.id === categoryId);
     return category?.name || null;
   };
+
+  if (!isHydrated) {
+    return (
+      <div className="flex justify-center py-8">
+        <HockeyPuckSpinner />
+      </div>
+    );
+  }
 
   // Don't render if there are no matches today
   if (todayMatches.length === 0) return null;

@@ -10,11 +10,13 @@ import { useGoalkeeperStats } from '@/hooks/use-goalkeeper-stats';
 import { useRefereeStats, useMesaStats } from '@/hooks/use-staff-stats';
 import type { StaffMatchStats } from '@/hooks/use-staff-stats';
 import { cn } from '@/lib/utils';
+import { isTournamentHydrated, type Tournament, type TournamentMetadata } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Flag, Users } from 'lucide-react';
+import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 
 const ALL_CATEGORIES = "__ALL__";
 
@@ -24,23 +26,29 @@ interface PlayerStatsTabProps {
 
 export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const { state } = useGameState();
-  const { tournaments, selectedTournamentId } = state.config;
+  const { tournaments, selectedTournamentId, activeTournament } = state.config;
 
   // Use tournamentId prop if provided, otherwise fall back to selectedTournamentId from state
   const activeTournamentId = tournamentId || selectedTournamentId;
 
-  const selectedTournament = useMemo(() => {
+  const selectedTournament = useMemo((): Tournament | TournamentMetadata | undefined => {
+    if (activeTournament && activeTournament.id === activeTournamentId) {
+      return activeTournament;
+    }
     return (tournaments || []).find(t => t.id === activeTournamentId);
-  }, [tournaments, activeTournamentId]);
+  }, [tournaments, activeTournamentId, activeTournament]);
+
+  const isHydrated = isTournamentHydrated(selectedTournament);
+  const hydratedTournament = isHydrated ? selectedTournament : null;
 
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [activeStatsTab, setActiveStatsTab] = useState('players');
   const [expandedGoalkeepers, setExpandedGoalkeepers] = useState<Set<string>>(new Set());
 
-  const playerStats = usePlayerStats(selectedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
-  const goalkeeperStats = useGoalkeeperStats(selectedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
-  const refereeStats = useRefereeStats(selectedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
-  const mesaStats = useMesaStats(selectedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
+  const playerStats = usePlayerStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
+  const goalkeeperStats = useGoalkeeperStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
+  const refereeStats = useRefereeStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
+  const mesaStats = useMesaStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
 
   const toggleGoalkeeperExpanded = (playerId: string) => {
     setExpandedGoalkeepers(prev => {
@@ -54,7 +62,14 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
     });
   };
 
-  if (!selectedTournament) return null;
+  if (!isHydrated) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <HockeyPuckSpinner />
+        <p className="text-muted-foreground animate-pulse">Cargando estadísticas...</p>
+      </div>
+    );
+  }
 
   // Helper to format centiseconds to MM:SS
   const formatTime = (centiseconds: number) => {
@@ -80,7 +95,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_CATEGORIES}>Todas las Categorías</SelectItem>
-              {(selectedTournament.categories || []).map(cat => (
+              {(hydratedTournament?.categories || []).map(cat => (
                 <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
               ))}
             </SelectContent>
@@ -272,7 +287,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
 
         {/* Staff Tab */}
         <TabsContent value="staff" className="mt-6 space-y-6">
-          {!selectedTournament.staff || selectedTournament.staff.length === 0 ? (
+          {!hydratedTournament?.staff || hydratedTournament.staff.length === 0 ? (
             <Card>
               <CardContent className="py-12">
                 <div className="text-center text-muted-foreground">

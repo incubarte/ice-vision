@@ -2,13 +2,10 @@
 'use client';
 
 import type { GameState, ConfigState, LiveState, Tournament, RemoteCommand } from '@/types';
-
 export async function updateConfigOnServer(config: ConfigState) {
   try {
-    // Exclude full tournament data from the main config save
-    const { tournaments, ...baseConfig } = config;
-    const tournamentMetas = (tournaments || []).map(t => ({ id: t.id, name: t.name, status: t.status }));
-    const configToSave = { ...baseConfig, tournaments: tournamentMetas };
+    // Exclude full active tournament data from the main config save
+    const { activeTournament, ...configToSave } = config;
 
     const response = await fetch('/api/db', {
       method: 'POST',
