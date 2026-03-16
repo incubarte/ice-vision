@@ -324,8 +324,8 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
       const homeAttendance = state.live.attendance.home;
       const awayAttendance = state.live.attendance.away;
       const minPlayers = state.config.playersPerTeamOnIce;
-      const homeActiveGK = state.live.homeActiveGoalkeeperId;
-      const awayActiveGK = state.live.awayActiveGoalkeeperId;
+      const homeActiveGK = state.live.homeActiveGoalkeeperNumber;
+      const awayActiveGK = state.live.awayActiveGoalkeeperNumber;
 
       if (!homeActiveGK || !awayActiveGK) {
         const missingGKTeams: string[] = [];

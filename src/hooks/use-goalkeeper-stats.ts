@@ -94,19 +94,19 @@ export function useGoalkeeperStats(tournament: Tournament | null | undefined, ca
         if (lastHomeGKId) {
           // If no changes in period, GK plays whole period
           if (homeGKChanges.length === 0) {
-            homeGKChanges = [{ playerId: lastHomeGKId, gameTime: periodDuration }];
+            homeGKChanges = [{ playerId: lastHomeGKId, gameTime: periodDuration, timestamp: 0, periodText: '' }];
           }
           // If first change is not at period start, add implicit change for continuation
           else if (homeGKChanges[0].gameTime < periodDuration) {
-            homeGKChanges = [{ playerId: lastHomeGKId, gameTime: periodDuration }, ...homeGKChanges];
+            homeGKChanges = [{ playerId: lastHomeGKId, gameTime: periodDuration, timestamp: 0, periodText: '' }, ...homeGKChanges];
           }
         }
         if (lastAwayGKId) {
           if (awayGKChanges.length === 0) {
-            awayGKChanges = [{ playerId: lastAwayGKId, gameTime: periodDuration }];
+            awayGKChanges = [{ playerId: lastAwayGKId, gameTime: periodDuration, timestamp: 0, periodText: '' }];
           }
           else if (awayGKChanges[0].gameTime < periodDuration) {
-            awayGKChanges = [{ playerId: lastAwayGKId, gameTime: periodDuration }, ...awayGKChanges];
+            awayGKChanges = [{ playerId: lastAwayGKId, gameTime: periodDuration, timestamp: 0, periodText: '' }, ...awayGKChanges];
           }
         }
 

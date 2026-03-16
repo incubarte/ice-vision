@@ -182,39 +182,17 @@ export interface GoalLog {
   timestamp: number;
   gameTime: number;
   periodText: string;
-  scorer?: {
-    playerId?: string; // ID del jugador (para evitar problemas con cambios de número)
-    playerNumber: string;
-    playerName?: string;
-  };
-  assist?: {
-    playerId?: string; // ID del jugador (para evitar problemas con cambios de número)
-    playerNumber: string;
-    playerName?: string;
-  };
-  assist2?: {
-    playerId?: string; // ID del jugador (para evitar problemas con cambios de número)
-    playerNumber: string;
-    playerName?: string;
-  };
-  positives?: Array<{
-    playerId?: string; // ID del jugador (para evitar problemas con cambios de número)
-    playerNumber: string;
-    playerName?: string;
-  } | null>;
-  negatives?: Array<{
-    playerId?: string; // ID del jugador (para evitar problemas con cambios de número)
-    playerNumber: string;
-    playerName?: string;
-  } | null>;
+  scorer?: { playerNumber: string };
+  assist?: { playerNumber: string };
+  assist2?: { playerNumber: string };
+  positives?: Array<{ playerNumber: string } | null>;
+  negatives?: Array<{ playerNumber: string } | null>;
 }
 
 export interface PenaltyLog {
   id: string;
   team: Team;
-  playerId?: string; // ID del jugador (para evitar problemas con cambios de número)
   playerNumber: string;
-  playerName?: string;
   penaltyName?: string;
   initialDuration: number;
   reducesPlayerCount: boolean;
@@ -236,17 +214,16 @@ export interface ShotLog {
   timestamp: number;
   gameTime: number;
   periodText: string;
-  playerId: string;
   playerNumber: string;
-  playerName?: string;
 }
 
+// Live attendance: only present players stored. id/isPresent kept optional for backward compat with old data.
 export interface AttendedPlayerInfo {
-  id: string;
   number: string;
   name: string;
-  type?: 'player' | 'goalkeeper'; // Player type (optional for backwards compatibility)
-  isPresent?: boolean; // Whether the player is actually present (optional for backwards compatibility, defaults to true if not set)
+  type?: PlayerType;
+  id?: string; // Backward compat only - not set in new code
+  isPresent?: boolean; // Backward compat only - not set in new code
 }
 
 export interface PlayerSubstitutionLog {
@@ -265,11 +242,11 @@ export interface GoalkeeperChangeLog {
   timestamp: number; // Wall clock timestamp
   gameTime: number; // Game time in centiseconds
   periodText: string; // Period when the change occurred
-  playerId: string; // ID of the goalkeeper who became active
   playerNumber: string;
-  playerName?: string;
+  playerId?: string; // Backward compat only
 }
 
+// --- Legacy live-context period types (kept for backward compat) ---
 export interface PeriodStats {
   goals: { home: GoalLog[], away: GoalLog[] };
   penalties: { home: PenaltyLog[], away: PenaltyLog[] };
@@ -280,18 +257,94 @@ export interface PeriodSummary {
   period: string;
   stats: PeriodStats;
   goalkeeperChangesLog?: { home: GoalkeeperChangeLog[], away: GoalkeeperChangeLog[] };
-  periodDuration?: number; // Duration of the period in centiseconds
-  startTimestamp?: string; // ISO timestamp when period started
+  periodDuration?: number;
+  startTimestamp?: string;
+}
+
+// --- Summary types (playerId-based, self-contained) ---
+
+export interface SummaryRosterEntry {
+  id: string;
+  number: string;
+  name: string;
+  type?: PlayerType;
+  isPresent: boolean;
+}
+
+export interface SummaryGoalEntry {
+  id: string;
+  team: Team;
+  timestamp: number;
+  gameTime: number;
+  periodText: string;
+  scorer?: { playerId: string; playerNumber?: string };
+  assist?: { playerId: string; playerNumber?: string };
+  assist2?: { playerId: string; playerNumber?: string };
+  positives?: Array<{ playerId: string; playerNumber?: string } | null>;
+  negatives?: Array<{ playerId: string; playerNumber?: string } | null>;
+}
+
+export interface SummaryPenaltyEntry {
+  id: string;
+  team: Team;
+  playerId: string;
+  playerNumber?: string; // for display convenience
+  penaltyName?: string;
+  initialDuration: number;
+  reducesPlayerCount: boolean;
+  clearsOnGoal: boolean;
+  isBenchPenalty?: boolean;
+  addTimestamp: number;
+  addGameTime: number;
+  addPeriodText: string;
+  endTimestamp?: number;
+  endGameTime?: number;
+  endPeriodText?: string;
+  endReason?: 'completed' | 'deleted' | 'goal_on_pp';
+  timeServed?: number;
+}
+
+export interface SummaryGoalkeeperChange {
+  timestamp: number;
+  gameTime: number;
+  periodText: string;
+  playerId: string;
+  playerNumber?: string; // for display convenience
+}
+
+export interface SummaryShootoutAttempt {
+  id: string;
+  round: number;
+  playerId: string;
+  playerNumber?: string; // for display convenience
+  isGoal: boolean | null;
+}
+
+export interface SummaryPeriodStats {
+  goals: { home: SummaryGoalEntry[], away: SummaryGoalEntry[] };
+  penalties: { home: SummaryPenaltyEntry[], away: SummaryPenaltyEntry[] };
+  playerStats: { home: SummaryPlayerStats[], away: SummaryPlayerStats[] };
+}
+
+export interface SummaryPeriodSummary {
+  period: string;
+  stats: SummaryPeriodStats;
+  goalkeeperChangesLog?: { home: SummaryGoalkeeperChange[], away: SummaryGoalkeeperChange[] };
+  periodDuration?: number;
+  startTimestamp?: string;
 }
 
 // This is the model for post-game summaries. It should be self-contained.
 export interface GameSummary {
   attendance: {
-    home: AttendedPlayerInfo[];
-    away: AttendedPlayerInfo[];
+    home: SummaryRosterEntry[];
+    away: SummaryRosterEntry[];
   };
-  shootout?: Omit<ShootoutState, 'isActive'>;
-  statsByPeriod?: PeriodSummary[];
+  shootout?: Omit<ShootoutState, 'isActive'> & {
+    homeAttempts: SummaryShootoutAttempt[];
+    awayAttempts: SummaryShootoutAttempt[];
+  };
+  statsByPeriod?: SummaryPeriodSummary[];
   overTimeOrShootouts?: boolean;
   playedPeriods: string[];
   staff?: {
@@ -496,10 +549,10 @@ export interface PenaltiesState {
 export interface ShootoutAttempt {
   id: string;
   round: number;
-  playerId: string;
   playerNumber: string;
-  playerName?: string;
   isGoal: boolean | null; // null for pending, true for goal, false for miss
+  playerId?: string; // Backward compat only
+  playerName?: string; // Backward compat only
 }
 
 export interface ShootoutState {
@@ -581,8 +634,8 @@ export interface LiveState {
   playersOnField: { home: string[], away: string[] }; // IDs of players currently on the field
   attendance: { home: AttendedPlayerInfo[], away: AttendedPlayerInfo[] };
   goalkeeperChangesLog: { home: GoalkeeperChangeLog[], away: GoalkeeperChangeLog[] }; // Log of goalkeeper changes during the match
-  homeActiveGoalkeeperId: string | null; // ID of the currently active home goalkeeper
-  awayActiveGoalkeeperId: string | null; // ID of the currently active away goalkeeper
+  homeActiveGoalkeeperNumber: string | null; // Number of the currently active home goalkeeper
+  awayActiveGoalkeeperNumber: string | null; // Number of the currently active away goalkeeper
   shootout: ShootoutState;
   homeTeamName: string;
   homeTeamSubName?: string;
@@ -610,7 +663,6 @@ export interface LiveState {
   goalCelebration: {
     id: string;
     goal: GoalLog;
-    teamData?: TeamData;
   } | null;
   matchId: string | null;
   matchContext: MatchContext | null;  // Snapshot of tournament data at game setup
@@ -667,7 +719,7 @@ export type GameAction =
   | { type: 'START_LOADING_REPLAY'; payload: { url: string; startTimeSeconds?: number } }
   | { type: 'SHOW_REPLAY_OVERLAY'; payload: { url: string; startTimeSeconds?: number } }
   | { type: 'HIDE_REPLAY_OVERLAY' }
-  | { type: 'SHOW_GOAL_CELEBRATION'; payload: { goal: GoalLog, teamData?: TeamData } }
+  | { type: 'SHOW_GOAL_CELEBRATION'; payload: { goal: GoalLog } }
   | { type: 'HIDE_GOAL_CELEBRATION' }
   | { type: 'TOGGLE_CLOCK' }
   | { type: 'SET_TIME'; payload: { minutes: number; seconds: number } }
@@ -706,7 +758,7 @@ export type GameAction =
   | { type: 'ADD_EXTRA_OVERTIME' }
   | { type: 'START_SHOOTOUT' }
   | { type: 'UPDATE_SHOOTOUT_ROUNDS'; payload: number }
-  | { type: 'RECORD_SHOOTOUT_ATTEMPT'; payload: { team: Team; playerId: string; playerNumber: string; playerName?: string; isGoal: boolean; } }
+  | { type: 'RECORD_SHOOTOUT_ATTEMPT'; payload: { team: Team; playerNumber: string; isGoal: boolean; } }
   | { type: 'UNDO_LAST_SHOOTOUT_ATTEMPT'; payload: { team: Team } }
   | { type: 'FINISH_SHOOTOUT' }
   | { type: 'ADD_FORMAT_AND_TIMINGS_PROFILE'; payload: { name: string; profileData?: Partial<FormatAndTimingsProfileData> } }
@@ -749,14 +801,14 @@ export type GameAction =
   | { type: 'ADD_PLAYER_TO_TEAM'; payload: { teamId: string; player: Omit<PlayerData, 'id'> & { id?: string } } }
   | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName'>> } }
   | { type: 'REMOVE_PLAYER_FROM_TEAM'; payload: { teamId: string; playerId: string } }
-  | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerIds: string[] } }
-  | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerId: string; updates: Partial<Pick<AttendedPlayerInfo, 'name' | 'number'>> } }
+  | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerNumbers: string[] } }
+  | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerNumber: string; updates: Partial<Pick<AttendedPlayerInfo, 'name' | 'number'>> } }
   | { type: 'ADD_STAFF_TO_TOURNAMENT'; payload: { tournamentId: string; staff: Omit<StaffMember, 'id'> & { id?: string } } }
   | { type: 'UPDATE_STAFF_IN_TOURNAMENT'; payload: { tournamentId: string; staffId: string; updates: Partial<Omit<StaffMember, 'id'>> } }
   | { type: 'REMOVE_STAFF_FROM_TOURNAMENT'; payload: { tournamentId: string; staffId: string } }
   | { type: 'SET_MATCH_STAFF'; payload: { assignment: MatchStaffAssignment } }
   | { type: 'SET_PLAYER_SHOTS'; payload: { team: Team; playerId: string; periodText: string; shotCount: number } }
-  | { type: 'SET_ACTIVE_GOALKEEPER'; payload: { team: Team; playerId: string | null } }
+  | { type: 'SET_ACTIVE_GOALKEEPER'; payload: { team: Team; playerNumber: string | null } }
   | { type: 'TRIGGER_SUMMARY_GENERATION'; payload: { matchId: string; tournamentId: string } }
   | { type: 'CLEAR_PENDING_SUMMARY_GENERATION' }
   | { type: 'UPDATE_MATCH_SUMMARY_IN_STATE'; payload: { matchId: string; summary: GameSummary } };

@@ -22,6 +22,25 @@ export const safeUUID = () => {
  * @param date The date of the match
  * @returns A match ID with date prefix
  */
+/**
+ * Ensures all players have unique numbers.
+ * Players without numbers get a negative random number assigned.
+ */
+export function ensureUniqueNumbers(players: { id: string; number: string; type: string; name: string; photoFileName?: string }[]): typeof players {
+    const usedNumbers = new Set<string>();
+    return players.map(p => {
+        let num = p.number?.trim() || '';
+        if (!num || usedNumbers.has(num)) {
+            // Assign a negative random number to make it unique
+            do {
+                num = String(-Math.floor(Math.random() * 9000 + 1000));
+            } while (usedNumbers.has(num));
+        }
+        usedNumbers.add(num);
+        return { ...p, number: num };
+    });
+}
+
 export const generateMatchId = (date: Date): string => {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');

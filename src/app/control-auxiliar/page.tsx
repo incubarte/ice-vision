@@ -58,16 +58,16 @@ export default function ControlAuxiliarPage() {
   const awayTeamName = state.live.awayTeamName || 'Equipo Visitante';
 
   // Count shots per player
-  const getShotsCount = (playerId: string, team: Team) => {
+  const getShotsCount = (playerNumber: string, team: Team) => {
     const shotsLog = state.live.shotsLog[team] || [];
-    return shotsLog.filter(shot => shot.playerId === playerId).length;
+    return shotsLog.filter(shot => shot.playerNumber === playerNumber).length;
   };
 
   // Add shot handler
-  const handleAddShot = (playerId: string, playerNumber: string, team: Team) => {
+  const handleAddShot = (playerNumber: string, team: Team) => {
     dispatch({
       type: 'ADD_PLAYER_SHOT',
-      payload: { team, playerNumber, playerId }
+      payload: { team, playerNumber }
     });
 
     toast({
@@ -78,9 +78,9 @@ export default function ControlAuxiliarPage() {
   };
 
   // Remove shot handler
-  const handleRemoveShot = (playerId: string, playerNumber: string, team: Team) => {
+  const handleRemoveShot = (playerNumber: string, team: Team) => {
     const shotsLog = state.live.shotsLog[team] || [];
-    const lastShotIndex = shotsLog.map(s => s.playerId).lastIndexOf(playerId);
+    const lastShotIndex = shotsLog.map(s => s.playerNumber).lastIndexOf(playerNumber);
 
     if (lastShotIndex !== -1) {
       dispatch({
@@ -130,21 +130,21 @@ export default function ControlAuxiliarPage() {
 
     // Separate players by on-field status
     const playersOnField = showSubstitutionControls
-      ? players.filter(p => isPlayerOnField(p.id, team))
+      ? players.filter(p => p.id ? isPlayerOnField(p.id, team) : false)
       : [];
     const playersOnBench = showSubstitutionControls
-      ? players.filter(p => !isPlayerOnField(p.id, team))
+      ? players.filter(p => p.id ? !isPlayerOnField(p.id, team) : true)
       : players;
 
     const renderPlayerCard = (player: any) => {
-      const shotsCount = getShotsCount(player.id, team);
-      const onField = isPlayerOnField(player.id, team);
+      const shotsCount = getShotsCount(player.number, team);
+      const onField = player.id ? isPlayerOnField(player.id, team) : false;
 
       return (
         <Card
           key={player.id}
           className="overflow-hidden cursor-pointer hover:bg-accent/50 transition-colors active:scale-[0.98]"
-          onClick={() => handleAddShot(player.id, player.number, team)}
+          onClick={() => handleAddShot(player.number, team)}
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-4">
@@ -156,7 +156,7 @@ export default function ControlAuxiliarPage() {
                   className="h-10 shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleSubstitution(player.id, player.number, player.name, team, onField ? 'exit' : 'enter');
+                    handleSubstitution(player.id ?? '', player.number, player.name, team, onField ? 'exit' : 'enter');
                   }}
                 >
                   {onField ? 'Sale' : 'Entra'}
@@ -190,7 +190,7 @@ export default function ControlAuxiliarPage() {
                     className="h-10 w-10 shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleRemoveShot(player.id, player.number, team);
+                      handleRemoveShot(player.number, team);
                     }}
                   >
                     <Minus className="h-5 w-5" />
@@ -206,7 +206,7 @@ export default function ControlAuxiliarPage() {
                   className="h-10 shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleSubstitution(player.id, player.number, player.name, team, onField ? 'exit' : 'enter');
+                    handleSubstitution(player.id ?? '', player.number, player.name, team, onField ? 'exit' : 'enter');
                   }}
                 >
                   {onField ? 'Sale' : 'Entra'}

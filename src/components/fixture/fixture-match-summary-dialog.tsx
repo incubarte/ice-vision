@@ -69,8 +69,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   const aggregatedGoals = useMemo(() => {
     if (!localSummary?.statsByPeriod) return { home: [], away: [] };
     return localSummary.statsByPeriod.reduce((acc, periodSummary) => {
-        acc.home.push(...(periodSummary.stats.goals.home || []));
-        acc.away.push(...(periodSummary.stats.goals.away || []));
+        acc.home.push(...((periodSummary.stats.goals.home || []) as any[]));
+        acc.away.push(...((periodSummary.stats.goals.away || []) as any[]));
         return acc;
     }, { home: [] as GoalLog[], away: [] as GoalLog[] });
   }, [localSummary]);
@@ -78,8 +78,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   const aggregatedPenalties = useMemo(() => {
     if (!localSummary?.statsByPeriod) return { home: [], away: [] };
     return localSummary.statsByPeriod.reduce((acc, periodSummary) => {
-        acc.home.push(...(periodSummary.stats.penalties.home || []));
-        acc.away.push(...(periodSummary.stats.penalties.away || []));
+        acc.home.push(...((periodSummary.stats.penalties.home || []) as any[]));
+        acc.away.push(...((periodSummary.stats.penalties.away || []) as any[]));
         return acc;
     }, { home: [] as PenaltyLog[], away: [] as PenaltyLog[] });
   }, [localSummary]);
@@ -493,8 +493,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       <div key={`goals-${periodText}`} className="space-y-4">
                         <h3 className="text-xl font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
                         <div className="grid grid-cols-2 gap-6">
-                          <GoalsSection teamName={homeTeam?.name || ''} goals={periodData?.stats.goals.home} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homeTeam?.players} />
-                          <GoalsSection teamName={awayTeam?.name || ''} goals={periodData?.stats.goals.away} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayTeam?.players} />
+                          <GoalsSection teamName={homeTeam?.name || ''} goals={periodData?.stats.goals.home as any[]} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homeTeam?.players} />
+                          <GoalsSection teamName={awayTeam?.name || ''} goals={periodData?.stats.goals.away as any[]} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayTeam?.players} />
                         </div>
                       </div>
                     );
@@ -513,7 +513,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       return (
                         <div key={`goals-home-${periodText}`}>
                           <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                          <GoalsSection teamName={homeTeam?.name || ''} goals={periodData?.stats.goals.home} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homeTeam?.players} />
+                          <GoalsSection teamName={homeTeam?.name || ''} goals={periodData?.stats.goals.home as any[]} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homeTeam?.players} />
                         </div>
                       );
                     })}
@@ -524,7 +524,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       return (
                         <div key={`goals-away-${periodText}`}>
                           <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                          <GoalsSection teamName={awayTeam?.name || ''} goals={periodData?.stats.goals.away} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayTeam?.players} />
+                          <GoalsSection teamName={awayTeam?.name || ''} goals={periodData?.stats.goals.away as any[]} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayTeam?.players} />
                         </div>
                       );
                     })}
@@ -544,8 +544,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       <div key={`penalties-${periodText}`} className="space-y-4">
                         <h3 className="text-xl font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
                         <div className="grid grid-cols-2 gap-6">
-                           <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={periodData?.stats.penalties.home} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('home', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} />
-                           <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={periodData?.stats.penalties.away} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('away', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} />
+                           <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={periodData?.stats.penalties.home as any[]} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('home', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} />
+                           <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={periodData?.stats.penalties.away as any[]} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('away', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} />
                         </div>
                       </div>
                     );
@@ -564,7 +564,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                          return (
                            <div key={`penalties-home-${periodText}`}>
                              <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                             <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={periodData?.stats.penalties.home} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('home', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} />
+                             <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={periodData?.stats.penalties.home as any[]} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('home', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} />
                            </div>
                          );
                        })}
@@ -575,7 +575,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                          return (
                            <div key={`penalties-away-${periodText}`}>
                              <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                             <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={periodData?.stats.penalties.away} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('away', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} />
+                             <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={periodData?.stats.penalties.away as any[]} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('away', {id} as PenaltyLog, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} />
                            </div>
                          );
                        })}

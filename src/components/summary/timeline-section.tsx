@@ -4,7 +4,7 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Goal, Siren, Coffee, Flag, Play, Pause } from "lucide-react";
-import type { GameSummary, GoalLog, PenaltyLog, Team, TeamData } from "@/types";
+import type { GameSummary, GoalLog, PenaltyLog, SummaryGoalEntry, SummaryPenaltyEntry, Team, TeamData } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface TimelineEvent {
@@ -17,7 +17,7 @@ interface TimelineEvent {
   subDetails?: string;
   periodText: string;
   logoDataUrl?: string;
-  data?: GoalLog | PenaltyLog;
+  data?: GoalLog | PenaltyLog | SummaryGoalEntry | SummaryPenaltyEntry;
   branchId?: string; // For penalties that create a branch
   branchEndTime?: number; // When the penalty branch ends (already inverted from countdown)
   actualDuration?: number; // Actual duration in centiseconds for width calculation
@@ -63,7 +63,14 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
     const lanes = new Map<string, number>(); // penaltyId -> lane number
     let cumulativeTime = 0;
 
-    if (!summary.statsByPeriod) return { events: timelineEvents, periodBoundaries: boundaries, penaltyLanes: lanes };
+    if (!summary.statsByPeriod) return { events: timelineEvents, periodBoundaries: boundaries, penaltyLanes: lanes, maxHomeLane: 0, maxAwayLane: 0 };
+
+    // Helper to look up player name from attendance by playerId
+    const lookupPlayerName = (team: Team, playerId?: string): string | undefined => {
+      if (!playerId) return undefined;
+      const roster = team === 'home' ? summary.attendance?.home : summary.attendance?.away;
+      return roster?.find(r => r.id === playerId)?.name;
+    };
 
     summary.statsByPeriod.forEach((periodSummary, periodIndex) => {
       const periodDuration = periodSummary.periodDuration || 0;
@@ -95,10 +102,13 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
             time: cumulativeTime + timeFromPeriodStart,
             team,
             label: 'GOL',
-            details: goal.scorer?.playerName || `#${goal.scorer?.playerNumber}`,
-            subDetails: goal.assist?.playerName
-              ? `Asist: ${goal.assist.playerName}${goal.assist2?.playerName ? ', ' + goal.assist2.playerName : ''}`
-              : undefined,
+            details: lookupPlayerName(team, goal.scorer?.playerId) || `#${goal.scorer?.playerNumber || '?'}`,
+            subDetails: (() => {
+              const assistName = lookupPlayerName(team, goal.assist?.playerId);
+              if (!assistName) return undefined;
+              const assist2Name = lookupPlayerName(team, goal.assist2?.playerId);
+              return `Asist: ${assistName}${assist2Name ? ', ' + assist2Name : ''}`;
+            })(),
             periodText: goal.periodText,
             logoDataUrl: teamData?.logoDataUrl || undefined,
             data: goal,
@@ -196,7 +206,7 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
             time: penaltyStartTime,
             team,
             label: penalty.penaltyName || 'PENALIDAD',
-            details: penalty.playerName || `#${penalty.playerNumber}`,
+            details: lookupPlayerName(team, penalty.playerId) || `#${penalty.playerNumber || '?'}`,
             subDetails: penalty.endReason === 'goal_on_pp'
               ? '⚡ Terminó por gol'
               : `${Math.floor(durationInSeconds / 60)}'${String(durationInSeconds % 60).padStart(2, '0')}"`,

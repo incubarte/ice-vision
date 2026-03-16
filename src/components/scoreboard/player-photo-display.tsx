@@ -25,11 +25,12 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
     let currentUrl: string | null = null;
 
     const loadPlayerPhoto = async () => {
+      const mc = state.live.matchContext;
       console.log('[PlayerPhoto] Starting load...', {
         scorerNumber: goal?.scorer?.playerNumber,
         matchId: state.live.matchId,
         team: goal?.team,
-        hasTeamData: !!celebration.teamData
+        hasMatchContext: !!mc
       });
 
       if (!goal?.scorer?.playerNumber || !state.live.matchId) {
@@ -39,30 +40,31 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
         return;
       }
 
-      // Use teamData from celebration if available
-      if (!celebration.teamData) {
-        console.log('[PlayerPhoto] No teamData in celebration');
+      // Use matchContext roster for player data
+      if (!mc) {
+        console.log('[PlayerPhoto] No matchContext');
         setPhotoUrl(null);
         setIsLoading(false);
         return;
       }
 
-      const team = celebration.teamData;
-      console.log('[PlayerPhoto] Team found:', team.name, 'Players:', team.players?.length || 0);
+      const roster = goal.team === 'home' ? mc.homeRoster : mc.awayRoster;
+      const teamName = goal.team === 'home' ? state.live.homeTeamName : state.live.awayTeamName;
+      console.log('[PlayerPhoto] Team found:', teamName, 'Players:', roster?.length || 0);
 
-      if (!team.players || team.players.length === 0) {
+      if (!roster || roster.length === 0) {
         console.log('[PlayerPhoto] Team has no players');
         setPhotoUrl(null);
         setIsLoading(false);
         return;
       }
 
-      // Find player by playerNumber (note: PlayerData uses 'number' field, not 'playerNumber')
-      const player = team.players.find(p => p.number === goal.scorer?.playerNumber);
+      // Find player by playerNumber
+      const player = roster.find(p => p.number === goal.scorer?.playerNumber);
 
       if (!player) {
         console.log('[PlayerPhoto] Player not found for number:', goal.scorer?.playerNumber);
-        console.log('[PlayerPhoto] Available players:', team.players.map(p => ({ num: p.number, id: p.id })));
+        console.log('[PlayerPhoto] Available players:', roster.map(p => ({ num: p.number, id: p.id })));
         setPhotoUrl(null);
         setIsLoading(false);
         return;
@@ -89,7 +91,7 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
       }
 
       // Sanitize team name for path
-      const sanitizedTeamName = team.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      const sanitizedTeamName = teamName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
       // Try to load player photo using photoFileName
       const photoPath = `tournaments/${tournament.id}/players/${sanitizedTeamName}/${player.photoFileName}`;
@@ -126,7 +128,7 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
         URL.revokeObjectURL(currentUrl);
       }
     };
-  }, [goal?.scorer?.playerNumber, goal?.team, state.live.matchId, celebration.teamData, state.config.tournaments]);
+  }, [goal?.scorer?.playerNumber, goal?.team, state.live.matchId, state.live.matchContext]);
 
   if (!goal || isLoading || !photoUrl) return null;
 
@@ -156,7 +158,7 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
         >
           <Image
             src={photoUrl}
-            alt={goal.scorer?.playerName || 'Jugador'}
+            alt={'Jugador'}
             width={780}
             height={1040}
             className="object-cover"
@@ -173,7 +175,7 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
               #{goal.scorer?.playerNumber || 'S/N'}
             </p>
             <p className="text-white/90 text-4xl font-semibold">
-              {goal.scorer?.playerName}
+              {state.live.attendance[goal.team]?.find(p => p.number === goal.scorer?.playerNumber)?.name}
             </p>
           </div>
         </motion.div>

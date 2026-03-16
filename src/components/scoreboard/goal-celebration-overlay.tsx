@@ -15,9 +15,18 @@ interface GoalCelebrationOverlayProps {
 }
 
 export function GoalCelebrationOverlay({ celebration }: GoalCelebrationOverlayProps) {
-    const { goal, teamData } = celebration;
+    const { goal } = celebration;
     const { state } = useGameState();
     const { scoreboardLayout } = state.config;
+
+    // Get logo and player name from matchContext
+    const mc = state.live.matchContext;
+    const logoDataUrl = mc ? (goal.team === 'home' ? mc.homeTeamLogoDataUrl : mc.awayTeamLogoDataUrl) : null;
+    const roster = mc ? (goal.team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+    const attendance = state.live.attendance[goal.team] || [];
+    const scorerName = attendance.find(p => p.number === goal.scorer?.playerNumber)?.name || roster.find(p => p.number === goal.scorer?.playerNumber)?.name;
+    const assistName = goal.assist?.playerNumber ? (attendance.find(p => p.number === goal.assist?.playerNumber)?.name || roster.find(p => p.number === goal.assist?.playerNumber)?.name) : undefined;
+    const assist2Name = goal.assist2?.playerNumber ? (attendance.find(p => p.number === goal.assist2?.playerNumber)?.name || roster.find(p => p.number === goal.assist2?.playerNumber)?.name) : undefined;
 
     console.log('[GoalCelebrationOverlay] Rendered. Config showPlayerPhotos:', state.config.showPlayerPhotosInGoalCelebration, 'Type:', typeof state.config.showPlayerPhotosInGoalCelebration);
 
@@ -36,9 +45,9 @@ export function GoalCelebrationOverlay({ celebration }: GoalCelebrationOverlayPr
                 transition={{ type: 'spring', stiffness: 100, damping: 15, delay: 0.2 }}
                 className="flex items-center gap-6"
             >
-                {teamData?.logoDataUrl ? (
+                {logoDataUrl ? (
                     <Image
-                        src={teamData.logoDataUrl}
+                        src={logoDataUrl}
                         alt={`${scoringTeamName} logo`}
                         width={128}
                         height={128}
@@ -66,9 +75,9 @@ export function GoalCelebrationOverlay({ celebration }: GoalCelebrationOverlayPr
                     GOL!
                 </motion.h1>
 
-                {teamData?.logoDataUrl ? (
+                {logoDataUrl ? (
                     <Image
-                        src={teamData.logoDataUrl}
+                        src={logoDataUrl}
                         alt={`${scoringTeamName} logo`}
                         width={128}
                         height={128}
@@ -93,7 +102,7 @@ export function GoalCelebrationOverlay({ celebration }: GoalCelebrationOverlayPr
                 <div className="text-primary-foreground mt-2" style={{ fontSize: `${scoreboardLayout.periodSize * 1.1}rem` }}>
                     <p className="font-bold">
                         <span className="font-bold">#{goal.scorer?.playerNumber || 'S/N'}</span>
-                        <span className="ml-2 font-normal">{goal.scorer?.playerName}</span>
+                        <span className="ml-2 font-normal">{scorerName}</span>
                     </p>
                     {goal.assist?.playerNumber && (
                         <p
@@ -101,7 +110,7 @@ export function GoalCelebrationOverlay({ celebration }: GoalCelebrationOverlayPr
                             style={{ fontSize: '0.8em' }}
                         >
                             <span className="font-bold">#{goal.assist.playerNumber}</span>
-                            <span className="ml-2 font-normal">{goal.assist.playerName}</span>
+                            <span className="ml-2 font-normal">{assistName}</span>
                         </p>
                     )}
                     {goal.assist2?.playerNumber && (
@@ -110,7 +119,7 @@ export function GoalCelebrationOverlay({ celebration }: GoalCelebrationOverlayPr
                             style={{ fontSize: '0.8em' }}
                         >
                             <span className="font-bold">#{goal.assist2.playerNumber}</span>
-                            <span className="ml-2 font-normal">{goal.assist2.playerName}</span>
+                            <span className="ml-2 font-normal">{assist2Name}</span>
                         </p>
                     )}
                 </div>

@@ -109,20 +109,16 @@ const GoalsDisplayCard = ({ team, teamName, goals, onAddGoal }: { team: Team; te
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="font-bold">#{goal.scorer?.playerNumber || 'S/N'}</span>
-                            {goal.scorer?.playerName && (
-                              <span className="text-sm text-muted-foreground truncate">
-                                {goal.scorer.playerName}
-                              </span>
-                            )}
+                            {(() => { const name = state.live.attendance[goal.team]?.find(p => p.number === goal.scorer?.playerNumber)?.name; return name ? <span className="text-sm text-muted-foreground truncate">{name}</span> : null; })()}
                           </div>
 
                           {(goal.assist || goal.assist2) && (
                             <div className="text-sm text-muted-foreground space-y-1 ml-6">
                               {goal.assist && (
-                                <div>Asist. 1: #{goal.assist.playerNumber} {goal.assist.playerName}</div>
+                                <div>Asist. 1: #{goal.assist.playerNumber} {state.live.attendance[goal.team]?.find(p => p.number === goal.assist?.playerNumber)?.name || ''}</div>
                               )}
                               {goal.assist2 && (
-                                <div>Asist. 2: #{goal.assist2.playerNumber} {goal.assist2.playerName}</div>
+                                <div>Asist. 2: #{goal.assist2.playerNumber} {state.live.attendance[goal.team]?.find(p => p.number === goal.assist2?.playerNumber)?.name || ''}</div>
                               )}
                             </div>
                           )}
@@ -130,14 +126,14 @@ const GoalsDisplayCard = ({ team, teamName, goals, onAddGoal }: { team: Team; te
                           {goal.positives && goal.positives.length > 0 && (
                             <div className="text-xs text-muted-foreground mt-2 ml-6">
                               <span className="font-semibold">Positivas:</span>{' '}
-                              {goal.positives.map(p => `#${p?.playerNumber}${p?.playerName ? ` ${p.playerName}` : ''}`).join(', ')}
+                              {goal.positives.map(p => { const name = state.live.attendance[goal.team]?.find(a => a.number === p?.playerNumber)?.name; return `#${p?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
                             </div>
                           )}
 
                           {goal.negatives && goal.negatives.length > 0 && (
                             <div className="text-xs text-muted-foreground mt-1 ml-6">
                               <span className="font-semibold">Negativas:</span>{' '}
-                              {goal.negatives.map(n => `#${n?.playerNumber}${n?.playerName ? ` ${n.playerName}` : ''}`).join(', ')}
+                              {goal.negatives.map(n => { const opposingTeam = goal.team === 'home' ? 'away' : 'home'; const name = state.live.attendance[opposingTeam]?.find(a => a.number === n?.playerNumber)?.name; return `#${n?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
                             </div>
                           )}
 
@@ -331,17 +327,17 @@ const EditableGoalRow = ({ goal, onCancel, onSave }: { goal: GoalLog; onCancel: 
     const selectedAssist2Player = teamData?.players.find(p => p.number === assist2Number.trim());
 
     const positivesData = positives
-      .map((num, idx) => num.trim() ? { playerNumber: num.trim(), playerName: teamData?.players.find(p => p.number === num.trim())?.name } : null)
+      .map((num, idx) => num.trim() ? { playerNumber: num.trim() } : null)
       .filter(p => p !== null);
 
     const negativesData = negatives
-      .map((num, idx) => num.trim() ? { playerNumber: num.trim(), playerName: opposingTeamData?.players.find(p => p.number === num.trim())?.name } : null)
+      .map((num, idx) => num.trim() ? { playerNumber: num.trim() } : null)
       .filter(p => p !== null);
 
     const updates: Partial<GoalLog> = {
-      scorer: { playerNumber: scorerNumber.trim(), playerName: selectedPlayer?.name },
-      assist: assistNumber.trim() ? { playerNumber: assistNumber.trim(), playerName: selectedAssistPlayer?.name } : undefined,
-      assist2: assist2Number.trim() ? { playerNumber: assist2Number.trim(), playerName: selectedAssist2Player?.name } : undefined,
+      scorer: { playerNumber: scorerNumber.trim() },
+      assist: assistNumber.trim() ? { playerNumber: assistNumber.trim() } : undefined,
+      assist2: assist2Number.trim() ? { playerNumber: assist2Number.trim() } : undefined,
       positives: positivesData.length > 0 ? positivesData : undefined,
       negatives: negativesData.length > 0 ? negativesData : undefined,
     };
@@ -918,14 +914,10 @@ export default function ControlsPage() {
             gameTime: currentLive.clock.currentTime,
             periodText: getActualPeriodText(currentLive.clock.currentPeriod, currentLive.clock.periodDisplayOverride, currentConfig.numberOfRegularPeriods, currentLive.shootout),
             scorer: {
-              playerId: scorerPlayer?.id,
               playerNumber: scorerNumber,
-              playerName: scorerPlayer?.name
             },
             assist: assistNumber ? {
-              playerId: assistPlayer?.id,
               playerNumber: assistNumber,
-              playerName: assistPlayer?.name
             } : undefined,
           };
 

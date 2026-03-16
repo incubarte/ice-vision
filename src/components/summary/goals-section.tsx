@@ -47,18 +47,18 @@ const EditableGoalRow = ({ goal, players, onSave, onCancel, onDelete }: Editable
         const assist2 = players.find(p => p.number === assist2Number);
 
         const positivesData = positives
-            .map((num, idx) => num.trim() ? { playerNumber: num.trim(), playerName: players.find(p => p.number === num.trim())?.name } : null)
+            .map((num, idx) => num.trim() ? { playerNumber: num.trim() } : null)
             .filter(p => p !== null);
 
         const negativesData = negatives
-            .map((num, idx) => num.trim() ? { playerNumber: num.trim(), playerName: players.find(p => p.number === num.trim())?.name } : null)
+            .map((num, idx) => num.trim() ? { playerNumber: num.trim() } : null)
             .filter(p => p !== null);
 
         onSave({
             ...goal,
-            scorer: scorer ? { playerNumber: scorer.number, playerName: scorer.name } : { playerNumber: scorerNumber },
-            assist: assist ? { playerNumber: assist.number, playerName: assist.name } : (assistNumber ? { playerNumber: assistNumber } : undefined),
-            assist2: assist2 ? { playerNumber: assist2.number, playerName: assist2.name } : (assist2Number ? { playerNumber: assist2Number } : undefined),
+            scorer: scorer ? { playerNumber: scorer.number } : { playerNumber: scorerNumber },
+            assist: assist ? { playerNumber: assist.number } : (assistNumber ? { playerNumber: assistNumber } : undefined),
+            assist2: assist2 ? { playerNumber: assist2.number } : (assist2Number ? { playerNumber: assist2Number } : undefined),
             positives: positivesData.length > 0 ? positivesData : undefined,
             negatives: negativesData.length > 0 ? negativesData : undefined
         });
@@ -211,7 +211,7 @@ export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players 
                                     </TableCell>
                                     <TableCell>
                                         <div className="font-semibold">#{goal.scorer?.playerNumber || 'S/N'}</div>
-                                        <div className="text-xs text-muted-foreground">{goal.scorer?.playerName || '---'}</div>
+                                        <div className="text-xs text-muted-foreground">{(players ?? []).find(p => p.number === goal.scorer?.playerNumber)?.name || '---'}</div>
                                         {goal.positives && goal.positives.length > 0 && (
                                             <div className="text-xs text-muted-foreground mt-1">
                                                 <span className="font-semibold">+:</span> {goal.positives.map(p => `#${p?.playerNumber}`).join(', ')}
@@ -227,7 +227,7 @@ export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players 
                                         {goal.assist?.playerNumber ? (
                                         <>
                                             <div className="font-semibold">#{goal.assist.playerNumber}</div>
-                                            <div className="text-xs text-muted-foreground">{goal.assist.playerName || '---'}</div>
+                                            <div className="text-xs text-muted-foreground">{(players ?? []).find(p => p.number === goal.assist!.playerNumber)?.name || '---'}</div>
                                         </>
                                         ) : <span className="text-muted-foreground">---</span>}
                                     </TableCell>
@@ -235,7 +235,7 @@ export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players 
                                         {goal.assist2?.playerNumber ? (
                                         <>
                                             <div className="font-semibold">#{goal.assist2.playerNumber}</div>
-                                            <div className="text-xs text-muted-foreground">{goal.assist2.playerName || '---'}</div>
+                                            <div className="text-xs text-muted-foreground">{(players ?? []).find(p => p.number === goal.assist2!.playerNumber)?.name || '---'}</div>
                                         </>
                                         ) : <span className="text-muted-foreground">---</span>}
                                     </TableCell>

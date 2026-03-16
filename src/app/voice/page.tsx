@@ -521,7 +521,6 @@ export default function VoiceControlPage() {
       periodText,
       scorer: {
         playerNumber,
-        playerName
       }
     };
 

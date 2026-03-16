@@ -1,108 +1,164 @@
-import type { GameState, GameSummary, PeriodStats, SummaryPlayerStats, GoalLog, ShotLog, AttendedPlayerInfo, Team, PlayerData, PenaltyLog, PeriodSummary, VoiceGameEvent } from "@/types";
+import type { GameState, GameSummary, SummaryPlayerStats, GoalLog, ShotLog, AttendedPlayerInfo, Team, PlayerData, PenaltyLog, VoiceGameEvent, SummaryRosterEntry, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodStats, SummaryPeriodSummary, SummaryGoalkeeperChange, SummaryShootoutAttempt, GoalkeeperChangeLog } from "@/types";
 
-export const recalculateAllStatsFromLogs = (partialSummary: Partial<{ goals: { home: GoalLog[], away: GoalLog[] }, home: { homeShotsLog?: ShotLog[] }, away: { awayShotsLog?: ShotLog[] }, attendance?: { home: AttendedPlayerInfo[], away: AttendedPlayerInfo[] } }>, homeTeamRoster: PlayerData[], awayTeamRoster: PlayerData[]): { home: SummaryPlayerStats[], away: SummaryPlayerStats[] } => {
+// Helper: look up a player by number in a roster, return their id
+function findPlayerIdByNumber(number: string, roster: PlayerData[]): string | undefined {
+    return roster.find(p => p.number === number)?.id;
+}
+
+// Helper: convert a live GoalLog player ref { playerNumber } to summary { playerId }
+function convertPlayerRef(ref: { playerNumber: string } | null | undefined, roster: PlayerData[]): { playerId: string; playerNumber?: string } | undefined {
+    if (!ref?.playerNumber) return undefined;
+    const id = findPlayerIdByNumber(ref.playerNumber, roster);
+    if (!id) return undefined;
+    return { playerId: id, playerNumber: ref.playerNumber };
+}
+
+// Build summary roster from matchContext roster + live attendance
+function buildSummaryRoster(roster: PlayerData[], attendance: AttendedPlayerInfo[]): SummaryRosterEntry[] {
+    const attendedNumbers = new Set(attendance.map(a => a.number));
+    return roster.map(p => {
+        const att = attendance.find(a => a.number === p.number);
+        return {
+            id: p.id,
+            number: att?.number || p.number,
+            name: att?.name || p.name,
+            type: att?.type || p.type,
+            isPresent: attendedNumbers.has(p.number),
+        };
+    });
+}
+
+// Convert live GoalLog → SummaryGoalEntry
+function convertGoalToSummary(goal: GoalLog, roster: PlayerData[]): SummaryGoalEntry {
+    return {
+        id: goal.id,
+        team: goal.team,
+        timestamp: goal.timestamp,
+        gameTime: goal.gameTime,
+        periodText: goal.periodText,
+        scorer: convertPlayerRef(goal.scorer, roster),
+        assist: convertPlayerRef(goal.assist, roster),
+        assist2: convertPlayerRef(goal.assist2, roster),
+        positives: goal.positives?.map(p => p ? convertPlayerRef(p, roster) || null : null),
+        negatives: goal.negatives?.map(n => n ? convertPlayerRef(n, roster) || null : null),
+    };
+}
+
+// Convert live PenaltyLog → SummaryPenaltyEntry
+function convertPenaltyToSummary(penalty: PenaltyLog, roster: PlayerData[]): SummaryPenaltyEntry {
+    const playerId = findPlayerIdByNumber(penalty.playerNumber, roster) || `unknown-${penalty.playerNumber}`;
+    return {
+        id: penalty.id,
+        team: penalty.team,
+        playerId,
+        playerNumber: penalty.playerNumber,
+        penaltyName: penalty.penaltyName,
+        initialDuration: penalty.initialDuration,
+        reducesPlayerCount: penalty.reducesPlayerCount,
+        clearsOnGoal: penalty.clearsOnGoal,
+        isBenchPenalty: penalty.isBenchPenalty,
+        addTimestamp: penalty.addTimestamp,
+        addGameTime: penalty.addGameTime,
+        addPeriodText: penalty.addPeriodText,
+        endTimestamp: penalty.endTimestamp,
+        endGameTime: penalty.endGameTime,
+        endPeriodText: penalty.endPeriodText,
+        endReason: penalty.endReason,
+        timeServed: penalty.timeServed,
+    };
+}
+
+// Convert live GoalkeeperChangeLog → SummaryGoalkeeperChange
+function convertGKChangeToSummary(gc: GoalkeeperChangeLog, roster: PlayerData[]): SummaryGoalkeeperChange {
+    const playerId = gc.playerId || findPlayerIdByNumber(gc.playerNumber, roster) || `unknown-${gc.playerNumber}`;
+    return {
+        timestamp: gc.timestamp,
+        gameTime: gc.gameTime,
+        periodText: gc.periodText,
+        playerId,
+        playerNumber: gc.playerNumber,
+    };
+}
+
+/**
+ * Recalculate player stats from goals and shots logs.
+ * Works with both live data (playerNumber-based) and summary data (playerId-based).
+ * The roster is used to map numbers to IDs for stat aggregation.
+ */
+export const recalculateAllStatsFromLogs = (
+    partialSummary: Partial<{
+        goals: { home: any[], away: any[] },
+        home: { homeShotsLog?: ShotLog[] },
+        away: { awayShotsLog?: ShotLog[] },
+        attendance?: { home: (AttendedPlayerInfo | SummaryRosterEntry)[], away: (AttendedPlayerInfo | SummaryRosterEntry)[] }
+    }>,
+    homeTeamRoster: PlayerData[],
+    awayTeamRoster: PlayerData[]
+): { home: SummaryPlayerStats[], away: SummaryPlayerStats[] } => {
     const homePlayerStatsMap = new Map<string, SummaryPlayerStats>();
     const awayPlayerStatsMap = new Map<string, SummaryPlayerStats>();
 
-    // ALWAYS use attendance data for player info (names and numbers from match state)
-    // Only use roster as fallback if attendance is completely missing (backwards compatibility)
-    const homePlayersToInit = partialSummary.attendance?.home || homeTeamRoster;
-    const awayPlayersToInit = partialSummary.attendance?.away || awayTeamRoster;
+    // Initialize from roster (always has id)
+    homeTeamRoster.forEach(p => homePlayerStatsMap.set(p.id, { id: p.id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 }));
+    awayTeamRoster.forEach(p => awayPlayerStatsMap.set(p.id, { id: p.id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 }));
 
-    homePlayersToInit.forEach(p => homePlayerStatsMap.set(p.id, { id: p.id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 }));
-    awayPlayersToInit.forEach(p => awayPlayerStatsMap.set(p.id, { id: p.id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 }));
+    // Override with attendance data if available (match-specific names/numbers)
+    const homeAttendance = partialSummary.attendance?.home || [];
+    const awayAttendance = partialSummary.attendance?.away || [];
 
-    // Process goals and assists (use attendance for lookups if available, otherwise roster)
-    (partialSummary.goals?.home || []).forEach(goal => {
-        // Buscar por playerId primero (más confiable), luego por número como fallback
-        const player = goal.scorer?.playerId
-            ? homePlayersToInit.find(p => p.id === goal.scorer?.playerId)
-            : homePlayersToInit.find(p => p.number === goal.scorer?.playerNumber);
-        if (player) {
-            if (!homePlayerStatsMap.has(player.id)) {
-                // Player not in map yet, create entry
-                homePlayerStatsMap.set(player.id, { id: player.id, name: player.name, number: player.number, shots: 0, goals: 0, assists: 0 });
-            }
-            homePlayerStatsMap.get(player.id)!.goals++;
-        }
-        const assist = goal.assist?.playerId
-            ? homePlayersToInit.find(p => p.id === goal.assist?.playerId)
-            : homePlayersToInit.find(p => p.number === goal.assist?.playerNumber);
-        if (assist) {
-            if (!homePlayerStatsMap.has(assist.id)) {
-                homePlayerStatsMap.set(assist.id, { id: assist.id, name: assist.name, number: assist.number, shots: 0, goals: 0, assists: 0 });
-            }
-            homePlayerStatsMap.get(assist.id)!.assists++;
+    homeAttendance.forEach(p => {
+        const id = ('id' in p && p.id) ? p.id : homeTeamRoster.find(r => r.number === p.number)?.id;
+        if (id) {
+            homePlayerStatsMap.set(id, { id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 });
         }
     });
-    (partialSummary.goals?.away || []).forEach(goal => {
-        // Buscar por playerId primero (más confiable), luego por número como fallback
-        const player = goal.scorer?.playerId
-            ? awayPlayersToInit.find(p => p.id === goal.scorer?.playerId)
-            : awayPlayersToInit.find(p => p.number === goal.scorer?.playerNumber);
-        if (player) {
-            if (!awayPlayerStatsMap.has(player.id)) {
-                awayPlayerStatsMap.set(player.id, { id: player.id, name: player.name, number: player.number, shots: 0, goals: 0, assists: 0 });
-            }
-            awayPlayerStatsMap.get(player.id)!.goals++;
-        }
-        const assist = goal.assist?.playerId
-            ? awayPlayersToInit.find(p => p.id === goal.assist?.playerId)
-            : awayPlayersToInit.find(p => p.number === goal.assist?.playerNumber);
-        if (assist) {
-            if (!awayPlayerStatsMap.has(assist.id)) {
-                awayPlayerStatsMap.set(assist.id, { id: assist.id, name: assist.name, number: assist.number, shots: 0, goals: 0, assists: 0 });
-            }
-            awayPlayerStatsMap.get(assist.id)!.assists++;
+    awayAttendance.forEach(p => {
+        const id = ('id' in p && p.id) ? p.id : awayTeamRoster.find(r => r.number === p.number)?.id;
+        if (id) {
+            awayPlayerStatsMap.set(id, { id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 });
         }
     });
 
-    // Process shots
-    (partialSummary.home?.homeShotsLog || []).forEach(shot => {
-        if (shot.playerId) {
-            if (!homePlayerStatsMap.has(shot.playerId)) {
-                // Player not in map (not in attendance)
-                // Try to find in attendance first (they might be marked as not present)
-                const attendancePlayer = partialSummary.attendance?.home?.find(p => p.id === shot.playerId);
-                if (attendancePlayer) {
-                    // Use attendance data (match-specific names/numbers)
-                    homePlayerStatsMap.set(shot.playerId, { id: attendancePlayer.id, name: attendancePlayer.name, number: attendancePlayer.number, shots: 0, goals: 0, assists: 0 });
-                } else {
-                    // Only use roster as last resort (backwards compatibility for old matches)
-                    const rosterPlayer = homeTeamRoster.find(p => p.id === shot.playerId);
-                    if (rosterPlayer) {
-                        homePlayerStatsMap.set(shot.playerId, { id: rosterPlayer.id, name: rosterPlayer.name, number: rosterPlayer.number, shots: 0, goals: 0, assists: 0 });
-                    }
-                }
+    // Helper to resolve a player reference to an ID
+    const resolvePlayerId = (ref: any, roster: PlayerData[]): string | undefined => {
+        if (!ref) return undefined;
+        // Try playerId first (summary format), then playerNumber (live format)
+        if (ref.playerId) return ref.playerId;
+        if (ref.playerNumber) return roster.find(p => p.number === ref.playerNumber)?.id;
+        return undefined;
+    };
+
+    // Process goals
+    const processGoals = (goals: any[], statsMap: Map<string, SummaryPlayerStats>, roster: PlayerData[]) => {
+        goals.forEach(goal => {
+            const scorerId = resolvePlayerId(goal.scorer, roster);
+            if (scorerId && statsMap.has(scorerId)) {
+                statsMap.get(scorerId)!.goals++;
             }
-            if (homePlayerStatsMap.has(shot.playerId)) {
-                homePlayerStatsMap.get(shot.playerId)!.shots++;
+            const assistId = resolvePlayerId(goal.assist, roster);
+            if (assistId && statsMap.has(assistId)) {
+                statsMap.get(assistId)!.assists++;
             }
-        }
-    });
-    (partialSummary.away?.awayShotsLog || []).forEach(shot => {
-        if (shot.playerId) {
-            if (!awayPlayerStatsMap.has(shot.playerId)) {
-                // Player not in map (not in attendance)
-                // Try to find in attendance first (they might be marked as not present)
-                const attendancePlayer = partialSummary.attendance?.away?.find(p => p.id === shot.playerId);
-                if (attendancePlayer) {
-                    // Use attendance data (match-specific names/numbers)
-                    awayPlayerStatsMap.set(shot.playerId, { id: attendancePlayer.id, name: attendancePlayer.name, number: attendancePlayer.number, shots: 0, goals: 0, assists: 0 });
-                } else {
-                    // Only use roster as last resort (backwards compatibility for old matches)
-                    const rosterPlayer = awayTeamRoster.find(p => p.id === shot.playerId);
-                    if (rosterPlayer) {
-                        awayPlayerStatsMap.set(shot.playerId, { id: rosterPlayer.id, name: rosterPlayer.name, number: rosterPlayer.number, shots: 0, goals: 0, assists: 0 });
-                    }
-                }
+        });
+    };
+
+    processGoals(partialSummary.goals?.home || [], homePlayerStatsMap, homeTeamRoster);
+    processGoals(partialSummary.goals?.away || [], awayPlayerStatsMap, awayTeamRoster);
+
+    // Process shots (playerNumber-based in new format)
+    const processShots = (shots: ShotLog[], statsMap: Map<string, SummaryPlayerStats>, roster: PlayerData[]) => {
+        shots.forEach(shot => {
+            // New format: only playerNumber. Old format: playerId.
+            const playerId = (shot as any).playerId || roster.find(p => p.number === shot.playerNumber)?.id;
+            if (playerId && statsMap.has(playerId)) {
+                statsMap.get(playerId)!.shots++;
             }
-            if (awayPlayerStatsMap.has(shot.playerId)) {
-                awayPlayerStatsMap.get(shot.playerId)!.shots++;
-            }
-        }
-    });
-    
+        });
+    };
+
+    processShots(partialSummary.home?.homeShotsLog || [], homePlayerStatsMap, homeTeamRoster);
+    processShots(partialSummary.away?.awayShotsLog || [], awayPlayerStatsMap, awayTeamRoster);
+
     return { home: Array.from(homePlayerStatsMap.values()), away: Array.from(awayPlayerStatsMap.values()) };
 };
 
@@ -150,6 +206,10 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
         awayRosterSize: awayTeamRoster.length
     });
 
+    // Build summary roster (full roster with isPresent flag)
+    const homeRoster: SummaryRosterEntry[] = buildSummaryRoster(homeTeamRoster, live.attendance.home || []);
+    const awayRoster: SummaryRosterEntry[] = buildSummaryRoster(awayTeamRoster, live.attendance.away || []);
+
     const allPlayedPeriods = [...(live.playedPeriods || [])];
 
     // Helper to get period text from period number
@@ -172,18 +232,27 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
         return periodText;
     };
 
-    const statsByPeriodArray: PeriodSummary[] = allPlayedPeriods.map((periodText, periodIndex) => {
-        const periodData: PeriodStats = {
-            goals: { home: [], away: [] },
-            penalties: { home: [], away: [] },
-            playerStats: { home: [], away: [] }
-        };
+    const statsByPeriodArray: SummaryPeriodSummary[] = allPlayedPeriods.map((periodText, periodIndex) => {
+        // Filter live events for this period
+        const homeGoals = (live.goals.home || []).filter(g => normalizePeriodText(g.periodText || '') === periodText);
+        const awayGoals = (live.goals.away || []).filter(g => normalizePeriodText(g.periodText || '') === periodText);
+        const homePenalties = (live.penaltiesLog.home || []).filter(p => normalizePeriodText(p.addPeriodText || '') === periodText);
+        const awayPenalties = (live.penaltiesLog.away || []).filter(p => normalizePeriodText(p.addPeriodText || '') === periodText);
 
-        // Filter events for the current period (normalize periodText for backwards compatibility).
-        periodData.goals.home = (live.goals.home || []).filter(g => normalizePeriodText(g.periodText || '') === periodText);
-        periodData.goals.away = (live.goals.away || []).filter(g => normalizePeriodText(g.periodText || '') === periodText);
-        periodData.penalties.home = (live.penaltiesLog.home || []).filter(p => normalizePeriodText(p.addPeriodText || '') === periodText);
-        periodData.penalties.away = (live.penaltiesLog.away || []).filter(p => normalizePeriodText(p.addPeriodText || '') === periodText);
+        // Convert to summary format (playerNumber → playerId)
+        const summaryGoalsHome: SummaryGoalEntry[] = homeGoals.map(g => convertGoalToSummary(g, homeTeamRoster));
+        const summaryGoalsAway: SummaryGoalEntry[] = awayGoals.map(g => convertGoalToSummary(g, awayTeamRoster));
+        const summaryPenaltiesHome: SummaryPenaltyEntry[] = homePenalties.map(p => convertPenaltyToSummary(p, homeTeamRoster));
+        const summaryPenaltiesAway: SummaryPenaltyEntry[] = awayPenalties.map(p => convertPenaltyToSummary(p, awayTeamRoster));
+
+        // Recalculate player stats for this period
+        const periodSummaryForStats = {
+          goals: { home: homeGoals, away: awayGoals },
+          home: { homeShotsLog: (live.shotsLog.home || []).filter(s => normalizePeriodText(s.periodText || '') === periodText) },
+          away: { awayShotsLog: (live.shotsLog.away || []).filter(s => normalizePeriodText(s.periodText || '') === periodText) },
+          attendance: live.attendance
+        };
+        const periodPlayerStats = recalculateAllStatsFromLogs(periodSummaryForStats, homeTeamRoster, awayTeamRoster);
 
         // Filter voice events for this period (shots from voice commands)
         const voiceEventsForPeriod = (voiceEvents || []).filter((event) => {
@@ -192,130 +261,64 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
             return eventPeriodText === periodText && event.action === 'shot';
         });
 
-        // Recalculate player stats specifically for this period.
-        const periodSummaryForStats = {
-          goals: periodData.goals,
-          home: { homeShotsLog: (live.shotsLog.home || []).filter(s => normalizePeriodText(s.periodText || '') === periodText) },
-          away: { awayShotsLog: (live.shotsLog.away || []).filter(s => normalizePeriodText(s.periodText || '') === periodText) },
-          attendance: live.attendance
-        };
-        const periodPlayerStats = recalculateAllStatsFromLogs(periodSummaryForStats, homeTeamRoster, awayTeamRoster);
-        periodData.playerStats.home = periodPlayerStats.home;
-        periodData.playerStats.away = periodPlayerStats.away;
-
         // Add shots from voice events
-        console.log(`[DEBUG Summary] 🎯 Processing voice events for period ${periodText}:`, {
-            totalVoiceEvents: voiceEventsForPeriod.length,
-            homeAttendanceCount: live.attendance?.home?.length || 0,
-            awayAttendanceCount: live.attendance?.away?.length || 0,
-            homeStatsCount: periodData.playerStats.home.length,
-            awayStatsCount: periodData.playerStats.away.length
-        });
-
-        voiceEventsForPeriod.forEach((event, index) => {
+        voiceEventsForPeriod.forEach((event) => {
             const isHome = event.data.team === 'home';
-            // Use attendance data (match-specific) instead of roster
-            const attendanceList = isHome ? (live.attendance?.home || []) : (live.attendance?.away || []);
-            const statsArray = isHome ? periodData.playerStats.home : periodData.playerStats.away;
+            const statsArray = isHome ? periodPlayerStats.home : periodPlayerStats.away;
+            const roster = isHome ? homeTeamRoster : awayTeamRoster;
 
             const eventPlayerNumber = 'playerNumber' in event.data ? (event.data as { playerNumber: string }).playerNumber : undefined;
-            console.log(`[DEBUG Summary] 🎯 Processing voice event ${index + 1}/${voiceEventsForPeriod.length}:`, {
-                team: event.data.team,
-                playerNumber: eventPlayerNumber,
-                hasPlayerNumber: !!eventPlayerNumber,
-                attendanceSize: attendanceList.length
-            });
-
-            // Find player by number (only for shot events with playerNumber)
             if (eventPlayerNumber) {
-                const player = attendanceList.find(p => p.number === eventPlayerNumber);
-                console.log(`[DEBUG Summary] 🎯 Player search result:`, {
-                    searchingFor: eventPlayerNumber,
-                    playerFound: !!player,
-                    playerId: player?.id,
-                    playerName: player?.name,
-                    attendanceNumbers: attendanceList.map(p => p.number).slice(0, 10) // First 10 numbers for reference
-                });
-
-                if (player) {
-                    const playerStats = statsArray.find(s => s.id === player.id);
-                    console.log(`[DEBUG Summary] 🎯 PlayerStats search result:`, {
-                        playerId: player.id,
-                        statsFound: !!playerStats,
-                        currentShots: playerStats?.shots,
-                        statsArraySize: statsArray.length
-                    });
-
+                const playerId = roster.find(p => p.number === eventPlayerNumber)?.id;
+                if (playerId) {
+                    const playerStats = statsArray.find(s => s.id === playerId);
                     if (playerStats) {
                         playerStats.shots++;
-                        console.log(`[DEBUG Summary] 🎯 ✅ Shot incremented! New count:`, playerStats.shots);
-                    } else {
-                        console.log(`[DEBUG Summary] 🎯 ❌ PlayerStats not found in statsArray`);
                     }
-                } else {
-                    console.log(`[DEBUG Summary] 🎯 ❌ Player not found in roster`);
                 }
-            } else {
-                console.log(`[DEBUG Summary] 🎯 ⚠️ Event missing playerNumber field`);
             }
         });
 
-        // Log final shot counts after processing voice events
-        const homePlayersWithShots = periodData.playerStats.home.filter(p => p.shots > 0);
-        const awayPlayersWithShots = periodData.playerStats.away.filter(p => p.shots > 0);
-        console.log(`[DEBUG Summary] 🎯 Final shot counts for period ${periodText}:`, {
-            homePlayersWithShots: homePlayersWithShots.length,
-            awayPlayersWithShots: awayPlayersWithShots.length,
-            homePlayers: homePlayersWithShots.map(p => `#${p.number}:${p.shots}shots`),
-            awayPlayers: awayPlayersWithShots.map(p => `#${p.number}:${p.shots}shots`)
-        });
-
-        // Get period duration (from config, defaulting to standard period length)
-        const periodDuration = config.defaultPeriodDuration || 120000; // 20 minutes default
-
-        // Add goalkeeper changes log for this period
-        let goalkeeperChangesLog = {
-            home: (live.goalkeeperChangesLog?.home || []).filter(gc => normalizePeriodText(gc.periodText || '') === periodText),
-            away: (live.goalkeeperChangesLog?.away || []).filter(gc => normalizePeriodText(gc.periodText || '') === periodText)
+        const periodData: SummaryPeriodStats = {
+            goals: { home: summaryGoalsHome, away: summaryGoalsAway },
+            penalties: { home: summaryPenaltiesHome, away: summaryPenaltiesAway },
+            playerStats: { home: periodPlayerStats.home, away: periodPlayerStats.away }
         };
 
-        // For the first actual game period, also include goalkeeper changes from pre-game periods
-        // (Pre Warm-up, Warm-up, Break) so that goalkeepers set before the game starts are tracked
+        // Get period duration (from config, defaulting to standard period length)
+        const periodDuration = config.defaultPeriodDuration || 120000;
+
+        // Goalkeeper changes: convert to summary format
+        let homeGKChanges = (live.goalkeeperChangesLog?.home || []).filter(gc => normalizePeriodText(gc.periodText || '') === periodText);
+        let awayGKChanges = (live.goalkeeperChangesLog?.away || []).filter(gc => normalizePeriodText(gc.periodText || '') === periodText);
+
         const isFirstGamePeriod = periodIndex === 0;
         if (isFirstGamePeriod) {
             const preGamePeriods = ['Pre Warm-up', 'Warm-up', 'Break'];
             const preGameGKChangesHome = (live.goalkeeperChangesLog?.home || [])
                 .filter(gc => preGamePeriods.includes(gc.periodText || ''))
-                .map(gc => ({
-                    ...gc,
-                    // Adjust gameTime to period start (periodDuration) since they start from beginning of actual period
-                    gameTime: periodDuration
-                }));
+                .map(gc => ({ ...gc, gameTime: periodDuration }));
             const preGameGKChangesAway = (live.goalkeeperChangesLog?.away || [])
                 .filter(gc => preGamePeriods.includes(gc.periodText || ''))
-                .map(gc => ({
-                    ...gc,
-                    // Adjust gameTime to period start (periodDuration) since they start from beginning of actual period
-                    gameTime: periodDuration
-                }));
+                .map(gc => ({ ...gc, gameTime: periodDuration }));
 
-            // Merge pre-game changes with current period changes
-            // Pre-game changes should come first (they happened earlier)
-            goalkeeperChangesLog = {
-                home: [...preGameGKChangesHome, ...goalkeeperChangesLog.home],
-                away: [...preGameGKChangesAway, ...goalkeeperChangesLog.away]
-            };
+            homeGKChanges = [...preGameGKChangesHome, ...homeGKChanges];
+            awayGKChanges = [...preGameGKChangesAway, ...awayGKChanges];
         }
 
-        // Add period start timestamp if available
+        const goalkeeperChangesLog: { home: SummaryGoalkeeperChange[], away: SummaryGoalkeeperChange[] } = {
+            home: homeGKChanges.map(gc => convertGKChangeToSummary(gc, homeTeamRoster)),
+            away: awayGKChanges.map(gc => convertGKChangeToSummary(gc, awayTeamRoster))
+        };
+
         const startTimestamp = live.periodStartTimestamps?.[periodText];
 
         return { period: periodText, stats: periodData, goalkeeperChangesLog, periodDuration, startTimestamp };
     });
 
-    // Create the base summary object.
+    // Build summary attendance
     const finalSummary: GameSummary = {
-        attendance: live.attendance,
+        attendance: { home: homeRoster, away: awayRoster },
         statsByPeriod: statsByPeriodArray,
         playedPeriods: live.playedPeriods || [],
     };
@@ -323,9 +326,21 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
     const overTimeOrShootouts = (live.shootout && (live.shootout.homeAttempts.length > 0 || live.shootout.awayAttempts.length > 0)) || allPlayedPeriods.some(p => p.startsWith('OT'));
     finalSummary.overTimeOrShootouts = overTimeOrShootouts;
 
+    // Convert shootout attempts to summary format
     if (live.shootout && (live.shootout.homeAttempts.length > 0 || live.shootout.awayAttempts.length > 0)) {
         const { isActive, ...shootoutSummary } = live.shootout;
-        finalSummary.shootout = shootoutSummary;
+        const convertAttempt = (attempt: any, roster: PlayerData[]): SummaryShootoutAttempt => ({
+            id: attempt.id,
+            round: attempt.round,
+            playerId: attempt.playerId || findPlayerIdByNumber(attempt.playerNumber, roster) || `unknown-${attempt.playerNumber}`,
+            playerNumber: attempt.playerNumber,
+            isGoal: attempt.isGoal,
+        });
+        finalSummary.shootout = {
+            ...shootoutSummary,
+            homeAttempts: shootoutSummary.homeAttempts.map(a => convertAttempt(a, homeTeamRoster)) as any,
+            awayAttempts: shootoutSummary.awayAttempts.map(a => convertAttempt(a, awayTeamRoster)) as any,
+        };
     }
 
     // Include voice events in the summary for historical record
@@ -345,7 +360,7 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
                     id: staff.id,
                     firstName: staff.firstName,
                     lastName: staff.lastName,
-                    order: index + 1  // 1 = Principal, 2 = Segundo, 3 = Tercero
+                    order: index + 1
                 };
             })
             .filter((s): s is { id: string; firstName: string; lastName: string; order: number } => s !== null);
@@ -359,7 +374,7 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
                     id: staff.id,
                     firstName: staff.firstName,
                     lastName: staff.lastName,
-                    order: index + 1  // 1 = Principal, 2 = Segundo, 3 = Tercero
+                    order: index + 1
                 };
             })
             .filter((s): s is { id: string; firstName: string; lastName: string; order: number } => s !== null);

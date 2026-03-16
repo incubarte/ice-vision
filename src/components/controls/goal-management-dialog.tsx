@@ -155,47 +155,27 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
         timestamp: Date.now(),
         gameTime: state.live.clock.currentTime,
         periodText: getActualPeriodText(state.live.clock.currentPeriod, state.live.clock.periodDisplayOverride, state.config.numberOfRegularPeriods, state.live.shootout),
-        scorer: {
-          playerId: selectedPlayer?.id, // Guardar ID del jugador para evitar problemas con cambios de número
-          playerNumber: trimmedScorerNumber,
-          playerName: selectedPlayer?.name,
-        },
+        scorer: { playerNumber: trimmedScorerNumber },
     };
 
     if (trimmedAssistNumber) {
-        payload.assist = {
-            playerId: selectedAssistPlayer?.id, // Guardar ID del jugador para evitar problemas con cambios de número
-            playerNumber: trimmedAssistNumber,
-            playerName: selectedAssistPlayer?.name,
-        };
+        payload.assist = { playerNumber: trimmedAssistNumber };
     }
 
     if (trimmedAssist2Number) {
-        payload.assist2 = {
-            playerId: selectedAssist2Player?.id, // Guardar ID del jugador para evitar problemas con cambios de número
-            playerNumber: trimmedAssist2Number,
-            playerName: selectedAssist2Player?.name,
-        };
+        payload.assist2 = { playerNumber: trimmedAssist2Number };
     }
 
     // Add positives and negatives
     const positivesData = positives
-      .map((num, idx) => num.trim() ? {
-        playerId: selectedPositivePlayers[idx]?.id,
-        playerNumber: num.trim(),
-        playerName: selectedPositivePlayers[idx]?.name
-      } : null)
+      .map((num) => num.trim() ? { playerNumber: num.trim() } : null)
       .filter(p => p !== null);
     if (positivesData.length > 0) {
       payload.positives = positivesData;
     }
 
     const negativesData = negatives
-      .map((num, idx) => num.trim() ? {
-        playerId: selectedNegativePlayers[idx]?.id,
-        playerNumber: num.trim(),
-        playerName: selectedNegativePlayers[idx]?.name
-      } : null)
+      .map((num) => num.trim() ? { playerNumber: num.trim() } : null)
       .filter(p => p !== null);
     if (negativesData.length > 0) {
       payload.negatives = negativesData;
@@ -431,38 +411,22 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
     const secs = parseInt(secInput, 10) || 0;
     const newGameTime = (mins * 60 + secs) * 100;
 
-    const scorerPlayer = teamAttendance.find(p => p.number === trimmedScorerNumber);
-
     const updates: Partial<GoalLog> = {};
     if (newGameTime !== goal.gameTime) updates.gameTime = newGameTime;
     if (periodInput !== goal.periodText) updates.periodText = periodInput;
     if (trimmedScorerNumber !== goal.scorer?.playerNumber) {
-        updates.scorer = {
-            playerId: scorerPlayer?.id, // Guardar ID del jugador
-            playerNumber: trimmedScorerNumber,
-            playerName: scorerPlayer?.name
-        };
+        updates.scorer = { playerNumber: trimmedScorerNumber };
     }
     if (trimmedAssistNumber !== (goal.assist?.playerNumber || '') || (!trimmedAssistNumber && goal.assist)) {
         if (trimmedAssistNumber) {
-            const assistPlayer = teamAttendance.find(p => p.number === trimmedAssistNumber);
-            updates.assist = {
-                playerId: assistPlayer?.id, // Guardar ID del jugador
-                playerNumber: trimmedAssistNumber,
-                playerName: assistPlayer?.name
-            };
+            updates.assist = { playerNumber: trimmedAssistNumber };
         } else {
             updates.assist = undefined;
         }
     }
     if (trimmedAssist2Number !== (goal.assist2?.playerNumber || '') || (!trimmedAssist2Number && goal.assist2)) {
         if (trimmedAssist2Number) {
-            const assist2Player = teamAttendance.find(p => p.number === trimmedAssist2Number);
-            updates.assist2 = {
-                playerId: assist2Player?.id, // Guardar ID del jugador
-                playerNumber: trimmedAssist2Number,
-                playerName: assist2Player?.name
-            };
+            updates.assist2 = { playerNumber: trimmedAssist2Number };
         } else {
             updates.assist2 = undefined;
         }
@@ -666,12 +630,12 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
             <div className="flex-grow min-w-0">
               <p className="font-semibold text-card-foreground">
                 Gol #{goal.scorer?.playerNumber || 'S/N'}
-                {goal.scorer?.playerName && <span className="text-sm font-normal"> {goal.scorer.playerName}</span>}
+                {teamAttendance.find(p => p.number === goal.scorer?.playerNumber)?.name && <span className="text-sm font-normal"> {teamAttendance.find(p => p.number === goal.scorer?.playerNumber)?.name}</span>}
                 {goal.assist?.playerNumber && (
-                  <span className="text-sm font-normal text-muted-foreground"> (Asist. #{goal.assist.playerNumber}{goal.assist.playerName ? ` ${goal.assist.playerName}` : ''})</span>
+                  <span className="text-sm font-normal text-muted-foreground"> (Asist. #{goal.assist.playerNumber}{(() => { const a = teamAttendance.find(p => p.number === goal.assist?.playerNumber); return a ? ` ${a.name}` : ''; })()})</span>
                 )}
                 {goal.assist2?.playerNumber && (
-                  <span className="text-sm font-normal text-muted-foreground"> (Asist. 2 #{goal.assist2.playerNumber}{goal.assist2.playerName ? ` ${goal.assist2.playerName}` : ''})</span>
+                  <span className="text-sm font-normal text-muted-foreground"> (Asist. 2 #{goal.assist2.playerNumber}{(() => { const a = teamAttendance.find(p => p.number === goal.assist2?.playerNumber); return a ? ` ${a.name}` : ''; })()})</span>
                 )}
               </p>
               <p className="text-sm text-muted-foreground font-normal">
@@ -679,12 +643,12 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
               </p>
               {goal.positives && goal.positives.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="font-semibold">Positivas:</span> {goal.positives.map(p => `#${p?.playerNumber}${p?.playerName ? ` ${p.playerName}` : ''}`).join(', ')}
+                  <span className="font-semibold">Positivas:</span> {goal.positives.map(p => { const name = teamAttendance.find(a => a.number === p?.playerNumber)?.name; return `#${p?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
                 </p>
               )}
               {goal.negatives && goal.negatives.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="font-semibold">Negativas:</span> {goal.negatives.map(n => `#${n?.playerNumber}${n?.playerName ? ` ${n.playerName}` : ''}`).join(', ')}
+                  <span className="font-semibold">Negativas:</span> {goal.negatives.map(n => { const name = opposingTeamAttendance.find(a => a.number === n?.playerNumber)?.name; return `#${n?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
                 </p>
               )}
             </div>

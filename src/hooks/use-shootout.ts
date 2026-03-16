@@ -19,8 +19,8 @@ export const useShootout = () => {
   }, [dispatch]);
 
   const recordShootoutAttempt = useCallback(
-    (team: Team, attempt: Omit<ShootoutAttempt, 'id'>) => {
-      dispatch({ type: 'RECORD_SHOOTOUT_ATTEMPT', payload: { team, attempt } });
+    (team: Team, playerNumber: string, isGoal: boolean) => {
+      dispatch({ type: 'RECORD_SHOOTOUT_ATTEMPT', payload: { team, playerNumber, isGoal } });
     },
     [dispatch]
   );

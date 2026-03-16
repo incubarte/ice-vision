@@ -61,16 +61,8 @@ export function GoldenGoalDialog({ isOpen, onOpenChange }: GoldenGoalDialogProps
         timestamp: Date.now(),
         gameTime: state.live.clock.currentTime,
         periodText: getActualPeriodText(state.live.clock.currentPeriod, state.live.clock.periodDisplayOverride, state.config.numberOfRegularPeriods, state.live.shootout),
-        scorer: {
-          playerId: scorerPlayer?.id, // Guardar ID del jugador para evitar problemas con cambios de número
-          playerNumber: trimmedScorerNumber,
-          playerName: scorerPlayer?.name,
-        },
-        assist: trimmedAssistNumber ? {
-          playerId: assistPlayer?.id, // Guardar ID del jugador para evitar problemas con cambios de número
-          playerNumber: trimmedAssistNumber,
-          playerName: assistPlayer?.name
-        } : undefined,
+        scorer: { playerNumber: trimmedScorerNumber },
+        assist: trimmedAssistNumber ? { playerNumber: trimmedAssistNumber } : undefined,
     };
     
     dispatch({ type: 'FINISH_GAME_WITH_OT_GOAL', payload });

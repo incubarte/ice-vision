@@ -217,8 +217,8 @@ export function GameSetupDialog({ isOpen, onOpenChange, onGameReset, startTab = 
         dispatch({ type: 'SET_AWAY_TEAM_NAME', payload: awayName });
         dispatch({ type: 'SET_HOME_TEAM_SUB_NAME', payload: undefined });
         dispatch({ type: 'SET_AWAY_TEAM_SUB_NAME', payload: undefined });
-        dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'home', playerIds: [] }});
-        dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'away', playerIds: [] }});
+        dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'home', playerNumbers: [] }});
+        dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'away', playerNumbers: [] }});
         
     } else {
         const homeTeam = teamsInCategory.find(t => t.id === homeTeamId);
@@ -234,8 +234,8 @@ export function GameSetupDialog({ isOpen, onOpenChange, onGameReset, startTab = 
         dispatch({ type: 'SET_HOME_TEAM_SUB_NAME', payload: homeTeam.subName });
         dispatch({ type: 'SET_AWAY_TEAM_NAME', payload: awayTeam.name });
         dispatch({ type: 'SET_AWAY_TEAM_SUB_NAME', payload: awayTeam.subName });
-        dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'home', playerIds: homeTeam.players.map(p => p.id) }});
-        dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'away', playerIds: awayTeam.players.map(p => p.id) }});
+        dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'home', playerNumbers: homeTeam.players.map(p => p.number) }});
+        dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'away', playerNumbers: awayTeam.players.map(p => p.number) }});
     }
 
     dispatch({ type: 'UPDATE_SELECTED_FT_PROFILE_DATA', payload: tempFormatSettings });

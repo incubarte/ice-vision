@@ -100,8 +100,8 @@ const INITIAL_LIVE_DATA: LiveState = {
   playersOnField: { home: [], away: [] },
   attendance: { home: [], away: [] },
   goalkeeperChangesLog: { home: [], away: [] },
-  homeActiveGoalkeeperId: null,
-  awayActiveGoalkeeperId: null,
+  homeActiveGoalkeeperNumber: null,
+  awayActiveGoalkeeperNumber: null,
   clock: {
     currentTime: 30000, // Default warm-up duration
     currentPeriod: 0,
@@ -485,31 +485,32 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const newAttendance = { ...live.attendance };
       newAttendance[teamScored] = [...newAttendance[teamScored]];
 
+      // Look up roster for name/type when auto-adding to attendance
+      const mcRoster = live.matchContext ? (teamScored === 'home' ? live.matchContext.homeRoster : live.matchContext.awayRoster) : [];
+
       if (newGoal.scorer?.playerNumber) {
         const scorerExists = newAttendance[teamScored].some(p => p.number === newGoal.scorer?.playerNumber);
         if (!scorerExists) {
+          const rosterPlayer = mcRoster.find(p => p.number === newGoal.scorer?.playerNumber);
           newAttendance[teamScored].push({
-            id: safeUUID(),
             number: newGoal.scorer.playerNumber,
-            name: `Player #${newGoal.scorer.playerNumber}`, // Default name
-            type: 'player',
-            isPresent: true // Player is present if they scored
+            name: rosterPlayer?.name || `Player #${newGoal.scorer.playerNumber}`,
+            type: rosterPlayer?.type || 'player',
           });
-          console.log(`[ADD_GOAL] Added scorer #${newGoal.scorer.playerNumber} to ${teamScored} attendance (isPresent=true)`);
+          console.log(`[ADD_GOAL] Added scorer #${newGoal.scorer.playerNumber} to ${teamScored} attendance`);
         }
       }
 
       if (newGoal.assist?.playerNumber) {
         const assistExists = newAttendance[teamScored].some(p => p.number === newGoal.assist?.playerNumber);
         if (!assistExists) {
+          const rosterPlayer = mcRoster.find(p => p.number === newGoal.assist?.playerNumber);
           newAttendance[teamScored].push({
-            id: safeUUID(),
             number: newGoal.assist.playerNumber,
-            name: `Player #${newGoal.assist.playerNumber}`, // Default name
-            type: 'player',
-            isPresent: true // Player is present if they assisted
+            name: rosterPlayer?.name || `Player #${newGoal.assist.playerNumber}`,
+            type: rosterPlayer?.type || 'player',
           });
-          console.log(`[ADD_GOAL] Added assist #${newGoal.assist.playerNumber} to ${teamScored} attendance (isPresent=true)`);
+          console.log(`[ADD_GOAL] Added assist #${newGoal.assist.playerNumber} to ${teamScored} attendance`);
         }
       }
 
@@ -539,24 +540,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const isFinishingSoon = state.live.clock.isClockRunning && state.live.clock.currentTime < 500;
       const anyPenaltyEndingSoon = [...live.penalties.home, ...live.penalties.away].some(p => p.expirationTime && (p.expirationTime - state.live.clock._liveAbsoluteElapsedTimeCs) < 1500);
       if (!isFinishingSoon && !anyPenaltyEndingSoon) {
-        // Build teamData from matchContext roster (for player photos) instead of activeTournament
-        const mc = live.matchContext;
-        let teamData: TeamData | undefined;
-        if (mc) {
-          const roster = teamScored === 'home' ? mc.homeRoster : mc.awayRoster;
-          teamData = {
-            id: teamScored === 'home' ? mc.homeTeamId : mc.awayTeamId,
-            name: live[`${teamScored}TeamName`],
-            subName: live[`${teamScored}TeamSubName`],
-            logoDataUrl: teamScored === 'home' ? mc.homeTeamLogoDataUrl : mc.awayTeamLogoDataUrl,
-            players: roster,
-            category: mc.categoryId,
-          };
-        } else {
-          // Fallback to activeTournament for backward compat
-          teamData = config.activeTournament?.id === config.selectedTournamentId ? config.activeTournament.teams.find(t => t.name === live[`${teamScored}TeamName`] && (t.subName || undefined) === (live[`${teamScored}TeamSubName`] || undefined) && t.category === config.selectedMatchCategory) : undefined;
-        }
-        goalCelebration = { id: safeUUID(), goal: newGoal, teamData };
+        goalCelebration = { id: safeUUID(), goal: newGoal };
       }
 
       newState = {
@@ -632,7 +616,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'ADD_PLAYER_SHOT': {
       console.log('[DEBUG] 🎯 Reducer: ADD_PLAYER_SHOT received');
       const { team, playerNumber } = action.payload;
-      const attendedPlayer = state.live.attendance[team].find(p => p.number === playerNumber);
 
       const newShotLog: ShotLog = {
         id: safeUUID(),
@@ -640,9 +623,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         timestamp: Date.now(),
         gameTime: state.live.clock.currentTime,
         periodText: getActualPeriodText(state.live.clock.currentPeriod, state.live.clock.periodDisplayOverride, state.config.numberOfRegularPeriods, state.live.shootout),
-        playerId: attendedPlayer?.id || `unknown-${playerNumber}`,
         playerNumber,
-        playerName: attendedPlayer?.name,
       };
 
       const newShotsLog = { ...state.live.shotsLog };
@@ -745,9 +726,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       const newPenaltyLog: PenaltyLog = {
         id: newPenaltyId,
         team,
-        playerId: playerDetails?.id, // Guardar ID del jugador para evitar problemas con cambios de número
         playerNumber: playerNumber.toUpperCase(),
-        playerName: playerDetails?.name,
         penaltyName: penaltyDef.name,
         initialDuration: penaltyDef.duration,
         reducesPlayerCount: penaltyDef.reducesPlayerCount,
@@ -764,10 +743,12 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         newAttendance[team] = [...newAttendance[team]];
         const playerExists = newAttendance[team].some(p => p.number === playerNumber);
         if (!playerExists) {
+          const penaltyRoster = live.matchContext ? (team === 'home' ? live.matchContext.homeRoster : live.matchContext.awayRoster) : [];
+          const rosterPlayer = penaltyRoster.find(p => p.number === playerNumber);
           newAttendance[team].push({
-            id: safeUUID(),
             number: playerNumber,
-            name: playerDetails?.name || `Player #${playerNumber}` // Default name if not in roster
+            name: rosterPlayer?.name || playerDetails?.name || `Player #${playerNumber}`,
+            type: rosterPlayer?.type || 'player',
           });
           console.log(`[ADD_PENALTY] Added player #${playerNumber} to ${team} attendance`);
         }
@@ -2038,7 +2019,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'SET_TEAM_ATTENDANCE': {
-      const { team, playerIds } = action.payload;
+      const { team, playerNumbers } = action.payload;
       // Prefer matchContext roster, fall back to activeTournament
       const mc = state.live.matchContext;
       let rosterPlayers: PlayerData[] | undefined;
@@ -2058,39 +2039,37 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             return found;
           })();
 
+      const playerNumbersSet = new Set(playerNumbers);
       const currentAttendance = state.live.attendance[team] || [];
 
+      // Build attendance with only present players
       let attendedPlayerInfo: AttendedPlayerInfo[] = [];
       if (teamData) {
-        // Map from roster but preserve match-specific overrides if they exist in current attendance
-        attendedPlayerInfo = teamData.players.map(p => {
-          const existing = currentAttendance.find(a => a.id === p.id);
-          return {
-            id: p.id,
-            number: existing?.number || p.number,
-            name: existing?.name || p.name,
-            type: existing?.type || p.type,
-            isPresent: playerIds.includes(p.id)
-          };
-        });
+        // Include roster players whose numbers are in playerNumbers
+        attendedPlayerInfo = teamData.players
+          .filter(p => playerNumbersSet.has(p.number))
+          .map(p => {
+            // Preserve match-specific overrides if they exist in current attendance
+            const existing = currentAttendance.find(a => a.number === p.number);
+            return {
+              number: existing?.number || p.number,
+              name: existing?.name || p.name,
+              type: existing?.type || p.type,
+            };
+          });
 
-        // Also preserve ad-hoc players that might have been added during game but are not in roster
-        const adHocPlayers = currentAttendance.filter(a => !teamData.players.some(p => p.id === a.id));
-        if (adHocPlayers.length > 0) {
-          attendedPlayerInfo = [
-            ...attendedPlayerInfo,
-            ...adHocPlayers.map(a => ({
-              ...a,
-              isPresent: playerIds.includes(a.id) || a.isPresent
-            }))
-          ];
-        }
+        // Also preserve ad-hoc players (added during game, not in roster) if their numbers are in playerNumbers
+        const adHocPlayers = currentAttendance.filter(a => !teamData.players.some(p => p.number === a.number));
+        adHocPlayers.forEach(a => {
+          if (playerNumbersSet.has(a.number)) {
+            attendedPlayerInfo.push({ number: a.number, name: a.name, type: a.type });
+          }
+        });
       } else {
-        // If no team data found, just update isPresent for current attendance
-        attendedPlayerInfo = currentAttendance.map(p => ({
-          ...p,
-          isPresent: playerIds.includes(p.id)
-        }));
+        // If no team data found, filter current attendance by playerNumbers
+        attendedPlayerInfo = currentAttendance
+          .filter(p => playerNumbersSet.has(p.number))
+          .map(p => ({ number: p.number, name: p.name, type: p.type }));
       }
 
       newState = {
@@ -2106,14 +2085,14 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'UPDATE_ATTENDANCE_PLAYER': {
-      const { team, playerId, updates } = action.payload;
+      const { team, playerNumber, updates } = action.payload;
       const currentAttendance = state.live.attendance[team] || [];
-      const playerIndex = currentAttendance.findIndex(p => p.id === playerId);
+      const playerIndex = currentAttendance.findIndex(p => p.number === playerNumber);
 
       let newAttendanceList;
       if (playerIndex !== -1) {
         newAttendanceList = currentAttendance.map(player =>
-          player.id === playerId
+          player.number === playerNumber
             ? { ...player, ...updates }
             : player
         );
@@ -2133,24 +2112,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           ) : undefined;
           rosterForLookup = teamDataFallback?.players;
         }
-        const rosterPlayer = rosterForLookup?.find(p => p.id === playerId);
+        const rosterPlayer = rosterForLookup?.find(p => p.number === playerNumber);
 
         if (rosterPlayer) {
           newAttendanceList = [...currentAttendance, {
-            id: rosterPlayer.id,
-            name: rosterPlayer.name,
             number: rosterPlayer.number,
+            name: rosterPlayer.name,
             type: rosterPlayer.type,
-            isPresent: false,
             ...updates
           }];
         } else {
           // Absolute fallback - shouldn't happen from typical UI
           newAttendanceList = [...currentAttendance, {
-            id: playerId,
+            number: playerNumber,
             name: 'Jugador',
-            number: '',
-            isPresent: false,
             ...updates
           } as AttendedPlayerInfo];
         }
@@ -2167,7 +2142,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
       };
 
-      const updatedPlayer = newState.live.attendance[team].find(p => p.id === playerId);
+      const updatedPlayer = newState.live.attendance[team].find(p => p.number === (updates.number || playerNumber));
       toastMessage = {
         title: "Jugador Actualizado",
         description: `${updatedPlayer?.name || 'Jugador'} actualizado${updates.number ? ` a #${updates.number}` : ''}`
@@ -2175,19 +2150,19 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'SET_ACTIVE_GOALKEEPER': {
-      const { team, playerId } = action.payload;
+      const { team, playerNumber } = action.payload;
       // Use newState if available (from previous action in batch), otherwise use state
       const currentState = newState || state;
       const { live, config } = currentState;
 
       // Allow null to deactivate goalkeeper
-      if (playerId === null) {
+      if (playerNumber === null) {
         newState = {
           ...currentState,
           live: {
             ...live,
-            homeActiveGoalkeeperId: team === 'home' ? null : live.homeActiveGoalkeeperId,
-            awayActiveGoalkeeperId: team === 'away' ? null : live.awayActiveGoalkeeperId,
+            homeActiveGoalkeeperNumber: team === 'home' ? null : live.homeActiveGoalkeeperNumber,
+            awayActiveGoalkeeperNumber: team === 'away' ? null : live.awayActiveGoalkeeperNumber,
           }
         };
 
@@ -2199,18 +2174,18 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       }
 
       // Find the player in attendance
-      const player = live.attendance[team]?.find(p => p.id === playerId);
+      const player = live.attendance[team]?.find(p => p.number === playerNumber);
       if (!player || player.type !== 'goalkeeper') {
-        console.error(`Player ${playerId} is not a goalkeeper in ${team} attendance`);
+        console.error(`Player #${playerNumber} is not a goalkeeper in ${team} attendance`);
         break;
       }
 
-      // Get current active goalkeeper for this team
-      const currentActiveGoalkeeperId = team === 'home' ? live.homeActiveGoalkeeperId : live.awayActiveGoalkeeperId;
+      // Get current active goalkeeper number for this team
+      const currentActiveGoalkeeperNumber = team === 'home' ? live.homeActiveGoalkeeperNumber : live.awayActiveGoalkeeperNumber;
 
       // Only log the change if it's different from the current active goalkeeper
       let newGoalkeeperChangesLog = live.goalkeeperChangesLog;
-      if (currentActiveGoalkeeperId !== playerId) {
+      if (currentActiveGoalkeeperNumber !== playerNumber) {
         const periodText = getActualPeriodText(
           live.clock.currentPeriod,
           live.clock.periodDisplayOverride,
@@ -2222,9 +2197,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           timestamp: Date.now(),
           gameTime: live.clock.currentTime,
           periodText,
-          playerId: player.id,
           playerNumber: player.number,
-          playerName: player.name,
         };
 
         newGoalkeeperChangesLog = {
@@ -2237,8 +2210,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         ...currentState,
         live: {
           ...live,
-          homeActiveGoalkeeperId: team === 'home' ? playerId : live.homeActiveGoalkeeperId,
-          awayActiveGoalkeeperId: team === 'away' ? playerId : live.awayActiveGoalkeeperId,
+          homeActiveGoalkeeperNumber: team === 'home' ? playerNumber : live.homeActiveGoalkeeperNumber,
+          awayActiveGoalkeeperNumber: team === 'away' ? playerNumber : live.awayActiveGoalkeeperNumber,
           goalkeeperChangesLog: newGoalkeeperChangesLog
         }
       };

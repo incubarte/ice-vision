@@ -28,7 +28,7 @@ export function GoalkeeperStatsSection({ teamName, goalkeeperStats, attendance, 
   const goalkeeperStatsWithAttendance = useMemo(() => {
     return goalkeeperStats.map(gkStat => {
       // Find the goalkeeper in the attendance list
-      const attendanceInfo = (attendance || []).find(p => p.id === gkStat.playerId);
+      const attendanceInfo = (attendance || []).find(p => (p.id || p.number) === gkStat.playerId || p.number === gkStat.playerNumber);
       // isPresent is true if: attendance is null, player not in attendance list (backwards compat), or isPresent !== false
       const isPresent = !attendance || !attendanceInfo || attendanceInfo.isPresent !== false;
 

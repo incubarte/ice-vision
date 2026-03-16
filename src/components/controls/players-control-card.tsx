@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
-import type { Team, PlayerData, AttendedPlayerInfo } from '@/types';
+import type { Team, PlayerData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,12 +36,12 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     };
   }, [matchContext, team, state.live]);
 
-  // Get attendance
+  // Get attendance (present players only, keyed by number)
   const attendance = state.live.attendance[team] || [];
-  const attendedIds = useMemo(() => new Set(attendance.filter(p => p.isPresent !== false).map(p => p.id)), [attendance]);
+  const attendedNumbers = useMemo(() => new Set(attendance.map(p => p.number)), [attendance]);
 
   // Get active goalkeeper
-  const activeGoalkeeperId = team === 'home' ? state.live.homeActiveGoalkeeperId : state.live.awayActiveGoalkeeperId;
+  const activeGoalkeeperNumber = team === 'home' ? state.live.homeActiveGoalkeeperNumber : state.live.awayActiveGoalkeeperNumber;
 
   // Local editable numbers
   const [editingNumbers, setEditingNumbers] = useState<Record<string, string>>({});
@@ -52,32 +52,41 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
   const [newPlayerNumber, setNewPlayerNumber] = useState('');
   const [newPlayerType, setNewPlayerType] = useState<'player' | 'goalkeeper'>('player');
 
-  // Sort players: use attendance (match roster) as primary source
+  // Sort players: combine roster with attendance overrides
   const sortedPlayers = useMemo(() => {
-    // Start with match attendance
-    const players = [...attendance];
+    // Build a combined list from roster, with attendance overrides
+    const players: { number: string; name: string; type?: 'player' | 'goalkeeper'; isAttended: boolean }[] = [];
 
-    // Also include any players from the team roster that aren't in attendance yet
     if (teamData?.players) {
       teamData.players.forEach(rosterPlayer => {
-        if (!players.some(p => p.id === rosterPlayer.id)) {
-          players.push({
-            id: rosterPlayer.id,
-            number: rosterPlayer.number,
-            name: rosterPlayer.name,
-            type: rosterPlayer.type,
-            isPresent: false
-          });
-        }
+        const attendanceEntry = attendance.find(a => a.number === rosterPlayer.number);
+        players.push({
+          number: rosterPlayer.number,
+          name: attendanceEntry?.name || rosterPlayer.name,
+          type: attendanceEntry?.type || rosterPlayer.type,
+          isAttended: attendedNumbers.has(rosterPlayer.number),
+        });
       });
     }
+
+    // Also include ad-hoc attendance players not in roster
+    attendance.forEach(a => {
+      if (!players.some(p => p.number === a.number)) {
+        players.push({
+          number: a.number,
+          name: a.name,
+          type: a.type,
+          isAttended: true,
+        });
+      }
+    });
 
     return players.sort((a, b) => {
       if (a.type === 'goalkeeper' && b.type !== 'goalkeeper') return -1;
       if (a.type !== 'goalkeeper' && b.type === 'goalkeeper') return 1;
       return a.name.localeCompare(b.name);
     });
-  }, [teamData, attendance]);
+  }, [teamData, attendance, attendedNumbers]);
 
   // Check if new player number is duplicate
   const isNewPlayerNumberDuplicate = useMemo(() => {
@@ -85,7 +94,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     if (!trimmed) return false;
 
     return sortedPlayers.some(p => {
-      const currentNumber = (editingNumbers[p.id] !== undefined ? editingNumbers[p.id] : p.number).trim();
+      const currentNumber = (editingNumbers[p.number] !== undefined ? editingNumbers[p.number] : p.number).trim();
       return currentNumber === trimmed;
     });
   }, [newPlayerNumber, sortedPlayers, editingNumbers]);
@@ -95,7 +104,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     const numberCounts = new Map<string, number>();
 
     sortedPlayers.forEach(player => {
-      const currentNumber = (editingNumbers[player.id] !== undefined ? editingNumbers[player.id] : player.number).trim();
+      const currentNumber = (editingNumbers[player.number] !== undefined ? editingNumbers[player.number] : player.number).trim();
       if (currentNumber) {
         numberCounts.set(currentNumber, (numberCounts.get(currentNumber) || 0) + 1);
       }
@@ -108,73 +117,73 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     );
   }, [sortedPlayers, editingNumbers]);
 
-  const handleAttendanceToggle = (playerId: string, currentlyAttended: boolean) => {
+  const handleAttendanceToggle = (playerNumber: string, currentlyAttended: boolean) => {
     // Save any pending number changes before toggling attendance
-    if (editingNumbers[playerId] !== undefined) {
-      const player = sortedPlayers.find(p => p.id === playerId);
+    if (editingNumbers[playerNumber] !== undefined) {
+      const player = sortedPlayers.find(p => p.number === playerNumber);
       if (player) {
-        handleSaveNumber(playerId, player.number);
+        handleSaveNumber(playerNumber, player.number);
       }
     }
 
-    const newAttendedIds = new Set(attendedIds);
+    const newAttendedNumbers = new Set(attendedNumbers);
 
     if (currentlyAttended) {
-      newAttendedIds.delete(playerId);
+      newAttendedNumbers.delete(playerNumber);
       // If removing the active goalkeeper, clear the selection
-      if (playerId === activeGoalkeeperId) {
+      if (playerNumber === activeGoalkeeperNumber) {
         dispatch({
           type: 'SET_ACTIVE_GOALKEEPER',
-          payload: { team, playerId: null }
+          payload: { team, playerNumber: null }
         });
       }
     } else {
-      newAttendedIds.add(playerId);
+      newAttendedNumbers.add(playerNumber);
     }
 
     dispatch({
       type: 'SET_TEAM_ATTENDANCE',
-      payload: { team, playerIds: Array.from(newAttendedIds) }
+      payload: { team, playerNumbers: Array.from(newAttendedNumbers) }
     });
   };
 
-  const handleActiveGoalkeeperToggle = (playerId: string, isGoalkeeper: boolean) => {
+  const handleActiveGoalkeeperToggle = (playerNumber: string, isGoalkeeper: boolean) => {
     if (!isGoalkeeper) return;
 
     // Save any pending number changes before toggling goalkeeper
-    if (editingNumbers[playerId] !== undefined) {
-      const player = sortedPlayers.find(p => p.id === playerId);
+    if (editingNumbers[playerNumber] !== undefined) {
+      const player = sortedPlayers.find(p => p.number === playerNumber);
       if (player) {
-        handleSaveNumber(playerId, player.number);
+        handleSaveNumber(playerNumber, player.number);
       }
     }
 
-    const newGoalkeeperId = activeGoalkeeperId === playerId ? null : playerId;
+    const newGoalkeeperNumber = activeGoalkeeperNumber === playerNumber ? null : playerNumber;
 
     dispatch({
       type: 'SET_ACTIVE_GOALKEEPER',
-      payload: { team, playerId: newGoalkeeperId }
+      payload: { team, playerNumber: newGoalkeeperNumber }
     });
   };
 
-  const handleNumberChange = (playerId: string, value: string) => {
+  const handleNumberChange = (playerNumber: string, value: string) => {
     // Only allow numeric input
     if (/^\d*$/.test(value)) {
-      setEditingNumbers(prev => ({ ...prev, [playerId]: value }));
+      setEditingNumbers(prev => ({ ...prev, [playerNumber]: value }));
     }
   };
 
-  const handleSaveNumber = (playerId: string, currentNumber: string) => {
+  const handleSaveNumber = (playerNumber: string, currentNumber: string) => {
     // If the player was never edited (just focused and blurred), do nothing
-    if (!(playerId in editingNumbers)) return;
+    if (!(playerNumber in editingNumbers)) return;
 
-    const newNumber = editingNumbers[playerId].trim();
+    const newNumber = editingNumbers[playerNumber].trim();
 
     if (newNumber === currentNumber) {
       // No change
       setEditingNumbers(prev => {
         const copy = { ...prev };
-        delete copy[playerId];
+        delete copy[playerNumber];
         return copy;
       });
       return;
@@ -185,24 +194,24 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
       type: 'UPDATE_ATTENDANCE_PLAYER',
       payload: {
         team,
-        playerId,
+        playerNumber,
         updates: { number: newNumber }
       }
     });
 
     setEditingNumbers(prev => {
       const copy = { ...prev };
-      delete copy[playerId];
+      delete copy[playerNumber];
       return copy;
     });
   };
 
   const handleAddNewPlayer = () => {
     // Save all pending number changes before adding new player
-    Object.keys(editingNumbers).forEach(playerId => {
-      const player = sortedPlayers.find(p => p.id === playerId);
+    Object.keys(editingNumbers).forEach(pNum => {
+      const player = sortedPlayers.find(p => p.number === pNum);
       if (player) {
-        handleSaveNumber(playerId, player.number);
+        handleSaveNumber(pNum, player.number);
       }
     });
 
@@ -260,7 +269,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     // Add to attendance automatically
     dispatch({
       type: 'SET_TEAM_ATTENDANCE',
-      payload: { team, playerIds: [...Array.from(attendedIds), newPlayerId] }
+      payload: { team, playerNumbers: [...Array.from(attendedNumbers), trimmedNumber] }
     });
 
     toast({
@@ -297,24 +306,24 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
           <User className="h-5 w-5" />
           {teamName}
           <Badge variant="outline" className="ml-auto">
-            {attendedIds.size}/{sortedPlayers.length} presentes
+            {attendedNumbers.size}/{sortedPlayers.length} presentes
           </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2 max-h-[600px] overflow-y-auto">
           {sortedPlayers.map(player => {
-            const isAttended = attendedIds.has(player.id);
-            const isActiveGoalkeeper = activeGoalkeeperId === player.id;
+            const isAttended = player.isAttended;
+            const isActiveGoalkeeper = activeGoalkeeperNumber === player.number;
             const isGoalkeeper = player.type === 'goalkeeper';
-            const isEditing = player.id in editingNumbers;
-            const displayNumber = isEditing ? editingNumbers[player.id] : player.number;
+            const isEditing = player.number in editingNumbers;
+            const displayNumber = isEditing ? editingNumbers[player.number] : player.number;
             const isDuplicate = displayNumber.trim() && duplicateNumbers.has(displayNumber.trim());
 
             return (
               <div
-                key={player.id}
-                onClick={() => handleAttendanceToggle(player.id, isAttended)}
+                key={player.number}
+                onClick={() => handleAttendanceToggle(player.number, isAttended)}
                 className={cn(
                   "flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
                   isAttended ? "bg-primary/5 border-primary/20 hover:bg-primary/10" : "bg-muted/30 border-muted hover:bg-muted/50",
@@ -337,18 +346,18 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
                 <Input
                   type="text"
                   value={displayNumber}
-                  onChange={(e) => handleNumberChange(player.id, e.target.value)}
+                  onChange={(e) => handleNumberChange(player.number, e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  onBlur={() => handleSaveNumber(player.id, player.number)}
+                  onBlur={() => handleSaveNumber(player.number, player.number)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      handleSaveNumber(player.id, player.number);
+                      handleSaveNumber(player.number, player.number);
                       e.currentTarget.blur();
                     }
                     if (e.key === 'Escape') {
                       setEditingNumbers(prev => {
                         const copy = { ...prev };
-                        delete copy[player.id];
+                        delete copy[player.number];
                         return copy;
                       });
                       e.currentTarget.blur();
@@ -377,7 +386,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleActiveGoalkeeperToggle(player.id, true);
+                      handleActiveGoalkeeperToggle(player.number, true);
                     }}
                     className="flex-shrink-0"
                   >

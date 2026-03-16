@@ -41,8 +41,8 @@ export const useGoals = () => {
   const getAllGoals = useCallback(() => {
     return [...state.live.goals.home, ...state.live.goals.away].sort((a, b) => {
       // Sort by time if available, otherwise maintain order
-      if (a.time !== undefined && b.time !== undefined) {
-        return b.time - a.time; // Most recent first
+      if (a.gameTime !== undefined && b.gameTime !== undefined) {
+        return b.gameTime - a.gameTime; // Most recent first
       }
       return 0;
     });

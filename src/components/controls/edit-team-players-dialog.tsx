@@ -45,8 +45,8 @@ export function EditTeamPlayersDialog({
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const [editablePlayers, setEditablePlayers] = useState<EditablePlayer[]>([]);
-  const [attendedPlayerIds, setAttendedPlayerIds] = useState<Set<string>>(new Set());
-  const [activeGoalkeeperId, setActiveGoalkeeperId] = useState<string | null>(null);
+  const [attendedPlayerNumbers, setAttendedPlayerNumbers] = useState<Set<string>>(new Set());
+  const [activeGoalkeeperNumber, setActiveGoalkeeperNumber] = useState<string | null>(null);
 
   // New player creation state
   const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
@@ -91,12 +91,12 @@ export function EditTeamPlayersDialog({
     );
 
     const attendedInfo = state.live?.attendance?.[teamType] || [];
-    setAttendedPlayerIds(new Set(attendedInfo.filter(p => p.isPresent !== false).map(p => p.id)));
+    setAttendedPlayerNumbers(new Set(attendedInfo.map(p => p.number)));
 
-    const activeGoalkeeperId = teamType === 'home'
-      ? state.live.homeActiveGoalkeeperId
-      : state.live.awayActiveGoalkeeperId;
-    setActiveGoalkeeperId(activeGoalkeeperId);
+    const currentActiveGoalkeeperNumber = teamType === 'home'
+      ? state.live.homeActiveGoalkeeperNumber
+      : state.live.awayActiveGoalkeeperNumber;
+    setActiveGoalkeeperNumber(currentActiveGoalkeeperNumber);
   };
 
   // Track whether we've already loaded data for this dialog session
@@ -120,15 +120,15 @@ export function EditTeamPlayersDialog({
   // Auto-refresh when a player is added
   useEffect(() => {
     if (justAddedPlayerId && teamDetails) {
-      const playerExists = teamDetails.players.some(p => p.id === justAddedPlayerId);
+      const addedPlayer = teamDetails.players.find(p => p.id === justAddedPlayerId);
 
-      if (playerExists) {
+      if (addedPlayer) {
         refreshFromGlobalState();
 
-        setAttendedPlayerIds(prev => {
-          const newIds = new Set(prev);
-          newIds.add(justAddedPlayerId);
-          return newIds;
+        setAttendedPlayerNumbers(prev => {
+          const newNumbers = new Set(prev);
+          newNumbers.add(addedPlayer.number);
+          return newNumbers;
         });
 
         setJustAddedPlayerId(null);
@@ -165,25 +165,25 @@ export function EditTeamPlayersDialog({
     return duplicates;
   }, [editablePlayers]);
 
-  const handleAttendanceChange = (playerId: string, isAttending: boolean) => {
-    setAttendedPlayerIds(prevIds => {
-      const newIds = new Set(prevIds);
+  const handleAttendanceChange = (playerNumber: string, isAttending: boolean) => {
+    setAttendedPlayerNumbers(prevNumbers => {
+      const newNumbers = new Set(prevNumbers);
       if (isAttending) {
-        newIds.add(playerId);
+        newNumbers.add(playerNumber);
       } else {
-        newIds.delete(playerId);
+        newNumbers.delete(playerNumber);
         // If removing the active goalkeeper, clear the selection
-        if (playerId === activeGoalkeeperId) {
-          setActiveGoalkeeperId(null);
+        if (playerNumber === activeGoalkeeperNumber) {
+          setActiveGoalkeeperNumber(null);
         }
       }
-      return newIds;
+      return newNumbers;
     });
   };
 
-  const handleGoalkeeperClick = (playerId: string, playerType: string) => {
+  const handleGoalkeeperClick = (playerNumber: string, playerType: string) => {
     if (playerType !== 'goalkeeper') return;
-    if (!attendedPlayerIds.has(playerId)) {
+    if (!attendedPlayerNumbers.has(playerNumber)) {
       toast({
         title: "No Disponible",
         description: "Primero marca la asistencia del arquero antes de activarlo.",
@@ -193,10 +193,10 @@ export function EditTeamPlayersDialog({
     }
 
     // Toggle: if already active, deactivate; otherwise activate
-    if (activeGoalkeeperId === playerId) {
-      setActiveGoalkeeperId(null);
+    if (activeGoalkeeperNumber === playerNumber) {
+      setActiveGoalkeeperNumber(null);
     } else {
-      setActiveGoalkeeperId(playerId);
+      setActiveGoalkeeperNumber(playerNumber);
     }
   };
 
@@ -347,7 +347,7 @@ export function EditTeamPlayersDialog({
             type: "UPDATE_ATTENDANCE_PLAYER",
             payload: {
               team: teamType,
-              playerId: player.id,
+              playerNumber: player.number,
               updates: { number: newNumber },
             },
           });
@@ -356,26 +356,26 @@ export function EditTeamPlayersDialog({
       }
     });
 
-    const originalAttendedIds = new Set((state.live?.attendance?.[teamType] || []).map(p => p.id));
-    const attendanceChanged = !(attendedPlayerIds.size === originalAttendedIds.size && [...attendedPlayerIds].every(id => originalAttendedIds.has(id)));
+    const originalAttendedNumbers = new Set((state.live?.attendance?.[teamType] || []).map(p => p.number));
+    const attendanceChanged = !(attendedPlayerNumbers.size === originalAttendedNumbers.size && [...attendedPlayerNumbers].every(num => originalAttendedNumbers.has(num)));
 
     if (attendanceChanged) {
       dispatch({
         type: 'SET_TEAM_ATTENDANCE',
-        payload: { team: teamType, playerIds: Array.from(attendedPlayerIds) }
+        payload: { team: teamType, playerNumbers: Array.from(attendedPlayerNumbers) }
       });
     }
 
     // Check if active goalkeeper changed
-    const originalActiveGoalkeeperId = teamType === 'home'
-      ? state.live.homeActiveGoalkeeperId
-      : state.live.awayActiveGoalkeeperId;
-    const activeGoalkeeperChanged = originalActiveGoalkeeperId !== activeGoalkeeperId;
+    const originalActiveGoalkeeperNumber = teamType === 'home'
+      ? state.live.homeActiveGoalkeeperNumber
+      : state.live.awayActiveGoalkeeperNumber;
+    const activeGoalkeeperChanged = originalActiveGoalkeeperNumber !== activeGoalkeeperNumber;
 
     if (activeGoalkeeperChanged) {
       dispatch({
         type: 'SET_ACTIVE_GOALKEEPER',
-        payload: { team: teamType, playerId: activeGoalkeeperId }
+        payload: { team: teamType, playerNumber: activeGoalkeeperNumber }
       });
     }
 
@@ -428,8 +428,8 @@ export function EditTeamPlayersDialog({
                   </Label>
                   <Checkbox
                     id={`attendance-${player.id}`}
-                    checked={attendedPlayerIds.has(player.id)}
-                    onCheckedChange={(checked) => handleAttendanceChange(player.id, !!checked)}
+                    checked={attendedPlayerNumbers.has(player.number)}
+                    onCheckedChange={(checked) => handleAttendanceChange(player.number, !!checked)}
                     className="h-5 w-5"
                   />
                 </div>
@@ -437,16 +437,16 @@ export function EditTeamPlayersDialog({
                 <div className="self-stretch border-l border-border/50"></div>
 
                 <div
-                  className={`flex items-center gap-3 flex-1 min-w-0 ${player.type === "goalkeeper" && attendedPlayerIds.has(player.id)
+                  className={`flex items-center gap-3 flex-1 min-w-0 ${player.type === "goalkeeper" && attendedPlayerNumbers.has(player.number)
                     ? 'cursor-pointer'
                     : ''
                     }`}
-                  onClick={() => player.type === "goalkeeper" && handleGoalkeeperClick(player.id, player.type)}
+                  onClick={() => player.type === "goalkeeper" && handleGoalkeeperClick(player.number, player.type)}
                   title={
                     player.type === "goalkeeper"
-                      ? activeGoalkeeperId === player.id
+                      ? activeGoalkeeperNumber === player.number
                         ? 'Arquero activo (click para desactivar)'
-                        : attendedPlayerIds.has(player.id)
+                        : attendedPlayerNumbers.has(player.number)
                           ? 'Click para activar arquero'
                           : 'Marca asistencia primero'
                       : ''
@@ -454,9 +454,9 @@ export function EditTeamPlayersDialog({
                 >
                   {player.type === "goalkeeper" ? (
                     <Shield
-                      className={`h-5 w-5 shrink-0 transition-colors ${activeGoalkeeperId === player.id
+                      className={`h-5 w-5 shrink-0 transition-colors ${activeGoalkeeperNumber === player.number
                         ? 'text-green-600 fill-green-600'
-                        : attendedPlayerIds.has(player.id)
+                        : attendedPlayerNumbers.has(player.number)
                           ? 'text-muted-foreground hover:text-green-500'
                           : 'text-muted-foreground/30'
                         }`}
@@ -578,7 +578,7 @@ export function EditTeamPlayersDialog({
             </div>
           </div>
         </ScrollArea>
-        {!activeGoalkeeperId && editablePlayers.some(p => p.type === 'goalkeeper' && attendedPlayerIds.has(p.id)) && (
+        {!activeGoalkeeperNumber && editablePlayers.some(p => p.type === 'goalkeeper' && attendedPlayerNumbers.has(p.number)) && (
           <div className="px-6 py-3 bg-orange-50 border-t border-orange-200">
             <p className="text-sm text-orange-700">
               ⚠️ No hay arquero activo. Clickeá el escudo del arquero para marcarlo como Activo.

@@ -506,21 +506,17 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       gameTime,
       periodText,
       scorer: {
-        playerId: scorerPlayer?.id, // Guardar ID del jugador para evitar problemas con cambios de número
         playerNumber,
-        playerName
       }
     };
 
     // Add assists if present
     if (assists.length > 0) {
       goalData.assist = {
-        playerId: assistPlayer1?.id, // Guardar ID del jugador para evitar problemas con cambios de número
         playerNumber: assists[0]
       };
       if (assists.length > 1) {
         goalData.assist2 = {
-          playerId: assistPlayer2?.id, // Guardar ID del jugador para evitar problemas con cambios de número
           playerNumber: assists[1]
         };
       }

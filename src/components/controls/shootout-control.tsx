@@ -161,16 +161,19 @@ const ShooterSelector = ({
 };
 
 
-const ShootoutAttemptRow = ({ attempt }: { attempt: ShootoutAttempt }) => (
-    <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-        <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-muted-foreground w-6 text-center">R{attempt.round}</span>
-            <p className="text-sm font-medium">#{attempt.playerNumber} - {attempt.playerName || 'Jugador no listado'}</p>
+const ShootoutAttemptRow = ({ attempt, attendance }: { attempt: ShootoutAttempt; attendance: { number: string; name: string }[] }) => {
+    const playerName = attendance.find(p => p.number === attempt.playerNumber)?.name || attempt.playerName || 'Jugador no listado';
+    return (
+        <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+            <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-muted-foreground w-6 text-center">R{attempt.round}</span>
+                <p className="text-sm font-medium">#{attempt.playerNumber} - {playerName}</p>
+            </div>
+            {attempt.isGoal === true && <Check className="h-5 w-5 text-green-500" />}
+            {attempt.isGoal === false && <X className="h-5 w-5 text-destructive" />}
         </div>
-        {attempt.isGoal === true && <Check className="h-5 w-5 text-green-500" />}
-        {attempt.isGoal === false && <X className="h-5 w-5 text-destructive" />}
-    </div>
-);
+    );
+};
 
 
 export const ShootoutControl = () => {
@@ -253,14 +256,9 @@ export const ShootoutControl = () => {
             return;
         }
 
-        const teamAttendance = state.live.attendance[team] || [];
-        const playerDetails = teamAttendance.find(p => p.number === selection.number);
-
         dispatch({ type: 'RECORD_SHOOTOUT_ATTEMPT', payload: {
           team,
-          playerId: playerDetails?.id || `unknown-${selection.number}`,
           playerNumber: selection.number,
-          playerName: selection.name || playerDetails?.name,
           isGoal
         }});
 
@@ -372,7 +370,7 @@ export const ShootoutControl = () => {
                                 <Undo2 className="h-4 w-4 mr-1" /> Deshacer
                             </Button>
                         </div>
-                        {shootout.homeAttempts.length > 0 ? shootout.homeAttempts.map(a => <ShootoutAttemptRow key={a.id} attempt={a} />) : <p className="text-sm text-muted-foreground italic">Sin tiros registrados.</p>}
+                        {shootout.homeAttempts.length > 0 ? shootout.homeAttempts.map(a => <ShootoutAttemptRow key={a.id} attempt={a} attendance={state.live.attendance.home || []} />) : <p className="text-sm text-muted-foreground italic">Sin tiros registrados.</p>}
                     </div>
                      <div className="space-y-2">
                          <div className="flex items-center justify-between">
@@ -381,7 +379,7 @@ export const ShootoutControl = () => {
                                 <Undo2 className="h-4 w-4 mr-1" /> Deshacer
                             </Button>
                         </div>
-                        {shootout.awayAttempts.length > 0 ? shootout.awayAttempts.map(a => <ShootoutAttemptRow key={a.id} attempt={a} />) : <p className="text-sm text-muted-foreground italic">Sin tiros registrados.</p>}
+                        {shootout.awayAttempts.length > 0 ? shootout.awayAttempts.map(a => <ShootoutAttemptRow key={a.id} attempt={a} attendance={state.live.attendance.away || []} />) : <p className="text-sm text-muted-foreground italic">Sin tiros registrados.</p>}
                     </div>
                 </div>
 

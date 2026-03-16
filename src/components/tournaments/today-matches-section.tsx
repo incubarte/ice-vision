@@ -117,6 +117,12 @@ export const TodayMatchesSection: React.FC<TodayMatchesSectionProps> = ({ tourna
     return category?.name || null;
   };
 
+  const getPlayerNameFromAttendance = (playerNumber: string, team: 'home' | 'away'): string | undefined => {
+    const roster = state.live.attendance[team];
+    const player = roster.find(p => p.number === playerNumber);
+    return player?.name;
+  };
+
   if (!isHydrated) {
     return (
       <div className="flex justify-center py-8">
@@ -226,7 +232,7 @@ export const TodayMatchesSection: React.FC<TodayMatchesSectionProps> = ({ tourna
                               <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono font-bold">#{penaltyLog.playerNumber}</span>
-                                  {penaltyLog.playerName && <span className="font-medium">{penaltyLog.playerName}</span>}
+                                  {(() => { const name = getPlayerNameFromAttendance(penaltyLog.playerNumber, 'home'); return name ? <span className="font-medium">{name}</span> : null; })()}
                                   <span className="text-xs text-muted-foreground">
                                     {formatTime(penaltyLog.addGameTime, { showTenths: false })} {penaltyLog.addPeriodText}
                                   </span>
@@ -282,7 +288,7 @@ export const TodayMatchesSection: React.FC<TodayMatchesSectionProps> = ({ tourna
                               <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono font-bold">#{penaltyLog.playerNumber}</span>
-                                  {penaltyLog.playerName && <span className="font-medium">{penaltyLog.playerName}</span>}
+                                  {(() => { const name = getPlayerNameFromAttendance(penaltyLog.playerNumber, 'away'); return name ? <span className="font-medium">{name}</span> : null; })()}
                                   <span className="text-xs text-muted-foreground">
                                     {formatTime(penaltyLog.addGameTime, { showTenths: false })} {penaltyLog.addPeriodText}
                                   </span>
