@@ -1,0 +1,5 @@
+{
+  "tournaments": [
+    { "id": "test-tournament-1", "name": "Test Tournament", "status": "active" }
+  ]
+}

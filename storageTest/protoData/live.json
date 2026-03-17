@@ -1,0 +1,71 @@
+{
+  "score": { "home": 0, "away": 0, "homeShots": 0, "awayShots": 0 },
+  "penalties": { "home": [], "away": [] },
+  "goals": { "home": [], "away": [] },
+  "penaltiesLog": { "home": [], "away": [] },
+  "shotsLog": { "home": [], "away": [] },
+  "substitutionsLog": { "home": [], "away": [] },
+  "playersOnField": { "home": [], "away": [] },
+  "attendance": { "home": [], "away": [] },
+  "goalkeeperChangesLog": { "home": [], "away": [] },
+  "homeActiveGoalkeeperNumber": null,
+  "awayActiveGoalkeeperNumber": null,
+  "clock": {
+    "currentTime": 120000,
+    "currentPeriod": 1,
+    "isClockRunning": false,
+    "periodDisplayOverride": null,
+    "preTimeoutState": null,
+    "clockStartTimeMs": null,
+    "remainingTimeAtStartCs": null,
+    "absoluteElapsedTimeCs": 0,
+    "_liveAbsoluteElapsedTimeCs": 0,
+    "isFlashingZero": false
+  },
+  "shootout": {
+    "isActive": false,
+    "rounds": 5,
+    "homeAttempts": [],
+    "awayAttempts": [],
+    "initiator": null
+  },
+  "homeTeamName": "Test Home",
+  "awayTeamName": "Test Away",
+  "playHornTrigger": 0,
+  "playPenaltyBeepTrigger": 0,
+  "pendingPowerPlayGoal": null,
+  "overlayMessage": null,
+  "goalCelebration": null,
+  "replayLoadRequest": null,
+  "replayOverlay": null,
+  "matchId": "test-match-1",
+  "matchContext": {
+    "tournamentId": "test-tournament-1",
+    "tournamentName": "Test Tournament",
+    "categoryId": "test-cat-1",
+    "categoryName": "Test Category",
+    "matchPhase": "clasificacion",
+    "matchPlayoffType": null,
+    "homeTeamId": "test-team-home",
+    "awayTeamId": "test-team-away",
+    "homeTeamLogoDataUrl": null,
+    "awayTeamLogoDataUrl": null,
+    "homeRoster": [
+      { "id": "player-h1", "number": "10", "name": "HOME PLAYER ONE", "type": "player" },
+      { "id": "player-h2", "number": "20", "name": "HOME PLAYER TWO", "type": "player" },
+      { "id": "player-h3", "number": "1", "name": "HOME GOALKEEPER", "type": "goalkeeper" }
+    ],
+    "awayRoster": [
+      { "id": "player-a1", "number": "11", "name": "AWAY PLAYER ONE", "type": "player" },
+      { "id": "player-a2", "number": "21", "name": "AWAY PLAYER TWO", "type": "player" },
+      { "id": "player-a3", "number": "1", "name": "AWAY GOALKEEPER", "type": "goalkeeper" }
+    ],
+    "staff": []
+  },
+  "playedPeriods": [],
+  "assignedStaff": {
+    "mesa": [null, null, null],
+    "referees": [null, null, null]
+  },
+  "periodStartTimestamps": {}
+}

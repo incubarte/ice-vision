@@ -139,7 +139,7 @@ const INITIAL_LIVE_DATA: LiveState = {
 const defaultInitialProfile = createDefaultFormatAndTimingsProfile();
 const defaultInitialLayoutProfile = createDefaultScoreboardLayoutProfile();
 
-const getInitialState = (): GameState => {
+export const getInitialState = (): GameState => {
   return {
     config: {
       ...defaultSettings.formatAndTimings,
@@ -175,6 +175,7 @@ const getInitialState = (): GameState => {
       rosterPresentationMinPhotoPercentage: 0.5,
       rosterPresentationShowIfOnlyOneTeam: true,
       tickIntervalMs: 200,
+      flashingZeroDurationMs: FLASHING_ZERO_DURATION_MS,
       scoreboardLayout: INITIAL_LAYOUT_SETTINGS,
       scoreboardLayoutProfiles: [defaultInitialLayoutProfile],
       selectedScoreboardLayoutProfileId: defaultInitialLayoutProfile.id,
@@ -213,7 +214,7 @@ const GameStateContext = createContext<GameStateContextType | undefined>(undefin
 
 
 
-const gameReducer = (state: GameState, action: GameAction): GameState => {
+export const gameReducer = (state: GameState, action: GameAction): GameState => {
   let newState: GameState = { ...state };
   let newTimestamp = Date.now();
   let toastMessage: GameState['_lastToastMessage'] = null;
@@ -1068,7 +1069,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
               currentTime: 0,
               isClockRunning: false,
               isFlashingZero: true,
-              flashingZeroEndTime: now + FLASHING_ZERO_DURATION_MS,
+              flashingZeroEndTime: now + (state.config.flashingZeroDurationMs ?? FLASHING_ZERO_DURATION_MS),
               clockStartTimeMs: null,
               remainingTimeAtStartCs: null,
             },
@@ -1450,6 +1451,18 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'UPDATE_CONFIG_FIELDS': {
+      // Block tournament switch during an active game or pending summary generation
+      if ('selectedTournamentId' in action.payload) {
+        const hasActiveGame = !!state.live?.matchId || !!state._pendingSummaryGeneration;
+        if (hasActiveGame && action.payload.selectedTournamentId !== state.config.selectedTournamentId) {
+          console.warn('[GameState] Blocked tournament switch via UPDATE_CONFIG_FIELDS: game in progress');
+          // Strip selectedTournamentId from payload, apply the rest if any
+          const { selectedTournamentId: _, ...rest } = action.payload;
+          if (Object.keys(rest).length === 0) break;
+          newState = { ...state, config: { ...state.config, ...rest } };
+          break;
+        }
+      }
       newState = {
         ...state,
         config: {
@@ -1598,6 +1611,12 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       break;
     }
     case 'SET_ACTIVE_TOURNAMENT': {
+      // Block tournament switch during an active game or pending summary generation
+      const hasActiveGame = !!state.live?.matchId || !!state._pendingSummaryGeneration;
+      if (hasActiveGame && action.payload.tournamentId !== state.config.selectedTournamentId) {
+        console.warn('[GameState] Blocked tournament switch: game in progress');
+        break;
+      }
       // Use activeTournament for categories if it matches, otherwise reset category
       const activeCategories = state.config.activeTournament?.id === action.payload.tournamentId
         ? state.config.activeTournament.categories

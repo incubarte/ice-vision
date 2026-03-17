@@ -378,6 +378,7 @@ export interface ConfigFields { // Interface for easier picking of fields
   scoreboardLayoutProfiles: ScoreboardLayoutProfile[];
   enableDebugMode: boolean;
   tickIntervalMs: number;
+  flashingZeroDurationMs: number;
   tunnel: TunnelState;
   replays: ReplaySettings;
   showStandingsInWarmup: boolean;

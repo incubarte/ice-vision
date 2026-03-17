@@ -1,0 +1,27 @@
+{
+  "categories": [
+    { "id": "test-cat-1", "name": "Test Category" }
+  ],
+  "teams": [
+    {
+      "id": "test-team-home",
+      "name": "Test Home",
+      "category": "test-cat-1",
+      "players": [
+        { "id": "player-h1", "number": "10", "name": "HOME PLAYER ONE", "type": "player" },
+        { "id": "player-h2", "number": "20", "name": "HOME PLAYER TWO", "type": "player" },
+        { "id": "player-h3", "number": "1", "name": "HOME GOALKEEPER", "type": "goalkeeper" }
+      ]
+    },
+    {
+      "id": "test-team-away",
+      "name": "Test Away",
+      "category": "test-cat-1",
+      "players": [
+        { "id": "player-a1", "number": "11", "name": "AWAY PLAYER ONE", "type": "player" },
+        { "id": "player-a2", "number": "21", "name": "AWAY PLAYER TWO", "type": "player" },
+        { "id": "player-a3", "number": "1", "name": "AWAY GOALKEEPER", "type": "goalkeeper" }
+      ]
+    }
+  ]
+}

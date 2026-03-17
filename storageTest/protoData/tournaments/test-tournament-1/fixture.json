@@ -1,0 +1,14 @@
+{
+  "matches": [
+    {
+      "id": "test-match-1",
+      "date": "2026-03-16",
+      "time": "10:00",
+      "homeTeamId": "test-team-home",
+      "awayTeamId": "test-team-away",
+      "categoryId": "test-cat-1",
+      "phase": "clasificacion",
+      "playoffType": null
+    }
+  ]
+}
