@@ -13,12 +13,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'matchId is required' }, { status: 400 });
     }
 
-    // Read config to get selectedTournamentId
+    // Read live state to get tournamentId from matchContext
     const config = await readConfig();
-    const tournamentId = config.selectedTournamentId;
+    const liveState = await readLiveState();
 
+    const tournamentId = liveState.matchContext?.tournamentId;
     if (!tournamentId) {
-      return NextResponse.json({ success: false, error: 'No tournament selected' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'No tournament found in matchContext' }, { status: 400 });
     }
 
     // Read the full tournament data (needed for team rosters)
@@ -36,11 +37,8 @@ export async function POST(request: NextRequest) {
       }]
     };
 
-    // Read current live state and shots metrics
-    const [liveState, shotsMetrics] = await Promise.all([
-      readLiveState(),
-      readShotsMetrics()
-    ]);
+    // Read shots metrics (live state already read above)
+    const shotsMetrics = await readShotsMetrics();
 
     // Merge shots metrics into live state for summary generation
     const mergedLiveState = {

@@ -168,14 +168,15 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
     if (!live || !config) return null;
 
     // If voice events not provided and we're on server, try to read them from file
-    if (!voiceEvents && live.matchId && config.selectedTournamentId && typeof window === 'undefined') {
+    const matchContextTournamentId = live.matchContext?.tournamentId;
+    if (!voiceEvents && live.matchId && matchContextTournamentId && typeof window === 'undefined') {
         try {
             const fs = require('fs');
             const path = require('path');
             const voiceEventsPath = path.join(
                 process.cwd(),
                 'tmp', 'new-storage', 'data', 'tournaments',
-                config.selectedTournamentId,
+                matchContextTournamentId,
                 'voice-events',
                 `${live.matchId}.json`
             );
@@ -189,16 +190,11 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
         }
     }
 
-    // Prefer matchContext roster (snapshot at game setup), fall back to activeTournament
+    // Use matchContext roster (snapshot at game setup)
     const matchContext = live.matchContext;
-    const currentTournament = config.activeTournament;
 
-    const homeTeamRoster = matchContext?.homeRoster
-        || currentTournament?.teams.find(t => t.name === live.homeTeamName && (t.subName || undefined) === (live.homeTeamSubName || undefined) && t.category === config.selectedMatchCategory)?.players
-        || [];
-    const awayTeamRoster = matchContext?.awayRoster
-        || currentTournament?.teams.find(t => t.name === live.awayTeamName && (t.subName || undefined) === (live.awayTeamSubName || undefined) && t.category === config.selectedMatchCategory)?.players
-        || [];
+    const homeTeamRoster = matchContext?.homeRoster || [];
+    const awayTeamRoster = matchContext?.awayRoster || [];
 
     console.log('[DEBUG Summary] Roster sources:', {
         usingMatchContext: !!matchContext,
@@ -349,7 +345,7 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
     }
 
     // Include staff assignment in summary
-    const staffSource = matchContext?.staff || currentTournament?.staff;
+    const staffSource = matchContext?.staff;
     if (live.assignedStaff && staffSource) {
         const mesaStaffInfo = live.assignedStaff.mesa
             .map((id, index) => {
