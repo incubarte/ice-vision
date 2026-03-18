@@ -252,8 +252,8 @@ function SetupPageContent() {
             dispatch({ type: 'SET_AWAY_TEAM_NAME', payload: awayName });
             dispatch({ type: 'SET_HOME_TEAM_SUB_NAME', payload: undefined });
             dispatch({ type: 'SET_AWAY_TEAM_SUB_NAME', payload: undefined });
-            dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'home', playerNumbers: [] }});
-            dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'away', playerNumbers: [] }});
+            dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'home', playerNames: [] }});
+            dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'away', playerNames: [] }});
         } else {
             const homeTeam = teamsInCategory.find(t => t.id === homeTeamId);
             const awayTeam = teamsInCategory.find(t => t.id === awayTeamId);
@@ -268,9 +268,9 @@ function SetupPageContent() {
             dispatch({ type: 'SET_HOME_TEAM_SUB_NAME', payload: homeTeam.subName });
             dispatch({ type: 'SET_AWAY_TEAM_NAME', payload: awayTeam.name });
             dispatch({ type: 'SET_AWAY_TEAM_SUB_NAME', payload: awayTeam.subName });
-            // Initialize attendance with all roster players marked as not present (empty playerNumbers array)
-            dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'home', playerNumbers: [] }});
-            dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'away', playerNumbers: [] }});
+            // Initialize attendance with all roster players marked as not present (empty playerNames array)
+            dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'home', playerNames: [] }});
+            dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team: 'away', playerNames: [] }});
             
             if (pendingMatchConfig) {
               matchIdToSet = pendingMatchConfig.matchId;

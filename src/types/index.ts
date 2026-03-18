@@ -802,8 +802,8 @@ export type GameAction =
   | { type: 'ADD_PLAYER_TO_TEAM'; payload: { teamId: string; player: Omit<PlayerData, 'id'> & { id?: string } } }
   | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName'>> } }
   | { type: 'REMOVE_PLAYER_FROM_TEAM'; payload: { teamId: string; playerId: string } }
-  | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerNumbers: string[] } }
-  | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerNumber: string; updates: Partial<Pick<AttendedPlayerInfo, 'name' | 'number'>> } }
+  | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerNames: string[] } }
+  | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerName: string; updates: Partial<Pick<AttendedPlayerInfo, 'name' | 'number'>> } }
   | { type: 'ADD_STAFF_TO_TOURNAMENT'; payload: { tournamentId: string; staff: Omit<StaffMember, 'id'> & { id?: string } } }
   | { type: 'UPDATE_STAFF_IN_TOURNAMENT'; payload: { tournamentId: string; staffId: string; updates: Partial<Omit<StaffMember, 'id'>> } }
   | { type: 'REMOVE_STAFF_FROM_TOURNAMENT'; payload: { tournamentId: string; staffId: string } }

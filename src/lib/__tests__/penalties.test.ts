@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { gameReducer, getInitialState } from '@/contexts/game-state-context';
-import { setGameReducerRef } from '../game-state-reducer';
+import { gameReducer, getInitialState, setGameReducerRef } from '../game-state-reducer';
 import type { GameState, GameAction, Penalty } from '@/types';
 
 describe('Game Reducer - Penalty Logic', () => {

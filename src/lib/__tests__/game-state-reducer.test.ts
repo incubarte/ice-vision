@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { gameReducer } from '@/contexts/game-state-context';
-import { setGameReducerRef } from '../game-state-reducer';
+import { gameReducer, setGameReducerRef } from '../game-state-reducer';
 import type { GameState, GameAction } from '@/types';
 import defaultSettings from '@/config/defaults.json';
 

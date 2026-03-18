@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { gameReducer, getInitialState } from '@/contexts/game-state-context';
-import { setGameReducerRef } from '../game-state-reducer';
+import { gameReducer, getInitialState, setGameReducerRef } from '../game-state-reducer';
 import type { GameState, GameAction } from '@/types';
 
 /**
@@ -790,13 +789,13 @@ describe('Game Reducer - Attendance & Goalkeepers', () => {
 
       const result = gameReducer(state, {
         type: 'SET_TEAM_ATTENDANCE',
-        payload: { team: 'home', playerNumbers: ['10', '20'] },
+        payload: { team: 'home', playerNames: ['Alice', 'Bob'] },
       });
 
       expect(result.live.attendance.home).toHaveLength(2);
-      expect(result.live.attendance.home.find(p => p.number === '10')?.name).toBe('Alice');
-      expect(result.live.attendance.home.find(p => p.number === '20')?.name).toBe('Bob');
-      expect(result.live.attendance.home.find(p => p.number === '30')).toBeUndefined();
+      expect(result.live.attendance.home.find(p => p.name === 'Alice')?.number).toBe('10');
+      expect(result.live.attendance.home.find(p => p.name === 'Bob')?.number).toBe('20');
+      expect(result.live.attendance.home.find(p => p.name === 'Charlie')).toBeUndefined();
     });
 
     it('should preserve ad-hoc players added during game', () => {
@@ -816,14 +815,14 @@ describe('Game Reducer - Attendance & Goalkeepers', () => {
 
       const result = gameReducer(state, {
         type: 'SET_TEAM_ATTENDANCE',
-        payload: { team: 'home', playerNumbers: ['10', '99'] },
+        payload: { team: 'home', playerNames: ['Alice', 'Ad Hoc Player'] },
       });
 
       expect(result.live.attendance.home).toHaveLength(2);
-      expect(result.live.attendance.home.find(p => p.number === '99')?.name).toBe('Ad Hoc Player');
+      expect(result.live.attendance.home.find(p => p.name === 'Ad Hoc Player')?.number).toBe('99');
     });
 
-    it('should remove players not in playerNumbers', () => {
+    it('should remove players not in playerNames', () => {
       const state = setupGameState();
       state.live.matchContext = {
         tournamentId: 't1',
@@ -840,16 +839,16 @@ describe('Game Reducer - Attendance & Goalkeepers', () => {
 
       const result = gameReducer(state, {
         type: 'SET_TEAM_ATTENDANCE',
-        payload: { team: 'home', playerNumbers: ['10'] },
+        payload: { team: 'home', playerNames: ['Alice'] },
       });
 
       expect(result.live.attendance.home).toHaveLength(1);
-      expect(result.live.attendance.home[0].number).toBe('10');
+      expect(result.live.attendance.home[0].name).toBe('Alice');
     });
   });
 
   describe('UPDATE_ATTENDANCE_PLAYER', () => {
-    it('should update an existing player in attendance', () => {
+    it('should update jersey number by player name', () => {
       const state = setupGameState();
       state.live.attendance.home = [
         { number: '10', name: 'Alice', type: 'player' },
@@ -857,22 +856,7 @@ describe('Game Reducer - Attendance & Goalkeepers', () => {
 
       const result = gameReducer(state, {
         type: 'UPDATE_ATTENDANCE_PLAYER',
-        payload: { team: 'home', playerNumber: '10', updates: { name: 'Alice Smith' } },
-      });
-
-      expect(result.live.attendance.home[0].name).toBe('Alice Smith');
-      expect(result.live.attendance.home[0].number).toBe('10');
-    });
-
-    it('should update jersey number', () => {
-      const state = setupGameState();
-      state.live.attendance.home = [
-        { number: '10', name: 'Alice', type: 'player' },
-      ];
-
-      const result = gameReducer(state, {
-        type: 'UPDATE_ATTENDANCE_PLAYER',
-        payload: { team: 'home', playerNumber: '10', updates: { number: '99' } },
+        payload: { team: 'home', playerName: 'Alice', updates: { number: '99' } },
       });
 
       expect(result.live.attendance.home[0].number).toBe('99');
@@ -892,12 +876,12 @@ describe('Game Reducer - Attendance & Goalkeepers', () => {
 
       const result = gameReducer(state, {
         type: 'UPDATE_ATTENDANCE_PLAYER',
-        payload: { team: 'home', playerNumber: '10', updates: { name: 'Alice Updated' } },
+        payload: { team: 'home', playerName: 'Alice', updates: { number: '99' } },
       });
 
       expect(result.live.attendance.home).toHaveLength(1);
-      expect(result.live.attendance.home[0].name).toBe('Alice Updated');
-      expect(result.live.attendance.home[0].number).toBe('10');
+      expect(result.live.attendance.home[0].number).toBe('99');
+      expect(result.live.attendance.home[0].name).toBe('Alice');
     });
 
     it('should create fallback player if not in roster or attendance', () => {
@@ -906,11 +890,51 @@ describe('Game Reducer - Attendance & Goalkeepers', () => {
 
       const result = gameReducer(state, {
         type: 'UPDATE_ATTENDANCE_PLAYER',
-        payload: { team: 'home', playerNumber: '55', updates: { name: 'Unknown' } },
+        payload: { team: 'home', playerName: 'Unknown', updates: { number: '55' } },
       });
 
       expect(result.live.attendance.home).toHaveLength(1);
+      expect(result.live.attendance.home[0].name).toBe('Unknown');
       expect(result.live.attendance.home[0].number).toBe('55');
+    });
+
+    it('should preserve changed number through SET_TEAM_ATTENDANCE', () => {
+      const state = setupGameState();
+      state.live.matchContext = {
+        tournamentId: 't1',
+        homeRoster: [
+          { id: 'p1', number: '10', name: 'Alice', type: 'player' },
+          { id: 'p2', number: '20', name: 'Bob', type: 'player' },
+        ],
+        awayRoster: [],
+      } as any;
+
+      // Set initial attendance with both players
+      let result = gameReducer(state, {
+        type: 'SET_TEAM_ATTENDANCE',
+        payload: { team: 'home', playerNames: ['Alice', 'Bob'] },
+      });
+
+      expect(result.live.attendance.home).toHaveLength(2);
+
+      // Change Alice's number to 99
+      result = gameReducer(result, {
+        type: 'UPDATE_ATTENDANCE_PLAYER',
+        payload: { team: 'home', playerName: 'Alice', updates: { number: '99' } },
+      });
+
+      expect(result.live.attendance.home.find(a => a.name === 'Alice')?.number).toBe('99');
+
+      // Now toggle attendance again with both players — number change should survive
+      result = gameReducer(result, {
+        type: 'SET_TEAM_ATTENDANCE',
+        payload: { team: 'home', playerNames: ['Alice', 'Bob'] },
+      });
+
+      expect(result.live.attendance.home).toHaveLength(2);
+      const changedPlayer = result.live.attendance.home.find(a => a.name === 'Alice');
+      expect(changedPlayer).toBeDefined();
+      expect(changedPlayer!.number).toBe('99');
     });
   });
 

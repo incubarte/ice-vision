@@ -45,7 +45,7 @@ export function EditTeamPlayersDialog({
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const [editablePlayers, setEditablePlayers] = useState<EditablePlayer[]>([]);
-  const [attendedPlayerNumbers, setAttendedPlayerNumbers] = useState<Set<string>>(new Set());
+  const [attendedPlayerNames, setAttendedPlayerNames] = useState<Set<string>>(new Set());
   const [activeGoalkeeperNumber, setActiveGoalkeeperNumber] = useState<string | null>(null);
 
   // New player creation state
@@ -91,7 +91,7 @@ export function EditTeamPlayersDialog({
     );
 
     const attendedInfo = state.live?.attendance?.[teamType] || [];
-    setAttendedPlayerNumbers(new Set(attendedInfo.map(p => p.number)));
+    setAttendedPlayerNames(new Set(attendedInfo.map(p => p.name)));
 
     const currentActiveGoalkeeperNumber = teamType === 'home'
       ? state.live.homeActiveGoalkeeperNumber
@@ -125,10 +125,10 @@ export function EditTeamPlayersDialog({
       if (addedPlayer) {
         refreshFromGlobalState();
 
-        setAttendedPlayerNumbers(prev => {
-          const newNumbers = new Set(prev);
-          newNumbers.add(addedPlayer.number);
-          return newNumbers;
+        setAttendedPlayerNames(prev => {
+          const newNames = new Set(prev);
+          newNames.add(addedPlayer.name);
+          return newNames;
         });
 
         setJustAddedPlayerId(null);
@@ -165,25 +165,25 @@ export function EditTeamPlayersDialog({
     return duplicates;
   }, [editablePlayers]);
 
-  const handleAttendanceChange = (playerNumber: string, isAttending: boolean) => {
-    setAttendedPlayerNumbers(prevNumbers => {
-      const newNumbers = new Set(prevNumbers);
+  const handleAttendanceChange = (playerName: string, playerNumber: string, isAttending: boolean) => {
+    setAttendedPlayerNames(prevNames => {
+      const newNames = new Set(prevNames);
       if (isAttending) {
-        newNumbers.add(playerNumber);
+        newNames.add(playerName);
       } else {
-        newNumbers.delete(playerNumber);
+        newNames.delete(playerName);
         // If removing the active goalkeeper, clear the selection
         if (playerNumber === activeGoalkeeperNumber) {
           setActiveGoalkeeperNumber(null);
         }
       }
-      return newNumbers;
+      return newNames;
     });
   };
 
-  const handleGoalkeeperClick = (playerNumber: string, playerType: string) => {
+  const handleGoalkeeperClick = (playerName: string, playerNumber: string, playerType: string) => {
     if (playerType !== 'goalkeeper') return;
-    if (!attendedPlayerNumbers.has(playerNumber)) {
+    if (!attendedPlayerNames.has(playerName)) {
       toast({
         title: "No Disponible",
         description: "Primero marca la asistencia del arquero antes de activarlo.",
@@ -347,7 +347,7 @@ export function EditTeamPlayersDialog({
             type: "UPDATE_ATTENDANCE_PLAYER",
             payload: {
               team: teamType,
-              playerNumber: player.number,
+              playerName: player.name,
               updates: { number: newNumber },
             },
           });
@@ -356,13 +356,13 @@ export function EditTeamPlayersDialog({
       }
     });
 
-    const originalAttendedNumbers = new Set((state.live?.attendance?.[teamType] || []).map(p => p.number));
-    const attendanceChanged = !(attendedPlayerNumbers.size === originalAttendedNumbers.size && [...attendedPlayerNumbers].every(num => originalAttendedNumbers.has(num)));
+    const originalAttendedNames = new Set((state.live?.attendance?.[teamType] || []).map(p => p.name));
+    const attendanceChanged = !(attendedPlayerNames.size === originalAttendedNames.size && [...attendedPlayerNames].every(name => originalAttendedNames.has(name)));
 
     if (attendanceChanged) {
       dispatch({
         type: 'SET_TEAM_ATTENDANCE',
-        payload: { team: teamType, playerNumbers: Array.from(attendedPlayerNumbers) }
+        payload: { team: teamType, playerNames: Array.from(attendedPlayerNames) }
       });
     }
 
@@ -428,8 +428,8 @@ export function EditTeamPlayersDialog({
                   </Label>
                   <Checkbox
                     id={`attendance-${player.id}`}
-                    checked={attendedPlayerNumbers.has(player.number)}
-                    onCheckedChange={(checked) => handleAttendanceChange(player.number, !!checked)}
+                    checked={attendedPlayerNames.has(player.name)}
+                    onCheckedChange={(checked) => handleAttendanceChange(player.name, player.number, !!checked)}
                     className="h-5 w-5"
                   />
                 </div>
@@ -437,16 +437,16 @@ export function EditTeamPlayersDialog({
                 <div className="self-stretch border-l border-border/50"></div>
 
                 <div
-                  className={`flex items-center gap-3 flex-1 min-w-0 ${player.type === "goalkeeper" && attendedPlayerNumbers.has(player.number)
+                  className={`flex items-center gap-3 flex-1 min-w-0 ${player.type === "goalkeeper" && attendedPlayerNames.has(player.name)
                     ? 'cursor-pointer'
                     : ''
                     }`}
-                  onClick={() => player.type === "goalkeeper" && handleGoalkeeperClick(player.number, player.type)}
+                  onClick={() => player.type === "goalkeeper" && handleGoalkeeperClick(player.name, player.number, player.type)}
                   title={
                     player.type === "goalkeeper"
                       ? activeGoalkeeperNumber === player.number
                         ? 'Arquero activo (click para desactivar)'
-                        : attendedPlayerNumbers.has(player.number)
+                        : attendedPlayerNames.has(player.name)
                           ? 'Click para activar arquero'
                           : 'Marca asistencia primero'
                       : ''
@@ -456,7 +456,7 @@ export function EditTeamPlayersDialog({
                     <Shield
                       className={`h-5 w-5 shrink-0 transition-colors ${activeGoalkeeperNumber === player.number
                         ? 'text-green-600 fill-green-600'
-                        : attendedPlayerNumbers.has(player.number)
+                        : attendedPlayerNames.has(player.name)
                           ? 'text-muted-foreground hover:text-green-500'
                           : 'text-muted-foreground/30'
                         }`}
@@ -578,7 +578,7 @@ export function EditTeamPlayersDialog({
             </div>
           </div>
         </ScrollArea>
-        {!activeGoalkeeperNumber && editablePlayers.some(p => p.type === 'goalkeeper' && attendedPlayerNumbers.has(p.number)) && (
+        {!activeGoalkeeperNumber && editablePlayers.some(p => p.type === 'goalkeeper' && attendedPlayerNames.has(p.name)) && (
           <div className="px-6 py-3 bg-orange-50 border-t border-orange-200">
             <p className="text-sm text-orange-700">
               ⚠️ No hay arquero activo. Clickeá el escudo del arquero para marcarlo como Activo.
