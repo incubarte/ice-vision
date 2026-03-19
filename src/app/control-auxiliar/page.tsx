@@ -65,6 +65,12 @@ export default function ControlAuxiliarPage() {
 
   // Add shot handler
   const handleAddShot = (playerNumber: string, team: Team) => {
+    const shotRoster = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
+    if (!shotRoster.some(p => p.number === playerNumber)) {
+      toast({ title: "Error", description: `Jugador #${playerNumber} no existe en el plantel.`, variant: "destructive" });
+      return;
+    }
+
     dispatch({
       type: 'ADD_PLAYER_SHOT',
       payload: { team, playerNumber }

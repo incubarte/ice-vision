@@ -407,23 +407,17 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
 
     // Auto-register shots immediately
     if (event && event.action === 'shot' && event.data?.team && event.data?.playerNumber) {
-      console.log('[DEBUG] 🎯 About to dispatch ADD_PLAYER_SHOT:', { team: event.data.team, playerNumber: event.data.playerNumber });
-      dispatch({
-        type: 'ADD_PLAYER_SHOT',
-        payload: {
-          team: event.data.team,
-          playerNumber: event.data.playerNumber
-        }
-      });
-      console.log('[DEBUG] 🎯 Dispatch completed');
-
-      // Verify state after dispatch (will show in next render)
-      setTimeout(() => {
-        console.log('[DEBUG] 🎯 Current shotsLog after dispatch:', {
-          home: state.live.shotsLog.home.length,
-          away: state.live.shotsLog.away.length
+      const shotTeam = event.data.team;
+      const shotNumber = event.data.playerNumber;
+      const shotRoster = state.live.matchContext ? (shotTeam === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
+      if (!shotRoster.some(p => p.number === shotNumber)) {
+        console.warn(`[Voice] Player #${shotNumber} not found in ${shotTeam} roster. Ignoring shot.`);
+      } else {
+        dispatch({
+          type: 'ADD_PLAYER_SHOT',
+          payload: { team: shotTeam, playerNumber: shotNumber }
         });
-      }, 100);
+      }
     }
   };
 
@@ -436,6 +430,10 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
   };
 
   const handlePlayerClick = (team: Team, playerNumber: string) => {
+    // Validate player exists in roster
+    const clickRoster = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
+    if (!clickRoster.some(p => p.number === playerNumber)) return;
+
     // Register a shot for this player
     dispatch({ type: 'ADD_PLAYER_SHOT', payload: { team, playerNumber } });
 

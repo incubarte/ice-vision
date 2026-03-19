@@ -2,35 +2,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useGameState, formatTime, getActualPeriodText, getPeriodText, centisecondsToDisplayMinutes, getCategoryNameById } from '@/contexts/game-state-context';
-import type { Team, PlayerData, TeamData } from '@/types';
+import { useGameState, formatTime, getActualPeriodText, getPeriodText, centisecondsToDisplayMinutes } from '@/contexts/game-state-context';
+import type { Team } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Minus, Play, Pause, ChevronLeft, ChevronRight, ChevronsRight, User, ListFilter, Search, ChevronsUpDown, Check, TimerOff } from 'lucide-react';
+import { Plus, Minus, Play, Pause, ChevronLeft, ChevronRight, ChevronsRight, User, TimerOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import {
   Tooltip,
   TooltipContent,
@@ -75,10 +55,6 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
   const [localAwayTeamSubName, setLocalAwayTeamSubName] = useState(state.live.awayTeamSubName);
 
 
-  const [isHomeTeamSearchOpen, setIsHomeTeamSearchOpen] = useState(false);
-  const [isAwayTeamSearchOpen, setIsAwayTeamSearchOpen] = useState(false);
-  const [homeTeamSearchTerm, setHomeTeamSearchTerm] = useState('');
-  const [awayTeamSearchTerm, setAwayTeamSearchTerm] = useState('');
 
   const [isTimeoutConfirmOpen, setIsTimeoutConfirmOpen] = useState(false);
 
@@ -148,7 +124,7 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
       dispatch({ type: 'TOGGLE_CLOCK' });
     };
 
-    if (!state.live.clock.isClockRunning && isFirstGameAction && hasDefaultTeamNames && state.config.enableTeamSelectionInMiniScoreboard) {
+    if (!state.live.clock.isClockRunning && isFirstGameAction && hasDefaultTeamNames) {
       checkAndConfirm(
         true,
         "Nombres de Equipo por Defecto",
@@ -496,55 +472,6 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
   const playersOnIceForAway = Math.max(0, state.config.playersPerTeamOnIce - activeAwayPenaltiesCount);
 
 
-  const handleMatchCategoryChange = (categoryId: string) => {
-    dispatch({ type: 'SET_SELECTED_MATCH_CATEGORY', payload: categoryId });
-    toast({ title: "Categoría del Partido Actualizada" });
-  };
-
-  const filteredTeamsForSearch = (searchTerm: string) => {
-    const selectedTournament = state.config.activeTournament;
-    if (!selectedTournament || !selectedTournament.teams) return [];
-
-    return selectedTournament.teams.filter(team =>
-      team.category === state.config.selectedMatchCategory &&
-      (
-        team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (team.subName && team.subName.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
-    ).sort((a, b) => a.name.localeCompare(b.name));
-  };
-
-  const filteredHomeTeams = useMemo(() => filteredTeamsForSearch(homeTeamSearchTerm), [homeTeamSearchTerm, state.config.tournaments, state.config.selectedTournamentId, state.config.selectedMatchCategory]);
-  const filteredAwayTeams = useMemo(() => filteredTeamsForSearch(awayTeamSearchTerm), [awayTeamSearchTerm, state.config.tournaments, state.config.selectedTournamentId, state.config.selectedMatchCategory]);
-
-  const handleSelectTeam = (teamType: 'home' | 'away', teamData: TeamData) => {
-    if (teamType === 'home') {
-      dispatch({ type: 'SET_HOME_TEAM_NAME', payload: teamData.name });
-      dispatch({ type: 'SET_HOME_TEAM_SUB_NAME', payload: teamData.subName });
-      setIsHomeTeamSearchOpen(false);
-      setHomeTeamSearchTerm('');
-    } else {
-      dispatch({ type: 'SET_AWAY_TEAM_NAME', payload: teamData.name });
-      dispatch({ type: 'SET_AWAY_TEAM_SUB_NAME', payload: teamData.subName });
-      setIsAwayTeamSearchOpen(false);
-      setAwayTeamSearchTerm('');
-    }
-    toast({ title: `Equipo ${teamType === 'home' ? 'Local' : 'Visitante'} Establecido`, description: `Equipo seleccionado: ${teamData.name}${teamData.subName ? ` - ${teamData.subName}` : ''}` });
-  };
-
-  const matchedHomeTeamId = useMemo(() => {
-    if (!state.config.enableTeamSelectionInMiniScoreboard) return null;
-    return state.live.matchContext?.homeTeamId || null;
-  }, [state.live.matchContext, state.config.enableTeamSelectionInMiniScoreboard]);
-
-  const matchedAwayTeamId = useMemo(() => {
-    if (!state.config.enableTeamSelectionInMiniScoreboard) return null;
-    return state.live.matchContext?.awayTeamId || null;
-  }, [state.live.matchContext, state.config.enableTeamSelectionInMiniScoreboard]);
-
-  const showHomeSearchIcon = state.config.enableTeamSelectionInMiniScoreboard && state.config.tournaments.length > 0 && !isMatchFromFixture;
-  const showAwaySearchIcon = state.config.enableTeamSelectionInMiniScoreboard && state.config.tournaments.length > 0 && !isMatchFromFixture;
-
 
   const handleTeamNameInputBlur = (teamType: 'home' | 'away', currentLocalName: string) => {
     if (teamType === 'home') {
@@ -604,36 +531,11 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
   const isPreWarmup = state.live.clock.periodDisplayOverride === 'Pre Warm-up';
   const showClock = !isShootout && !isFinalState && !isPreWarmup;
 
-  const selectedTournament = state.config.activeTournament;
-  const availableCategories = selectedTournament?.categories || [];
-
 
   return (
     <div className="relative">
       <div className="absolute top-0 left-0 p-2 sm:p-3 md:p-4 z-20">
         <div className="flex items-center gap-2">
-          {availableCategories.length > 0 ? (
-            <Select value={state.config.selectedMatchCategory} onValueChange={handleMatchCategoryChange} disabled={isMatchFromFixture}>
-              <SelectTrigger className="w-auto min-w-[120px] max-w-[200px] h-8 text-xs bg-card/80 border-border/50 backdrop-blur-sm">
-                <div className="flex items-center gap-1.5 truncate">
-                  <ListFilter className="h-3.5 w-3.5 text-muted-foreground" />
-                  <SelectValue placeholder="Categoría" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {availableCategories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="flex items-center gap-1.5 h-8 px-3 text-xs bg-card/80 border-border/50 rounded-md text-muted-foreground">
-              <ListFilter className="h-3.5 w-3.5" />
-              <span>Sin categorías</span>
-            </div>
-          )}
           {state.config.enableDebugMode && (
             <TooltipProvider delayDuration={100}>
               <Tooltip>
@@ -689,55 +591,19 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
               )}
             </div>
             <div className="relative w-full max-w-xs mx-auto my-1">
-              <div className="flex items-center justify-center">
-                {showHomeSearchIcon && (
-                  <Button variant="ghost" size="icon" className={cn("h-7 w-7 shrink-0", isMatchFromFixture && "opacity-50 cursor-not-allowed")} asChild>
-                    <Popover open={isHomeTeamSearchOpen} onOpenChange={setIsHomeTeamSearchOpen}>
-                      <PopoverTrigger asChild>
-                        <button disabled={isMatchFromFixture} aria-label="Buscar equipo local">
-                          <Search className="h-4 w-4 text-muted-foreground" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[240px] p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar equipo..." value={homeTeamSearchTerm} onValueChange={setHomeTeamSearchTerm} />
-                          <CommandList>
-                            <CommandEmpty>No se encontraron equipos.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredHomeTeams.map((team) => (
-                                <CommandItem
-                                  key={team.id}
-                                  value={`${team.name}${team.subName ? ` - ${team.subName}` : ''}`}
-                                  onSelect={() => handleSelectTeam('home', team)}
-                                >
-                                  <Check className={cn("mr-2 h-4 w-4", localHomeTeamName === team.name && (localHomeTeamSubName || undefined) === (team.subName || undefined) ? "opacity-100" : "opacity-0")} />
-                                  <span className="truncate">{team.name}{team.subName ? <span className="text-xs text-muted-foreground"> - {team.subName}</span> : ''}</span>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </Button>
-                )}
-                <Input
-                  id="homeTeamNameInput"
-                  value={localHomeTeamName}
-                  onChange={(e) => setLocalHomeTeamName(e.target.value)}
-                  onBlur={() => handleTeamNameInputBlur('home', localHomeTeamName)}
-                  onKeyDown={(e) => handleTeamNameInputKeyDown('home', localHomeTeamName, e)}
-                  placeholder="Nombre Local"
-                  className={cn(
-                    "h-8 text-sm uppercase w-auto text-center",
-                    showHomeSearchIcon && "ml-1"
-                  )}
-                  aria-label="Nombre del equipo local"
-                  autoComplete="off"
-                  disabled={isMatchFromFixture}
-                />
-              </div>
-              {matchedHomeTeamId && localHomeTeamSubName && (
+              <Input
+                id="homeTeamNameInput"
+                value={localHomeTeamName}
+                onChange={(e) => setLocalHomeTeamName(e.target.value)}
+                onBlur={() => handleTeamNameInputBlur('home', localHomeTeamName)}
+                onKeyDown={(e) => handleTeamNameInputKeyDown('home', localHomeTeamName, e)}
+                placeholder="Nombre Local"
+                className="h-8 text-sm uppercase w-auto text-center"
+                aria-label="Nombre del equipo local"
+                autoComplete="off"
+                disabled={isMatchFromFixture}
+              />
+              {localHomeTeamSubName && (
                 <p className="text-xs text-muted-foreground text-center mt-0.5 truncate">
                   ({localHomeTeamSubName})
                 </p>
@@ -956,55 +822,19 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
               )}
             </div>
             <div className="relative w-full max-w-xs mx-auto my-1">
-              <div className="flex items-center justify-center">
-                {showAwaySearchIcon && (
-                  <Button variant="ghost" size="icon" className={cn("h-7 w-7 shrink-0", isMatchFromFixture && "opacity-50 cursor-not-allowed")} asChild>
-                    <Popover open={isAwayTeamSearchOpen} onOpenChange={setIsAwayTeamSearchOpen}>
-                      <PopoverTrigger asChild>
-                        <button disabled={isMatchFromFixture} aria-label="Buscar equipo visitante">
-                          <Search className="h-4 w-4 text-muted-foreground" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[240px] p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar equipo..." value={awayTeamSearchTerm} onValueChange={setAwayTeamSearchTerm} />
-                          <CommandList>
-                            <CommandEmpty>No se encontraron equipos.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredAwayTeams.map((team) => (
-                                <CommandItem
-                                  key={team.id}
-                                  value={`${team.name}${team.subName ? ` - ${team.subName}` : ''}`}
-                                  onSelect={() => handleSelectTeam('away', team)}
-                                >
-                                  <Check className={cn("mr-2 h-4 w-4", localAwayTeamName === team.name && (localAwayTeamSubName || undefined) === (team.subName || undefined) ? "opacity-100" : "opacity-0")} />
-                                  <span className="truncate">{team.name}{team.subName ? <span className="text-xs text-muted-foreground"> - {team.subName}</span> : ''}</span>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </Button>
-                )}
-                <Input
-                  id="awayTeamNameInput"
-                  value={localAwayTeamName}
-                  onChange={(e) => setLocalAwayTeamName(e.target.value)}
-                  onBlur={() => handleTeamNameInputBlur('away', localAwayTeamName)}
-                  onKeyDown={(e) => handleTeamNameInputKeyDown('away', localAwayTeamName, e)}
-                  placeholder="Nombre Visitante"
-                  className={cn(
-                    "h-8 text-sm uppercase w-auto text-center",
-                    showAwaySearchIcon && "ml-1"
-                  )}
-                  aria-label="Nombre del equipo visitante"
-                  autoComplete="off"
-                  disabled={isMatchFromFixture}
-                />
-              </div>
-              {matchedAwayTeamId && localAwayTeamSubName && (
+              <Input
+                id="awayTeamNameInput"
+                value={localAwayTeamName}
+                onChange={(e) => setLocalAwayTeamName(e.target.value)}
+                onBlur={() => handleTeamNameInputBlur('away', localAwayTeamName)}
+                onKeyDown={(e) => handleTeamNameInputKeyDown('away', localAwayTeamName, e)}
+                placeholder="Nombre Visitante"
+                className="h-8 text-sm uppercase w-auto text-center"
+                aria-label="Nombre del equipo visitante"
+                autoComplete="off"
+                disabled={isMatchFromFixture}
+              />
+              {localAwayTeamSubName && (
                 <p className="text-xs text-muted-foreground text-center mt-0.5 truncate">
                   ({localAwayTeamSubName})
                 </p>

@@ -38,6 +38,7 @@ const ShooterSelector = ({
   keyProp: number;
 }) => {
   const { state } = useGameState();
+  const { toast } = useToast();
   const [playerNumber, setPlayerNumber] = useState("");
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -86,13 +87,11 @@ const ShooterSelector = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const trimmedSearch = playerSearchTerm.trim().toUpperCase();
       if (filteredPlayers.length > 0) {
         handleSelectPlayer(filteredPlayers[0]);
-      } else if (trimmedSearch && /^\d+$/.test(trimmedSearch)) {
-        handleManualInput(trimmedSearch);
+      } else {
+        toast({ title: "Error", description: "El jugador no existe en el plantel.", variant: "destructive" });
       }
-      setIsPopoverOpen(false);
     }
   };
 
@@ -140,13 +139,10 @@ const ShooterSelector = ({
           <CommandList>
             <CommandEmpty>
                 No se encontró jugador.
-                {playerSearchTerm.trim() && /^\d+$/.test(playerSearchTerm.trim()) && (
-                    <p className="text-xs text-muted-foreground p-2">Enter para usar: #{playerSearchTerm.trim().toUpperCase()}</p>
-                )}
             </CommandEmpty>
             <CommandGroup>
               {filteredPlayers.map((player) => (
-                <CommandItem key={player.id} value={`${player.number} ${player.name}`} onSelect={() => handleSelectPlayer(player)}>
+                <CommandItem key={player.number} value={`${player.number} ${player.name}`} onSelect={() => handleSelectPlayer(player)}>
                   <Check className={cn("mr-2 h-4 w-4", playerNumber === player.number ? "opacity-100" : "opacity-0")} />
                   <span className="font-semibold mr-2">#{player.number}</span>
                   <span className="text-muted-foreground truncate">{player.name}</span>
@@ -253,6 +249,14 @@ export const ShootoutControl = () => {
         const selection = team === 'home' ? homeSelection : awaySelection;
         if (!selection.number.trim()) {
             toast({ title: "Número de jugador requerido", description: `Por favor, ingresa el número del jugador para el equipo ${team === 'home' ? homeTeamName : awayTeamName}.`, variant: "destructive" });
+            return;
+        }
+
+        // Validate player exists in roster
+        const mc = state.live.matchContext;
+        const shootoutRoster = mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+        if (!shootoutRoster.some(p => p.number === selection.number.trim())) {
+            toast({ title: "Error", description: `El jugador #${selection.number.trim()} no existe en el plantel.`, variant: "destructive" });
             return;
         }
 

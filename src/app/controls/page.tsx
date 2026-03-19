@@ -11,7 +11,7 @@ import { ShootoutControl } from '@/components/controls/shootout-control';
 import { PenaltyNotifications } from '@/components/scoreboard/penalty-notifications';
 import { useGameState, getCategoryNameById, getActualPeriodText, formatTime } from '@/contexts/game-state-context';
 import type { Team, GoalLog, PenaltyLog, GameState } from '@/types';
-import type { PlayerData, RemoteCommand, AccessRequest, TunnelState, MatchData } from '@/types';
+import type { PlayerData, RemoteCommand, AccessRequest, TunnelState } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -214,26 +214,24 @@ const EditableGoalRow = ({ goal, onCancel, onSave }: { goal: GoalLog; onCancel: 
   while (positives.length < 5) positives.push('');
   while (negatives.length < 5) negatives.push('');
 
-  // Get team data
+  // Get team data from matchContext roster
   const teamData = useMemo(() => {
-    if (!state.config || !state.live) return null;
-    const tournament = state.config.activeTournament;
-    if (!tournament || tournament.id !== state.config.selectedTournamentId || !tournament.teams) return null;
-
+    const mc = state.live?.matchContext;
+    if (!mc) return null;
+    const roster = goal.team === 'home' ? mc.homeRoster : mc.awayRoster;
+    const teamId = goal.team === 'home' ? mc.homeTeamId : mc.awayTeamId;
     const teamName = goal.team === 'home' ? state.live.homeTeamName : state.live.awayTeamName;
-    const teamSubName = goal.team === 'home' ? state.live.homeTeamSubName : state.live.awayTeamSubName;
-    return tournament.teams.find((t: any) => t.name === teamName && (t.subName || undefined) === (teamSubName || undefined) && t.category === state.config.selectedMatchCategory);
-  }, [goal.team, state.live, state.config]);
+    return { id: teamId, name: teamName, players: roster, category: mc.categoryId };
+  }, [goal.team, state.live?.matchContext, state.live?.homeTeamName, state.live?.awayTeamName]);
 
   const opposingTeamData = useMemo(() => {
-    if (!state.config || !state.live) return null;
-    const tournament = state.config.activeTournament;
-    if (!tournament || tournament.id !== state.config.selectedTournamentId || !tournament.teams) return null;
-
-    const opposingTeamName = goal.team === 'home' ? state.live.awayTeamName : state.live.homeTeamName;
-    const opposingTeamSubName = goal.team === 'home' ? state.live.awayTeamSubName : state.live.homeTeamSubName;
-    return tournament.teams.find((t: any) => t.name === opposingTeamName && (t.subName || undefined) === (opposingTeamSubName || undefined) && t.category === state.config.selectedMatchCategory);
-  }, [goal.team, state.live, state.config]);
+    const mc = state.live?.matchContext;
+    if (!mc) return null;
+    const roster = goal.team === 'home' ? mc.awayRoster : mc.homeRoster;
+    const teamId = goal.team === 'home' ? mc.awayTeamId : mc.homeTeamId;
+    const teamName = goal.team === 'home' ? state.live.awayTeamName : state.live.homeTeamName;
+    return { id: teamId, name: teamName, players: roster, category: mc.categoryId };
+  }, [goal.team, state.live?.matchContext, state.live?.homeTeamName, state.live?.awayTeamName]);
 
   // Get selected players
   const selectedPlayer = useMemo(() =>
@@ -902,30 +900,40 @@ export default function ControlsPage() {
         if (command.type === 'ADD_GOAL') {
           const { team, scorerNumber, assistNumber } = command.payload;
 
-          const selectedTournament = currentConfig.activeTournament?.id === currentConfig.selectedTournamentId ? currentConfig.activeTournament : null;
-          const teamData = selectedTournament?.teams.find((t: any) => t.name === currentLive[`${team}TeamName`] && (t.subName || undefined) === (currentLive[`${team}TeamSubName`] || undefined) && t.category === currentConfig.selectedMatchCategory);
-          const scorerPlayer = teamData?.players.find(p => p.number === scorerNumber);
-          const assistPlayer = assistNumber ? teamData?.players.find(p => p.number === assistNumber) : undefined;
+          const mc = currentLive.matchContext;
+          const roster = mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
 
-          const goalPayload: Omit<GoalLog, 'id'> = {
-            team,
-            timestamp: Date.now(),
-            gameTime: currentLive.clock.currentTime,
-            periodText: getActualPeriodText(currentLive.clock.currentPeriod, currentLive.clock.periodDisplayOverride, currentConfig.numberOfRegularPeriods, currentLive.shootout),
-            scorer: {
-              playerNumber: scorerNumber,
-            },
-            assist: assistNumber ? {
-              playerNumber: assistNumber,
-            } : undefined,
-          };
+          // Validate players exist in roster
+          const invalidNumbers = [scorerNumber, assistNumber].filter(n => n && !roster.some(p => p.number === n));
+          if (invalidNumbers.length > 0) {
+            toast({ title: "Error (Remoto)", description: `Jugador(es) #${invalidNumbers.join(', #')} no existe(n) en el plantel.`, variant: "destructive" });
+          } else {
+            const goalPayload: Omit<GoalLog, 'id'> = {
+              team,
+              timestamp: Date.now(),
+              gameTime: currentLive.clock.currentTime,
+              periodText: getActualPeriodText(currentLive.clock.currentPeriod, currentLive.clock.periodDisplayOverride, currentConfig.numberOfRegularPeriods, currentLive.shootout),
+              scorer: {
+                playerNumber: scorerNumber,
+              },
+              assist: assistNumber ? {
+                playerNumber: assistNumber,
+              } : undefined,
+            };
 
-          dispatch({ type: 'ADD_GOAL', payload: goalPayload });
-          toast({ title: "Gol Añadido (Remoto)", description: `Gol para ${team === 'home' ? currentLive.homeTeamName : currentLive.awayTeamName} #${scorerNumber} registrado.` });
+            dispatch({ type: 'ADD_GOAL', payload: goalPayload });
+            toast({ title: "Gol Añadido (Remoto)", description: `Gol para ${team === 'home' ? currentLive.homeTeamName : currentLive.awayTeamName} #${scorerNumber} registrado.` });
+          }
         } else if (command.type === 'ADD_PENALTY') {
           const { team, playerNumber, penaltyTypeId } = command.payload;
+          const mc = currentLive.matchContext;
+          const penaltyRoster = mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
           const penaltyDef = currentConfig.penaltyTypes.find(p => p.id === penaltyTypeId);
-          if (penaltyDef) {
+          if (!penaltyDef) {
+            // skip
+          } else if (!penaltyDef.isBenchPenalty && !penaltyRoster.some(p => p.number === playerNumber)) {
+            toast({ title: "Error (Remoto)", description: `Jugador #${playerNumber} no existe en el plantel.`, variant: "destructive" });
+          } else {
             dispatch({
               type: 'ADD_PENALTY',
               payload: {
@@ -937,12 +945,18 @@ export default function ControlsPage() {
           }
         } else if (command.type === 'ADD_SHOT') {
           const { team, playerNumber } = command.payload;
-          dispatch({ type: 'ADD_PLAYER_SHOT', payload: { team, playerNumber } });
-          toast({
-            title: "Tiro Registrado (Remoto)",
-            description: `Tiro para el jugador #${playerNumber} del equipo ${team === 'home' ? currentLive.homeTeamName : currentLive.awayTeamName}.`,
-            duration: 1500,
-          });
+          const mc = currentLive.matchContext;
+          const shotRoster = mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+          if (!shotRoster.some(p => p.number === playerNumber)) {
+            toast({ title: "Error (Remoto)", description: `Jugador #${playerNumber} no existe en el plantel.`, variant: "destructive" });
+          } else {
+            dispatch({ type: 'ADD_PLAYER_SHOT', payload: { team, playerNumber } });
+            toast({
+              title: "Tiro Registrado (Remoto)",
+              description: `Tiro para el jugador #${playerNumber} del equipo ${team === 'home' ? currentLive.homeTeamName : currentLive.awayTeamName}.`,
+              duration: 1500,
+            });
+          }
         } else if (command.type === 'ACTIVATE_PENDING_PUCK_PENALTIES') {
           dispatch({ type: 'ACTIVATE_PENDING_PUCK_PENALTIES' });
           toast({ title: "Puck en Juego (Remoto)", description: "Se activaron las penalidades pendientes." });
@@ -1197,14 +1211,7 @@ export default function ControlsPage() {
   };
 
 
-  const finishedFixtureMatch = useMemo(() => {
-    if (state.live.clock.periodDisplayOverride !== 'End of Game' || !state.live.matchId) {
-      return null;
-    }
-    const tournament = state.config.activeTournament;
-    if (!tournament || tournament.id !== state.config.selectedTournamentId || !tournament.matches) return null;
-    return tournament.matches.find((m: MatchData) => m.id === state.live.matchId);
-  }, [state.live.clock.periodDisplayOverride, state.live.matchId, state.config.activeTournament, state.config.selectedTournamentId]);
+  const isFinishedFixtureMatch = state.live.clock.periodDisplayOverride === 'End of Game' && !!state.live.matchId && !!state.live.matchContext?.tournamentId;
 
 
   if (authStatus === 'loading' || isGameStateLoading || !state.live || !state.config || !state.live.penalties) {
@@ -1279,12 +1286,11 @@ export default function ControlsPage() {
       <PenaltyNotifications />
 
 
-      {finishedFixtureMatch && (
+      {isFinishedFixtureMatch && (
         <div className="my-4 flex justify-center">
           <Button
             onClick={() => {
-              const matchDate = formatDate(new Date(finishedFixtureMatch.date), 'yyyy-MM-dd');
-              router.push(`/tournaments/${state.config.selectedTournamentId}?tab=fixture&view=list&date=${matchDate}`);
+              router.push(`/tournaments/${state.live.matchContext!.tournamentId}?tab=fixture&view=list&matchId=${state.live.matchId}`);
             }}
             size="lg"
           >

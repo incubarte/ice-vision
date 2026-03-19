@@ -35,9 +35,18 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
   const opposingTeam: Team = team === 'home' ? 'away' : 'home';
   const opposingTeamAttendance = useMemo(() => state.live.attendance[opposingTeam] || [], [state.live.attendance, opposingTeam]);
 
+  const teamRoster = useMemo(() => {
+    const mc = state.live.matchContext;
+    return mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+  }, [state.live.matchContext, team]);
+
   const selectedPlayer = useMemo(() => teamAttendance.find(p => p.number === scorerNumber), [teamAttendance, scorerNumber]);
   const selectedAssistPlayer = useMemo(() => teamAttendance.find(p => p.number === assistNumber), [teamAttendance, assistNumber]);
   const selectedAssist2Player = useMemo(() => teamAttendance.find(p => p.number === assist2Number), [teamAttendance, assist2Number]);
+
+  const scorerInRoster = useMemo(() => scorerNumber.trim() ? teamRoster.some(p => p.number === scorerNumber.trim()) : null, [teamRoster, scorerNumber]);
+  const assistInRoster = useMemo(() => assistNumber.trim() ? teamRoster.some(p => p.number === assistNumber.trim()) : null, [teamRoster, assistNumber]);
+  const assist2InRoster = useMemo(() => assist2Number.trim() ? teamRoster.some(p => p.number === assist2Number.trim()) : null, [teamRoster, assist2Number]);
 
   const getPlayersByNumbers = (numbers: string[], fromOpposing = false) => {
     const source = fromOpposing ? opposingTeamAttendance : teamAttendance;
@@ -126,11 +135,23 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
       return;
     }
 
+    // Validate players exist in roster
+    const mc = state.live.matchContext;
+    const roster = mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+    if (!roster.some(p => p.number === trimmedScorerNumber)) {
+      toast({ title: "Error", description: `El goleador #${trimmedScorerNumber} no existe en el plantel.`, variant: "destructive" });
+      return;
+    }
+
     // Validate assistentes
     const usedNumbers = new Set([trimmedScorerNumber]);
     if (trimmedAssistNumber) {
         if (!/^\d+$/.test(trimmedAssistNumber)) {
             toast({ title: "Número de Asistencia Inválido", description: "El número de la asistencia debe ser numérico.", variant: "destructive" });
+            return;
+        }
+        if (!roster.some(p => p.number === trimmedAssistNumber)) {
+            toast({ title: "Error", description: `El asistente #${trimmedAssistNumber} no existe en el plantel.`, variant: "destructive" });
             return;
         }
         if (usedNumbers.has(trimmedAssistNumber)) {
@@ -142,6 +163,10 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
     if (trimmedAssist2Number) {
         if (!/^\d+$/.test(trimmedAssist2Number)) {
             toast({ title: "Número de Asistencia 2 Inválido", description: "El número debe ser numérico.", variant: "destructive" });
+            return;
+        }
+        if (!roster.some(p => p.number === trimmedAssist2Number)) {
+            toast({ title: "Error", description: `El asistente #${trimmedAssist2Number} no existe en el plantel.`, variant: "destructive" });
             return;
         }
         if (usedNumbers.has(trimmedAssist2Number)) {
@@ -210,9 +235,10 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
                         placeholder="Ej: 99"
                         autoComplete="off"
                         disabled={disabled}
-                        className={duplicateChecker.scorer ? "border-red-500 border-2" : (scorerNumber.trim() ? "border-green-500 border-2" : "")}
+                        className={duplicateChecker.scorer ? "border-red-500 border-2" : (scorerInRoster === true ? "border-green-500 border-2" : scorerInRoster === false ? "border-red-500 border-2" : "")}
                     />
                     {selectedPlayer && <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedPlayer.name}>Jugador: {selectedPlayer.name}</p>}
+                    {scorerInRoster === false && <p className="text-xs text-destructive mt-1">No existe en el plantel</p>}
                 </div>
                 <div>
                     <Label htmlFor="new-assist-number"># Asist. 1</Label>
@@ -223,9 +249,10 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
                         placeholder="(Opcional)"
                          autoComplete="off"
                          disabled={disabled}
-                         className={duplicateChecker.assist ? "border-red-500 border-2" : (assistNumber.trim() ? "border-green-500 border-2" : "")}
+                         className={duplicateChecker.assist ? "border-red-500 border-2" : (assistInRoster === true ? "border-green-500 border-2" : assistInRoster === false ? "border-red-500 border-2" : "")}
                     />
                     {selectedAssistPlayer && <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedAssistPlayer.name}>Asistente: {selectedAssistPlayer.name}</p>}
+                    {assistInRoster === false && <p className="text-xs text-destructive mt-1">No existe en el plantel</p>}
                 </div>
                 <div>
                     <Label htmlFor="new-assist2-number"># Asist. 2</Label>
@@ -236,9 +263,10 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
                         placeholder="(Opcional)"
                         autoComplete="off"
                         disabled={disabled}
-                        className={duplicateChecker.assist2 ? "border-red-500 border-2" : (assist2Number.trim() ? "border-green-500 border-2" : "")}
+                        className={duplicateChecker.assist2 ? "border-red-500 border-2" : (assist2InRoster === true ? "border-green-500 border-2" : assist2InRoster === false ? "border-red-500 border-2" : "")}
                     />
                     {selectedAssist2Player && <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedAssist2Player.name}>Asistente: {selectedAssist2Player.name}</p>}
+                    {assist2InRoster === false && <p className="text-xs text-destructive mt-1">No existe en el plantel</p>}
                 </div>
             </div>
 
@@ -317,10 +345,19 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
   const opposingTeamKey: Team = goalTeam === 'home' ? 'away' : 'home';
   const opposingTeamAttendance = useMemo(() => state.live.attendance[opposingTeamKey] || [], [state.live.attendance, opposingTeamKey]);
 
+  const editTeamRoster = useMemo(() => {
+    const mc = state.live.matchContext;
+    return mc ? (goalTeam === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+  }, [state.live.matchContext, goalTeam]);
+
   // Player resolution
   const selectedScorerPlayer = useMemo(() => teamAttendance.find(p => p.number === scorerNumberInput), [teamAttendance, scorerNumberInput]);
   const selectedAssistPlayer = useMemo(() => teamAttendance.find(p => p.number === assistNumberInput), [teamAttendance, assistNumberInput]);
   const selectedAssist2Player = useMemo(() => teamAttendance.find(p => p.number === assist2NumberInput), [teamAttendance, assist2NumberInput]);
+
+  const editScorerInRoster = useMemo(() => scorerNumberInput.trim() ? editTeamRoster.some(p => p.number === scorerNumberInput.trim()) : null, [editTeamRoster, scorerNumberInput]);
+  const editAssistInRoster = useMemo(() => assistNumberInput.trim() ? editTeamRoster.some(p => p.number === assistNumberInput.trim()) : null, [editTeamRoster, assistNumberInput]);
+  const editAssist2InRoster = useMemo(() => assist2NumberInput.trim() ? editTeamRoster.some(p => p.number === assist2NumberInput.trim()) : null, [editTeamRoster, assist2NumberInput]);
 
   const getPlayersByNumbers = (numbers: string[], fromOpposing = false) => {
     const source = fromOpposing ? opposingTeamAttendance : teamAttendance;
@@ -395,15 +432,31 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
       return;
     }
 
+    // Validate players exist in roster
+    const mc = state.live.matchContext;
+    const editRoster = mc ? (goalTeam === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+    if (!editRoster.some(p => p.number === trimmedScorerNumber)) {
+      toast({ title: "Error", description: `El goleador #${trimmedScorerNumber} no existe en el plantel.`, variant: "destructive" });
+      return;
+    }
+
     const trimmedAssistNumber = assistNumberInput.trim();
     if (trimmedAssistNumber && !/^\d+$/.test(trimmedAssistNumber)) {
       toast({ title: "Número de Asistencia Inválido", description: "El número de la asistencia debe ser numérico.", variant: "destructive" });
+      return;
+    }
+    if (trimmedAssistNumber && !editRoster.some(p => p.number === trimmedAssistNumber)) {
+      toast({ title: "Error", description: `El asistente #${trimmedAssistNumber} no existe en el plantel.`, variant: "destructive" });
       return;
     }
 
     const trimmedAssist2Number = assist2NumberInput.trim();
     if (trimmedAssist2Number && !/^\d+$/.test(trimmedAssist2Number)) {
       toast({ title: "Número de Asistencia 2 Inválido", description: "El número debe ser numérico.", variant: "destructive" });
+      return;
+    }
+    if (trimmedAssist2Number && !editRoster.some(p => p.number === trimmedAssist2Number)) {
+      toast({ title: "Error", description: `El asistente #${trimmedAssist2Number} no existe en el plantel.`, variant: "destructive" });
       return;
     }
 
@@ -504,11 +557,12 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
                         id={`scorer-${goal.id}`}
                         value={scorerNumberInput}
                         onChange={(e) => { if (/^\d*$/.test(e.target.value)) setScorerNumberInput(e.target.value); }}
-                        className={duplicateChecker.scorer ? "border-red-500 border-2" : (scorerNumberInput.trim() ? "border-green-500 border-2" : "")}
+                        className={duplicateChecker.scorer ? "border-red-500 border-2" : (editScorerInRoster === true ? "border-green-500 border-2" : editScorerInRoster === false ? "border-red-500 border-2" : "")}
                         placeholder="Ej: 99"
                         autoComplete="off"
                     />
                     {selectedScorerPlayer && <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedScorerPlayer.name}>{selectedScorerPlayer.name}</p>}
+                    {editScorerInRoster === false && <p className="text-xs text-destructive mt-1">No existe en el plantel</p>}
                 </div>
                 <div>
                     <Label htmlFor={`assist-${goal.id}`} className="text-xs"># Asist 1</Label>
@@ -516,11 +570,12 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
                         id={`assist-${goal.id}`}
                         value={assistNumberInput}
                         onChange={(e) => { if (/^\d*$/.test(e.target.value)) setAssistNumberInput(e.target.value); }}
-                        className={duplicateChecker.assist ? "border-red-500 border-2" : (assistNumberInput.trim() ? "border-green-500 border-2" : "")}
+                        className={duplicateChecker.assist ? "border-red-500 border-2" : (editAssistInRoster === true ? "border-green-500 border-2" : editAssistInRoster === false ? "border-red-500 border-2" : "")}
                         placeholder="Opc."
                         autoComplete="off"
                     />
                     {selectedAssistPlayer && <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedAssistPlayer.name}>{selectedAssistPlayer.name}</p>}
+                    {editAssistInRoster === false && <p className="text-xs text-destructive mt-1">No existe en el plantel</p>}
                 </div>
                 <div>
                     <Label htmlFor={`assist2-${goal.id}`} className="text-xs"># Asist 2</Label>
@@ -528,11 +583,12 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
                         id={`assist2-${goal.id}`}
                         value={assist2NumberInput}
                         onChange={(e) => { if (/^\d*$/.test(e.target.value)) setAssist2NumberInput(e.target.value); }}
-                        className={duplicateChecker.assist2 ? "border-red-500 border-2" : (assist2NumberInput.trim() ? "border-green-500 border-2" : "")}
+                        className={duplicateChecker.assist2 ? "border-red-500 border-2" : (editAssist2InRoster === true ? "border-green-500 border-2" : editAssist2InRoster === false ? "border-red-500 border-2" : "")}
                         placeholder="Opc."
                         autoComplete="off"
                     />
                     {selectedAssist2Player && <p className="text-xs text-muted-foreground mt-1 truncate" title={selectedAssist2Player.name}>{selectedAssist2Player.name}</p>}
+                    {editAssist2InRoster === false && <p className="text-xs text-destructive mt-1">No existe en el plantel</p>}
                 </div>
             </div>
 

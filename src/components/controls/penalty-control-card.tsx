@@ -464,7 +464,17 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
         toast({ title: "Error", description: "Tipo de falta no encontrada.", variant: "destructive" });
         return;
     }
-    
+
+    // Validate player exists in roster (skip for bench penalties)
+    if (!penaltyDef.isBenchPenalty) {
+      const mc = state.live.matchContext;
+      const roster = mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+      if (!roster.some(p => p.number === trimmedPlayerNumberForPenalty.toUpperCase())) {
+        toast({ title: "Error", description: "El jugador no existe en el plantel.", variant: "destructive" });
+        return;
+      }
+    }
+
     dispatch({
       type: 'ADD_PENALTY',
       payload: {
@@ -649,26 +659,21 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        const trimmedSearch = playerSearchTerm.trim().toUpperCase();
                         if (filteredPlayers.length > 0) {
                             const playerToSelect = filteredPlayers[0];
                             setPlayerNumberForPenalty(playerToSelect.number);
                             setSelectedPlayerName(playerToSelect.name);
-                        } else if (trimmedSearch && (/^\d+$/.test(trimmedSearch) || /^\d+[A-Za-z]*$/.test(trimmedSearch))) {
-                           setPlayerNumberForPenalty(trimmedSearch);
-                           setSelectedPlayerName(null);
+                            justSelectedPlayerRef.current = true;
+                            setIsPlayerPopoverOpen(false);
+                        } else {
+                            toast({ title: "Error", description: "El jugador no existe en el plantel.", variant: "destructive" });
                         }
-                        justSelectedPlayerRef.current = true;
-                        setIsPlayerPopoverOpen(false);
                     }
                 }}
               />
               <CommandList>
                 <CommandEmpty>
                   No se encontró jugador.
-                  {playerSearchTerm.trim() && (/^\d+$/.test(playerSearchTerm.trim()) || /^\d+[A-Za-z]*$/.test(playerSearchTerm.trim())) && (
-                     <p className="text-xs text-muted-foreground p-2">Enter para usar: #{playerSearchTerm.trim().toUpperCase()}</p>
-                  )}
                 </CommandEmpty>
                 <CommandGroup>
                   {filteredPlayers.map((player) => (
