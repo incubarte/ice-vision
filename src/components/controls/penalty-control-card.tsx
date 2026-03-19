@@ -673,7 +673,7 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
                 <CommandGroup>
                   {filteredPlayers.map((player) => (
                     <CommandItem
-                      key={player.id}
+                      key={player.name}
                       value={`${player.number} - ${state.config.showAliasInPenaltyPlayerSelector ? player.name : ''}`}
                       onSelect={() => {
                         setPlayerNumberForPenalty(player.number);

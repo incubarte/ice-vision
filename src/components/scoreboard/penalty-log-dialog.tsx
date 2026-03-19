@@ -30,6 +30,14 @@ const getEndReasonVariant = (reason?: 'completed' | 'deleted' | 'goal_on_pp'): "
 export function PenaltyLogDialog({ isOpen, onOpenChange, team, teamName }: PenaltyLogDialogProps) {
   const { state } = useGameState();
 
+  const attendance = state.live.attendance[team] || [];
+  const roster = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
+
+  const lookupPlayerName = (playerNumber: string): string | undefined => {
+    return attendance.find(p => p.number === playerNumber)?.name
+      || roster.find(p => p.number === playerNumber)?.name;
+  };
+
   const penaltyLogs = useMemo(() => {
     const logs = state.live.penaltiesLog[team];
     if (!logs) return [];
@@ -70,7 +78,7 @@ export function PenaltyLogDialog({ isOpen, onOpenChange, team, teamName }: Penal
                                 </TableCell>
                                 <TableCell>
                                     <div className="font-semibold">{log.isBenchPenalty ? `Banco (#${log.playerNumber})` : `#${log.playerNumber}`}</div>
-                                    <div className="text-xs text-muted-foreground">{log.isBenchPenalty ? '---' : log.playerName || 'Jugador no listado'}</div>
+                                    <div className="text-xs text-muted-foreground">{log.isBenchPenalty ? '---' : lookupPlayerName(log.playerNumber) || 'Jugador no listado'}</div>
                                 </TableCell>
                                 <TableCell className="text-xs">{log.penaltyName || '---'}</TableCell>
                                 <TableCell className="text-center font-mono">{formatTime(log.initialDuration * 100, { showTenths: false })}</TableCell>
