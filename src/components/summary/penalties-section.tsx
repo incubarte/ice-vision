@@ -4,11 +4,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as UiTableFooter } from "@/components/ui/table";
 import { formatTime, getEndReasonText } from "@/contexts/game-state-context";
-import type { PenaltyLog, PlayerData, Team } from "@/types";
+import type { SummaryPenaltyEntry, PlayerData, Team } from "@/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash2, Siren } from "lucide-react";
 
-export const PenaltiesSection = ({ team, teamName, penalties, onAdd, onDelete, players }: { team: Team; teamName: string; penalties?: PenaltyLog[]; onAdd?: () => void; onDelete?: (logId: string) => void; players?: PlayerData[] }) => {
+export const PenaltiesSection = ({ team, teamName, penalties, onAdd, onDelete, players }: { team: Team; teamName: string; penalties?: SummaryPenaltyEntry[]; onAdd?: () => void; onDelete?: (logId: string) => void; players?: PlayerData[] }) => {
     const safePenalties = penalties || [];
     return (
         <Card>
@@ -41,8 +41,12 @@ export const PenaltiesSection = ({ team, teamName, penalties, onAdd, onDelete, p
                             <div className="text-xs text-muted-foreground">{p.addPeriodText}</div>
                         </TableCell>
                         <TableCell>
-                            <div className="font-semibold">{p.isBenchPenalty ? `Banco (#${p.playerNumber})` : `#${p.playerNumber}`}</div>
-                            <div className="text-xs text-muted-foreground">{p.isBenchPenalty ? '---' : (players ?? []).find(pl => pl.number === p.playerNumber)?.name || '---'}</div>
+                            {(() => { const player = (players ?? []).find(pl => pl.id === p.playerId); return (
+                            <>
+                                <div className="font-semibold">{p.isBenchPenalty ? `Banco (#${player?.number || '?'})` : `#${player?.number || '?'}`}</div>
+                                <div className="text-xs text-muted-foreground">{p.isBenchPenalty ? '---' : player?.name || '---'}</div>
+                            </>
+                            ); })()}
                         </TableCell>
                         <TableCell className="text-xs">{p.penaltyName || '---'}</TableCell>
                         <TableCell className="font-mono text-sm">{formatTime(p.initialDuration * 100)}</TableCell>

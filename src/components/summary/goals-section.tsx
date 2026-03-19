@@ -5,7 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as UiTableFooter } from "@/components/ui/table";
 import { formatTime } from "@/contexts/game-state-context";
-import type { GoalLog, PlayerData, Team } from "@/types";
+import type { SummaryGoalEntry, PlayerData, Team } from "@/types";
 import { Goal, PlusCircle, Trash2, Edit3, Check, XCircle } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,23 +19,24 @@ import {
 import { safeUUID } from '@/lib/utils';
 
 interface EditableGoalRowProps {
-    goal: GoalLog;
+    goal: SummaryGoalEntry;
     players: PlayerData[];
-    onSave: (updatedGoal: GoalLog) => void;
+    onSave: (updatedGoal: SummaryGoalEntry) => void;
     onCancel: () => void;
     onDelete: (goalId: string) => void;
 }
 
 const EditableGoalRow = ({ goal, players, onSave, onCancel, onDelete }: EditableGoalRowProps) => {
-    const [scorerNumber, setScorerNumber] = useState(goal.scorer?.playerNumber || '');
-    const [assistNumber, setAssistNumber] = useState(goal.assist?.playerNumber || '');
-    const [assist2Number, setAssist2Number] = useState(goal.assist2?.playerNumber || '');
+    const findPlayerById = (id?: string) => id ? players.find(p => p.id === id) : undefined;
+    const [scorerNumber, setScorerNumber] = useState(findPlayerById(goal.scorer?.playerId)?.number || '');
+    const [assistNumber, setAssistNumber] = useState(findPlayerById(goal.assist?.playerId)?.number || '');
+    const [assist2Number, setAssist2Number] = useState(findPlayerById(goal.assist2?.playerId)?.number || '');
 
-    const posArray = goal.positives?.map(p => p?.playerNumber || '') || [];
+    const posArray = goal.positives?.map(p => findPlayerById(p?.playerId)?.number || '') || [];
     while (posArray.length < 5) posArray.push('');
     const [positives, setPositives] = useState<string[]>(posArray);
 
-    const negArray = goal.negatives?.map(n => n?.playerNumber || '') || [];
+    const negArray = goal.negatives?.map(n => findPlayerById(n?.playerId)?.number || '') || [];
     while (negArray.length < 5) negArray.push('');
     const [negatives, setNegatives] = useState<string[]>(negArray);
 
@@ -47,18 +48,18 @@ const EditableGoalRow = ({ goal, players, onSave, onCancel, onDelete }: Editable
         const assist2 = players.find(p => p.number === assist2Number);
 
         const positivesData = positives
-            .map((num, idx) => num.trim() ? { playerNumber: num.trim() } : null)
-            .filter(p => p !== null);
+            .map(num => { const p = players.find(pl => pl.number === num.trim()); return p ? { playerId: p.id } : null; })
+            .filter((p): p is { playerId: string } => p !== null);
 
         const negativesData = negatives
-            .map((num, idx) => num.trim() ? { playerNumber: num.trim() } : null)
-            .filter(p => p !== null);
+            .map(num => { const p = players.find(pl => pl.number === num.trim()); return p ? { playerId: p.id } : null; })
+            .filter((p): p is { playerId: string } => p !== null);
 
         onSave({
             ...goal,
-            scorer: scorer ? { playerNumber: scorer.number } : { playerNumber: scorerNumber },
-            assist: assist ? { playerNumber: assist.number } : (assistNumber ? { playerNumber: assistNumber } : undefined),
-            assist2: assist2 ? { playerNumber: assist2.number } : (assist2Number ? { playerNumber: assist2Number } : undefined),
+            scorer: scorer ? { playerId: scorer.id } : undefined,
+            assist: assist ? { playerId: assist.id } : undefined,
+            assist2: assist2 ? { playerId: assist2.id } : undefined,
             positives: positivesData.length > 0 ? positivesData : undefined,
             negatives: negativesData.length > 0 ? negativesData : undefined
         });
@@ -150,12 +151,12 @@ const EditableGoalRow = ({ goal, players, onSave, onCancel, onDelete }: Editable
     );
 };
 
-export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players }: { teamName: string; goals?: GoalLog[]; onGoalChange?: (action: 'add' | 'update' | 'delete', goal: GoalLog, originalId?: string) => void; editable?: boolean; players?: PlayerData[] }) => {
+export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players }: { teamName: string; goals?: SummaryGoalEntry[]; onGoalChange?: (action: 'add' | 'update' | 'delete', goal: SummaryGoalEntry, originalId?: string) => void; editable?: boolean; players?: PlayerData[] }) => {
     const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const safeGoals = goals || [];
 
-    const handleSaveGoal = (updatedGoal: GoalLog) => {
+    const handleSaveGoal = (updatedGoal: SummaryGoalEntry) => {
         const isNew = !safeGoals.some(g => g.id === updatedGoal.id);
         if (onGoalChange) {
             if (isNew) {
@@ -198,7 +199,7 @@ export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players 
                     </TableHeader>
                     <TableBody>
                         {isAdding && players && (
-                            <EditableGoalRow goal={{id: `new-${safeUUID()}`, team: 'home', timestamp:0, gameTime: 0, periodText: ''}} players={players} onSave={handleSaveGoal} onCancel={() => setIsAdding(false)} onDelete={() => {}} />
+                            <EditableGoalRow goal={{id: `new-${safeUUID()}`, team: 'home', timestamp: 0, gameTime: 0, periodText: ''}} players={players} onSave={handleSaveGoal} onCancel={() => setIsAdding(false)} onDelete={() => {}} />
                         )}
                         {safeGoals.length > 0 ? safeGoals.map(goal => (
                             editingGoalId === goal.id && players ? (
@@ -210,34 +211,38 @@ export const GoalsSection = ({ teamName, goals, onGoalChange, editable, players 
                                         <div className="text-xs text-muted-foreground">{goal.periodText}</div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="font-semibold">#{goal.scorer?.playerNumber || 'S/N'}</div>
-                                        <div className="text-xs text-muted-foreground">{(players ?? []).find(p => p.number === goal.scorer?.playerNumber)?.name || '---'}</div>
+                                        {(() => { const scorer = (players ?? []).find(p => p.id === goal.scorer?.playerId); return (
+                                        <>
+                                            <div className="font-semibold">#{scorer?.number || 'S/N'}</div>
+                                            <div className="text-xs text-muted-foreground">{scorer?.name || '---'}</div>
+                                        </>
+                                        ); })()}
                                         {goal.positives && goal.positives.length > 0 && (
                                             <div className="text-xs text-muted-foreground mt-1">
-                                                <span className="font-semibold">+:</span> {goal.positives.map(p => `#${p?.playerNumber}`).join(', ')}
+                                                <span className="font-semibold">+:</span> {goal.positives.map(p => `#${(players ?? []).find(pl => pl.id === p?.playerId)?.number || '?'}`).join(', ')}
                                             </div>
                                         )}
                                         {goal.negatives && goal.negatives.length > 0 && (
                                             <div className="text-xs text-muted-foreground mt-1">
-                                                <span className="font-semibold">-:</span> {goal.negatives.map(n => `#${n?.playerNumber}`).join(', ')}
+                                                <span className="font-semibold">-:</span> {goal.negatives.map(n => `#${(players ?? []).find(pl => pl.id === n?.playerId)?.number || '?'}`).join(', ')}
                                             </div>
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        {goal.assist?.playerNumber ? (
+                                        {(() => { const assistPlayer = goal.assist?.playerId ? (players ?? []).find(p => p.id === goal.assist!.playerId) : undefined; return assistPlayer ? (
                                         <>
-                                            <div className="font-semibold">#{goal.assist.playerNumber}</div>
-                                            <div className="text-xs text-muted-foreground">{(players ?? []).find(p => p.number === goal.assist!.playerNumber)?.name || '---'}</div>
+                                            <div className="font-semibold">#{assistPlayer.number}</div>
+                                            <div className="text-xs text-muted-foreground">{assistPlayer.name || '---'}</div>
                                         </>
-                                        ) : <span className="text-muted-foreground">---</span>}
+                                        ) : <span className="text-muted-foreground">---</span>; })()}
                                     </TableCell>
                                     <TableCell>
-                                        {goal.assist2?.playerNumber ? (
+                                        {(() => { const assist2Player = goal.assist2?.playerId ? (players ?? []).find(p => p.id === goal.assist2!.playerId) : undefined; return assist2Player ? (
                                         <>
-                                            <div className="font-semibold">#{goal.assist2.playerNumber}</div>
-                                            <div className="text-xs text-muted-foreground">{(players ?? []).find(p => p.number === goal.assist2!.playerNumber)?.name || '---'}</div>
+                                            <div className="font-semibold">#{assist2Player.number}</div>
+                                            <div className="text-xs text-muted-foreground">{assist2Player.name || '---'}</div>
                                         </>
-                                        ) : <span className="text-muted-foreground">---</span>}
+                                        ) : <span className="text-muted-foreground">---</span>; })()}
                                     </TableCell>
                                     {editable && (
                                         <TableCell className="text-right">

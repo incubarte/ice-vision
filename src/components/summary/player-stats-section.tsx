@@ -58,7 +58,7 @@ export const PlayerStatsSection = ({
         // Ensure every player from the roster is in the list
         fullRoster.forEach(player => {
             if (!statsMap.has(player.id)) {
-                 statsMap.set(player.id, { id: player.id, name: player.name, number: player.number, shots: 0, goals: 0, assists: 0 });
+                 statsMap.set(player.id, { id: player.id, shots: 0, goals: 0, assists: 0 });
             }
         });
 
@@ -66,8 +66,8 @@ export const PlayerStatsSection = ({
             const rosterPlayer = fullRoster.find(p => p.id === stat.id);
             return {
                 ...stat,
-                name: rosterPlayer?.name || stat.name, // Prefer roster name
-                number: rosterPlayer?.number || stat.number, // Prefer roster number
+                name: rosterPlayer?.name || '---',
+                number: rosterPlayer?.number || 'S/N',
                 attended: attendanceSet ? attendanceSet.has(stat.id) : false,
             }
         });

@@ -3,10 +3,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { ShootoutAttempt } from "@/types";
+import type { SummaryShootoutAttempt, PlayerData } from "@/types";
 import { Check, X, Swords } from "lucide-react";
 
-export const ShootoutSection = ({ teamName, attempts }: { teamName: string; attempts: ShootoutAttempt[] }) => {
+export const ShootoutSection = ({ teamName, attempts, players }: { teamName: string; attempts: SummaryShootoutAttempt[]; players?: PlayerData[] }) => {
     return (
         <Card>
             <CardHeader>
@@ -27,8 +27,12 @@ export const ShootoutSection = ({ teamName, attempts }: { teamName: string; atte
                         <TableRow key={attempt.id}>
                             <TableCell className="font-mono">{attempt.round}</TableCell>
                             <TableCell>
-                                <div className="font-semibold">#{attempt.playerNumber}</div>
-                                <div className="text-xs text-muted-foreground">{attempt.playerName || '---'}</div>
+                                {(() => { const player = (players ?? []).find(p => p.id === attempt.playerId); return (
+                                <>
+                                    <div className="font-semibold">#{player?.number || '?'}</div>
+                                    <div className="text-xs text-muted-foreground">{player?.name || '---'}</div>
+                                </>
+                                ); })()}
                             </TableCell>
                             <TableCell>
                                 {attempt.isGoal ? <span className="text-green-500 font-bold flex items-center gap-1"><Check className="h-4 w-4"/> Gol</span> : <span className="text-destructive flex items-center gap-1"><X className="h-4 w-4"/> Fallado</span>}

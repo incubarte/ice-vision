@@ -102,7 +102,7 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
             time: cumulativeTime + timeFromPeriodStart,
             team,
             label: 'GOL',
-            details: lookupPlayerName(team, goal.scorer?.playerId) || `#${goal.scorer?.playerNumber || '?'}`,
+            details: lookupPlayerName(team, goal.scorer?.playerId) || '?',
             subDetails: (() => {
               const assistName = lookupPlayerName(team, goal.assist?.playerId);
               if (!assistName) return undefined;
@@ -164,7 +164,7 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
           // DEBUG: Log penalty data
           console.log('Penalty:', {
             id: penalty.id,
-            player: penalty.playerNumber,
+            player: penalty.playerId,
             addGameTime: penalty.addGameTime,
             endGameTime: penalty.endGameTime,
             endPeriodText: penalty.endPeriodText,
@@ -206,7 +206,7 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
             time: penaltyStartTime,
             team,
             label: penalty.penaltyName || 'PENALIDAD',
-            details: lookupPlayerName(team, penalty.playerId) || `#${penalty.playerNumber || '?'}`,
+            details: lookupPlayerName(team, penalty.playerId) || '?',
             subDetails: penalty.endReason === 'goal_on_pp'
               ? '⚡ Terminó por gol'
               : `${Math.floor(durationInSeconds / 60)}'${String(durationInSeconds % 60).padStart(2, '0')}"`,

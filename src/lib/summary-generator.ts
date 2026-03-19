@@ -6,26 +6,63 @@ function findPlayerIdByNumber(number: string, roster: PlayerData[]): string | un
 }
 
 // Helper: convert a live GoalLog player ref { playerNumber } to summary { playerId }
-function convertPlayerRef(ref: { playerNumber: string } | null | undefined, roster: PlayerData[]): { playerId: string; playerNumber?: string } | undefined {
+function convertPlayerRef(ref: { playerNumber: string } | null | undefined, roster: PlayerData[]): { playerId: string } | undefined {
     if (!ref?.playerNumber) return undefined;
     const id = findPlayerIdByNumber(ref.playerNumber, roster);
     if (!id) return undefined;
-    return { playerId: id, playerNumber: ref.playerNumber };
+    return { playerId: id };
 }
 
-// Build summary roster from matchContext roster + live attendance
+// Build summary roster from matchContext roster + live attendance.
+// The result is the union: every roster player (with isPresent flag) PLUS
+// any attendance-only players (transient players not originally in the roster).
+// Attendance is the source of truth for display numbers.
 function buildSummaryRoster(roster: PlayerData[], attendance: AttendedPlayerInfo[]): SummaryRosterEntry[] {
-    const attendedNumbers = new Set(attendance.map(a => a.number));
-    return roster.map(p => {
-        const att = attendance.find(a => a.number === p.number);
+    const matchedNames = new Set<string>();
+
+    // Start with all roster players
+    const entries: SummaryRosterEntry[] = roster.map(p => {
+        const att = attendance.find(a => a.name === p.name);
+        if (att) matchedNames.add(att.name);
         return {
             id: p.id,
-            number: att?.number || p.number,
-            name: att?.name || p.name,
+            number: att?.number ?? p.number,  // attendance number wins (may have been edited)
+            name: p.name,
             type: att?.type || p.type,
-            isPresent: attendedNumbers.has(p.number),
+            isPresent: !!att,
         };
     });
+
+    // Add attendance-only players (not found in roster by name)
+    attendance.forEach(att => {
+        if (matchedNames.has(att.name)) return;
+        // Try to find a roster entry by number as fallback (transient players added
+        // by ensurePlayerInRoster have auto-generated names like "Player #10")
+        const rosterByNumber = roster.find(p => p.number === att.number && !entries.some(e => e.id === p.id && e.isPresent));
+        if (rosterByNumber && !matchedNames.has(rosterByNumber.name)) {
+            // The roster entry exists but under a different name — update it
+            const existingIdx = entries.findIndex(e => e.id === rosterByNumber.id);
+            if (existingIdx !== -1) {
+                entries[existingIdx] = {
+                    ...entries[existingIdx],
+                    number: att.number,
+                    isPresent: true,
+                };
+                matchedNames.add(att.name);
+                return;
+            }
+        }
+        // Truly unmatched attendance entry — add with a generated id
+        entries.push({
+            id: att.id || `anon-${att.number || att.name}`,
+            number: att.number,
+            name: att.name,
+            type: att.type || 'player',
+            isPresent: true,
+        });
+    });
+
+    return entries;
 }
 
 // Convert live GoalLog → SummaryGoalEntry
@@ -51,7 +88,6 @@ function convertPenaltyToSummary(penalty: PenaltyLog, roster: PlayerData[]): Sum
         id: penalty.id,
         team: penalty.team,
         playerId,
-        playerNumber: penalty.playerNumber,
         penaltyName: penalty.penaltyName,
         initialDuration: penalty.initialDuration,
         reducesPlayerCount: penalty.reducesPlayerCount,
@@ -76,7 +112,6 @@ function convertGKChangeToSummary(gc: GoalkeeperChangeLog, roster: PlayerData[])
         gameTime: gc.gameTime,
         periodText: gc.periodText,
         playerId,
-        playerNumber: gc.playerNumber,
     };
 }
 
@@ -99,25 +134,8 @@ export const recalculateAllStatsFromLogs = (
     const awayPlayerStatsMap = new Map<string, SummaryPlayerStats>();
 
     // Initialize from roster (always has id)
-    homeTeamRoster.forEach(p => homePlayerStatsMap.set(p.id, { id: p.id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 }));
-    awayTeamRoster.forEach(p => awayPlayerStatsMap.set(p.id, { id: p.id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 }));
-
-    // Override with attendance data if available (match-specific names/numbers)
-    const homeAttendance = partialSummary.attendance?.home || [];
-    const awayAttendance = partialSummary.attendance?.away || [];
-
-    homeAttendance.forEach(p => {
-        const id = ('id' in p && p.id) ? p.id : homeTeamRoster.find(r => r.number === p.number)?.id;
-        if (id) {
-            homePlayerStatsMap.set(id, { id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 });
-        }
-    });
-    awayAttendance.forEach(p => {
-        const id = ('id' in p && p.id) ? p.id : awayTeamRoster.find(r => r.number === p.number)?.id;
-        if (id) {
-            awayPlayerStatsMap.set(id, { id, name: p.name, number: p.number, shots: 0, goals: 0, assists: 0 });
-        }
-    });
+    homeTeamRoster.forEach(p => homePlayerStatsMap.set(p.id, { id: p.id, shots: 0, goals: 0, assists: 0 }));
+    awayTeamRoster.forEach(p => awayPlayerStatsMap.set(p.id, { id: p.id, shots: 0, goals: 0, assists: 0 }));
 
     // Helper to resolve a player reference to an ID
     const resolvePlayerId = (ref: any, roster: PlayerData[]): string | undefined => {
@@ -329,7 +347,6 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
             id: attempt.id,
             round: attempt.round,
             playerId: attempt.playerId || findPlayerIdByNumber(attempt.playerNumber, roster) || `unknown-${attempt.playerNumber}`,
-            playerNumber: attempt.playerNumber,
             isGoal: attempt.isGoal,
         });
         finalSummary.shootout = {

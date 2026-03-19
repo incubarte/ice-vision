@@ -277,18 +277,17 @@ export interface SummaryGoalEntry {
   timestamp: number;
   gameTime: number;
   periodText: string;
-  scorer?: { playerId: string; playerNumber?: string };
-  assist?: { playerId: string; playerNumber?: string };
-  assist2?: { playerId: string; playerNumber?: string };
-  positives?: Array<{ playerId: string; playerNumber?: string } | null>;
-  negatives?: Array<{ playerId: string; playerNumber?: string } | null>;
+  scorer?: { playerId: string };
+  assist?: { playerId: string };
+  assist2?: { playerId: string };
+  positives?: Array<{ playerId: string } | null>;
+  negatives?: Array<{ playerId: string } | null>;
 }
 
 export interface SummaryPenaltyEntry {
   id: string;
   team: Team;
   playerId: string;
-  playerNumber?: string; // for display convenience
   penaltyName?: string;
   initialDuration: number;
   reducesPlayerCount: boolean;
@@ -309,14 +308,12 @@ export interface SummaryGoalkeeperChange {
   gameTime: number;
   periodText: string;
   playerId: string;
-  playerNumber?: string; // for display convenience
 }
 
 export interface SummaryShootoutAttempt {
   id: string;
   round: number;
   playerId: string;
-  playerNumber?: string; // for display convenience
   isGoal: boolean | null;
 }
 
@@ -834,8 +831,6 @@ export interface GameState {
 // --- Type for player stats within the summary component ---
 export interface SummaryPlayerStats {
   id: string;
-  number: string;
-  name: string;
   goals: number;
   assists: number;
   shots: number;

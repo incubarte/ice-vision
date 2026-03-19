@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GoalkeeperStats, GoalkeeperPeriodStats } from '@/hooks/use-goalkeeper-stats';
-import type { AttendedPlayerInfo } from '@/types';
+import type { SummaryRosterEntry } from '@/types';
 
 interface GoalkeeperStatsSectionProps {
   teamName?: string;
   goalkeeperStats: GoalkeeperStats[];
-  attendance?: AttendedPlayerInfo[];
+  attendance?: SummaryRosterEntry[];
   showOnlyPresent?: boolean;
 }
 
@@ -28,9 +28,8 @@ export function GoalkeeperStatsSection({ teamName, goalkeeperStats, attendance, 
   const goalkeeperStatsWithAttendance = useMemo(() => {
     return goalkeeperStats.map(gkStat => {
       // Find the goalkeeper in the attendance list
-      const attendanceInfo = (attendance || []).find(p => (p.id || p.number) === gkStat.playerId || p.number === gkStat.playerNumber);
-      // isPresent is true if: attendance is null, player not in attendance list (backwards compat), or isPresent !== false
-      const isPresent = !attendance || !attendanceInfo || attendanceInfo.isPresent !== false;
+      const attendanceInfo = (attendance || []).find(p => p.id === gkStat.playerId);
+      const isPresent = !attendance || !attendanceInfo || attendanceInfo.isPresent;
 
       return {
         ...gkStat,
