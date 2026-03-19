@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Minus, Play, Pause, ChevronLeft, ChevronRight, ChevronsRight, User, ListFilter, Search, ClipboardList, ChevronsUpDown, Check, TimerOff, PlusCircle, Swords, CheckCircle } from 'lucide-react';
+import { Plus, Minus, Play, Pause, ChevronLeft, ChevronRight, ChevronsRight, User, ListFilter, Search, ChevronsUpDown, Check, TimerOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -31,7 +31,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { EditTeamPlayersDialog } from './edit-team-players-dialog';
 import {
   Tooltip,
   TooltipContent,
@@ -44,10 +43,9 @@ type EditingSegment = 'minutes' | 'seconds' | 'tenths';
 
 interface MiniScoreboardProps {
   onScoreClick: (team: Team) => void;
-  onAttendanceDialogChange?: (isOpen: boolean) => void;
 }
 
-export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniScoreboardProps) {
+export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
 
@@ -82,15 +80,7 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
   const [homeTeamSearchTerm, setHomeTeamSearchTerm] = useState('');
   const [awayTeamSearchTerm, setAwayTeamSearchTerm] = useState('');
 
-  const [isHomePlayersDialogOpen, setIsHomePlayersDialogOpen] = useState(false);
-  const [isAwayPlayersDialogOpen, setIsAwayPlayersDialogOpen] = useState(false);
   const [isTimeoutConfirmOpen, setIsTimeoutConfirmOpen] = useState(false);
-
-  // Notify parent when any attendance dialog opens/closes
-  useEffect(() => {
-    const isAnyDialogOpen = isHomePlayersDialogOpen || isAwayPlayersDialogOpen;
-    onAttendanceDialogChange?.(isAnyDialogOpen);
-  }, [isHomePlayersDialogOpen, isAwayPlayersDialogOpen, onAttendanceDialogChange]);
 
   useEffect(() => {
     setLocalHomeTeamName(state.live.homeTeamName);
@@ -554,8 +544,6 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
 
   const showHomeSearchIcon = state.config.enableTeamSelectionInMiniScoreboard && state.config.tournaments.length > 0 && !isMatchFromFixture;
   const showAwaySearchIcon = state.config.enableTeamSelectionInMiniScoreboard && state.config.tournaments.length > 0 && !isMatchFromFixture;
-  const showHomePlayersIcon = state.config.enableTeamSelectionInMiniScoreboard;
-  const showAwayPlayersIcon = state.config.enableTeamSelectionInMiniScoreboard;
 
 
   const handleTeamNameInputBlur = (teamType: 'home' | 'away', currentLocalName: string) => {
@@ -742,25 +730,12 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
                   placeholder="Nombre Local"
                   className={cn(
                     "h-8 text-sm uppercase w-auto text-center",
-                    showHomeSearchIcon && "ml-1",
-                    showHomePlayersIcon && "mr-1"
+                    showHomeSearchIcon && "ml-1"
                   )}
                   aria-label="Nombre del equipo local"
                   autoComplete="off"
                   disabled={isMatchFromFixture}
                 />
-                {showHomePlayersIcon && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0 rounded-full"
-                    onClick={() => setIsHomePlayersDialogOpen(true)}
-                    disabled={!matchedHomeTeamId}
-                    aria-label="Editar jugadores del equipo local"
-                  >
-                    <ClipboardList className={cn("h-4 w-4", isWarmup && isMatchFromFixture ? "animate-pulse text-green-500" : (matchedHomeTeamId ? "text-muted-foreground" : "text-muted-foreground/50 opacity-60"))} />
-                  </Button>
-                )}
               </div>
               {matchedHomeTeamId && localHomeTeamSubName && (
                 <p className="text-xs text-muted-foreground text-center mt-0.5 truncate">
@@ -774,15 +749,6 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
                 {state.live.score.home}
               </Button>
             </div>
-            {matchedHomeTeamId && isHomePlayersDialogOpen && (
-              <EditTeamPlayersDialog
-                isOpen={isHomePlayersDialogOpen}
-                onOpenChange={setIsHomePlayersDialogOpen}
-                teamId={matchedHomeTeamId}
-                teamName={localHomeTeamName}
-                teamType="home"
-              />
-            )}
           </div>
 
           {/* Clock & Period Section */}
@@ -1031,25 +997,12 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
                   placeholder="Nombre Visitante"
                   className={cn(
                     "h-8 text-sm uppercase w-auto text-center",
-                    showAwaySearchIcon && "ml-1",
-                    showAwayPlayersIcon && "mr-1"
+                    showAwaySearchIcon && "ml-1"
                   )}
                   aria-label="Nombre del equipo visitante"
                   autoComplete="off"
                   disabled={isMatchFromFixture}
                 />
-                {showAwayPlayersIcon && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0 rounded-full"
-                    onClick={() => setIsAwayPlayersDialogOpen(true)}
-                    disabled={!matchedAwayTeamId}
-                    aria-label="Editar jugadores del equipo visitante"
-                  >
-                    <ClipboardList className={cn("h-4 w-4", isWarmup && isMatchFromFixture ? "animate-pulse text-green-500" : (matchedAwayTeamId ? "text-muted-foreground" : "text-muted-foreground/50 opacity-60"))} />
-                  </Button>
-                )}
               </div>
               {matchedAwayTeamId && localAwayTeamSubName && (
                 <p className="text-xs text-muted-foreground text-center mt-0.5 truncate">
@@ -1063,15 +1016,6 @@ export function MiniScoreboard({ onScoreClick, onAttendanceDialogChange }: MiniS
                 {state.live.score.away}
               </Button>
             </div>
-            {matchedAwayTeamId && isAwayPlayersDialogOpen && (
-              <EditTeamPlayersDialog
-                isOpen={isAwayPlayersDialogOpen}
-                onOpenChange={setIsAwayPlayersDialogOpen}
-                teamId={matchedAwayTeamId}
-                teamName={localAwayTeamName}
-                teamType="away"
-              />
-            )}
           </div>
         </CardContent>
       </Card>

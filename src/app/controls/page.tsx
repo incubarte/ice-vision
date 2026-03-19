@@ -756,7 +756,6 @@ export default function ControlsPage() {
   const [localPort, setLocalPort] = useState<string>('');
   const [isConnectingTunnel, setIsConnectingTunnel] = useState(false);
   const [isShootoutConfirmOpen, setIsShootoutConfirmOpen] = useState(false);
-  const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
 
   const stateRef = useRef(state);
   useEffect(() => {
@@ -970,11 +969,6 @@ export default function ControlsPage() {
       }
 
       if (event.code === 'Space' || event.key === ' ') {
-        // Disable spacebar if attendance dialog is open
-        if (isAttendanceDialogOpen) {
-          return;
-        }
-
         const activeElement = document.activeElement as HTMLElement;
 
         // Solo ignorar el espacio en TEXTAREA, SELECT, INPUT de texto y contentEditable
@@ -1018,7 +1012,7 @@ export default function ControlsPage() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [dispatch, pageDisplayState, isAttendanceDialogOpen]);
+  }, [dispatch, pageDisplayState]);
 
 
   const handleTakeOver = useCallback(() => {
@@ -1280,7 +1274,6 @@ export default function ControlsPage() {
       )}
       <MiniScoreboard
         onScoreClick={handleScoreClick}
-        onAttendanceDialogChange={setIsAttendanceDialogOpen}
       />
 
       <PenaltyNotifications />
