@@ -21,6 +21,20 @@ describe('Game Reducer - Penalty Logic', () => {
     state.config.penaltyTypes = [
       { id: 'minor', name: 'Minor', duration: 120, reducesPlayerCount: true, clearsOnGoal: true, isBenchPenalty: false }
     ];
+
+    // Add matchContext with players used in tests
+    const defaultPlayers = ['1', '2', '3', '10', '99'].map(num => ({
+      id: `p${num}`, number: num, name: `Player ${num}`, type: 'player' as const,
+    }));
+    state.live.matchContext = {
+      tournamentId: 'test-tournament',
+      homeTeamId: 'home-team',
+      awayTeamId: 'away-team',
+      homeRoster: defaultPlayers,
+      awayRoster: defaultPlayers,
+      categoryId: 'test-cat',
+    } as any;
+
     return state;
   };
 

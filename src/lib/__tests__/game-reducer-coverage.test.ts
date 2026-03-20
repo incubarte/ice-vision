@@ -19,7 +19,7 @@ const setupGameState = (overrides?: {
   running?: boolean;
   score?: { home: number; away: number };
 }): GameState => {
-  const state = getInitialState();
+  const state = JSON.parse(JSON.stringify(getInitialState())) as GameState;
   state.config.numberOfRegularPeriods = 2;
   state.config.defaultPeriodDuration = 120000;
   state.config.defaultOTPeriodDuration = 30000;
@@ -50,6 +50,19 @@ const setupGameState = (overrides?: {
     state.live.score.home = overrides.score.home;
     state.live.score.away = overrides.score.away;
   }
+
+  // Default matchContext with common player numbers used in tests
+  const defaultPlayers = ['5', '7', '9', '10', '11', '99'].map(num => ({
+    id: `p${num}`, number: num, name: `Player ${num}`, type: 'player' as const,
+  }));
+  state.live.matchContext = {
+    tournamentId: 'test-tournament',
+    homeTeamId: 'home-team',
+    awayTeamId: 'away-team',
+    homeRoster: defaultPlayers,
+    awayRoster: defaultPlayers,
+    categoryId: 'test-cat',
+  } as any;
 
   return state;
 };
@@ -382,6 +395,132 @@ describe('Game Reducer - Goals', () => {
 
       expect(state.live.score.homeShots).toBe(2);
       expect(state.live.score.awayShots).toBe(1);
+    });
+  });
+});
+
+describe('Game Reducer - Roster Validation', () => {
+  beforeEach(() => {
+    setGameReducerRef(gameReducer);
+  });
+
+  describe('ADD_GOAL rejects invalid player numbers', () => {
+    it('should reject goal with scorer not in roster', () => {
+      const state = setupGameState({ period: 1, time: 60000 });
+      const result = gameReducer(state, {
+        type: 'ADD_GOAL',
+        payload: { team: 'home', timestamp: Date.now(), gameTime: 60000, scorer: { playerNumber: '88' } },
+      });
+
+      expect(result.live.score.home).toBe(0);
+      expect(result.live.goals.home).toHaveLength(0);
+    });
+
+    it('should reject goal with assist not in roster', () => {
+      const state = setupGameState({ period: 1, time: 60000 });
+      const result = gameReducer(state, {
+        type: 'ADD_GOAL',
+        payload: {
+          team: 'home',
+          timestamp: Date.now(),
+          gameTime: 60000,
+          scorer: { playerNumber: '10' },
+          assist: { playerNumber: '88' },
+        },
+      });
+
+      expect(result.live.score.home).toBe(0);
+      expect(result.live.goals.home).toHaveLength(0);
+    });
+
+    it('should accept goal when all players are in roster', () => {
+      const state = setupGameState({ period: 1, time: 60000 });
+      const result = gameReducer(state, {
+        type: 'ADD_GOAL',
+        payload: {
+          team: 'home',
+          timestamp: Date.now(),
+          gameTime: 60000,
+          scorer: { playerNumber: '10' },
+          assist: { playerNumber: '7' },
+        },
+      });
+
+      expect(result.live.score.home).toBe(1);
+      expect(result.live.goals.home).toHaveLength(1);
+    });
+  });
+
+  describe('ADD_PLAYER_SHOT rejects invalid player numbers', () => {
+    it('should reject shot with player not in roster', () => {
+      const state = setupGameState({ period: 1, time: 60000 });
+      const result = gameReducer(state, {
+        type: 'ADD_PLAYER_SHOT',
+        payload: { team: 'home', playerNumber: '88' },
+      });
+
+      expect(result.live.shotsLog.home).toHaveLength(0);
+      expect(result.live.score.homeShots).toBe(0);
+    });
+
+    it('should accept shot when player is in roster', () => {
+      const state = setupGameState({ period: 1, time: 60000 });
+      const result = gameReducer(state, {
+        type: 'ADD_PLAYER_SHOT',
+        payload: { team: 'home', playerNumber: '10' },
+      });
+
+      expect(result.live.shotsLog.home).toHaveLength(1);
+      expect(result.live.score.homeShots).toBe(1);
+    });
+  });
+
+  describe('ADD_PENALTY rejects invalid player numbers', () => {
+    it('should reject penalty with player not in roster', () => {
+      const state = setupGameState();
+      const result = gameReducer(state, {
+        type: 'ADD_PENALTY',
+        payload: { team: 'home', penalty: { penaltyTypeId: 'minor', playerNumber: '88' } },
+      });
+
+      expect(result.live.penalties.home).toHaveLength(0);
+      expect(result.live.penaltiesLog.home).toHaveLength(0);
+    });
+
+    it('should accept penalty when player is in roster', () => {
+      const state = setupGameState();
+      const result = gameReducer(state, {
+        type: 'ADD_PENALTY',
+        payload: { team: 'home', penalty: { penaltyTypeId: 'minor', playerNumber: '10' } },
+      });
+
+      expect(result.live.penalties.home).toHaveLength(1);
+    });
+  });
+
+  describe('RECORD_SHOOTOUT_ATTEMPT rejects invalid player numbers', () => {
+    it('should reject shootout attempt with player not in roster', () => {
+      const state = setupGameState({ override: 'Shootout' });
+      state.live.shootout = { isActive: true, rounds: 5, homeAttempts: [], awayAttempts: [], initiator: null };
+
+      const result = gameReducer(state, {
+        type: 'RECORD_SHOOTOUT_ATTEMPT',
+        payload: { team: 'home', playerNumber: '88', isGoal: true },
+      });
+
+      expect(result.live.shootout.homeAttempts).toHaveLength(0);
+    });
+
+    it('should accept shootout attempt when player is in roster', () => {
+      const state = setupGameState({ override: 'Shootout' });
+      state.live.shootout = { isActive: true, rounds: 5, homeAttempts: [], awayAttempts: [], initiator: null };
+
+      const result = gameReducer(state, {
+        type: 'RECORD_SHOOTOUT_ATTEMPT',
+        payload: { team: 'home', playerNumber: '10', isGoal: true },
+      });
+
+      expect(result.live.shootout.homeAttempts).toHaveLength(1);
     });
   });
 });
