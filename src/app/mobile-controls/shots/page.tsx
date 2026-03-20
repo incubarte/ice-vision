@@ -273,8 +273,17 @@ export default function MobileShotsPage() {
 
   const homeTeamName = liveState.homeTeamName || 'Local';
   const awayTeamName = liveState.awayTeamName || 'Visitante';
-  const homeAttendedPlayers = [...(liveState.attendance?.home || [])].sort((a,b) => (parseInt(a.number) || 999) - (parseInt(b.number) || 999));
-  const awayAttendedPlayers = [...(liveState.attendance?.away || [])].sort((a,b) => (parseInt(a.number) || 999) - (parseInt(b.number) || 999));
+  // Attendance is now string[] of jersey numbers. Build player objects from roster.
+  const homeRoster = liveState.matchContext?.homeRoster || [];
+  const awayRoster = liveState.matchContext?.awayRoster || [];
+  const homeAttendanceSet = new Set(liveState.attendance?.home || []);
+  const awayAttendanceSet = new Set(liveState.attendance?.away || []);
+  const homeAttendedPlayers = homeRoster
+    .filter(p => homeAttendanceSet.has(p.number))
+    .sort((a, b) => (parseInt(a.number) || 999) - (parseInt(b.number) || 999));
+  const awayAttendedPlayers = awayRoster
+    .filter(p => awayAttendanceSet.has(p.number))
+    .sort((a, b) => (parseInt(a.number) || 999) - (parseInt(b.number) || 999));
   const homeShots = liveState.score?.homeShots || 0;
   const awayShots = liveState.score?.awayShots || 0;
 

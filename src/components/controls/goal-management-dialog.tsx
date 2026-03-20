@@ -31,29 +31,32 @@ function AddGoalForm({ team, onGoalAdded, disabled }: { team: Team, onGoalAdded:
   const [positives, setPositives] = useState<string[]>(['', '', '', '', '']);
   const [negatives, setNegatives] = useState<string[]>(['', '', '', '', '']);
 
-  const teamAttendance = useMemo(() => state.live.attendance[team] || [], [state.live.attendance, team]);
   const opposingTeam: Team = team === 'home' ? 'away' : 'home';
-  const opposingTeamAttendance = useMemo(() => state.live.attendance[opposingTeam] || [], [state.live.attendance, opposingTeam]);
 
   const teamRoster = useMemo(() => {
     const mc = state.live.matchContext;
     return mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
   }, [state.live.matchContext, team]);
 
-  const selectedPlayer = useMemo(() => teamAttendance.find(p => p.number === scorerNumber), [teamAttendance, scorerNumber]);
-  const selectedAssistPlayer = useMemo(() => teamAttendance.find(p => p.number === assistNumber), [teamAttendance, assistNumber]);
-  const selectedAssist2Player = useMemo(() => teamAttendance.find(p => p.number === assist2Number), [teamAttendance, assist2Number]);
+  const opposingTeamRoster = useMemo(() => {
+    const mc = state.live.matchContext;
+    return mc ? (opposingTeam === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+  }, [state.live.matchContext, opposingTeam]);
+
+  const selectedPlayer = useMemo(() => teamRoster.find(p => p.number === scorerNumber), [teamRoster, scorerNumber]);
+  const selectedAssistPlayer = useMemo(() => teamRoster.find(p => p.number === assistNumber), [teamRoster, assistNumber]);
+  const selectedAssist2Player = useMemo(() => teamRoster.find(p => p.number === assist2Number), [teamRoster, assist2Number]);
 
   const scorerInRoster = useMemo(() => scorerNumber.trim() ? teamRoster.some(p => p.number === scorerNumber.trim()) : null, [teamRoster, scorerNumber]);
   const assistInRoster = useMemo(() => assistNumber.trim() ? teamRoster.some(p => p.number === assistNumber.trim()) : null, [teamRoster, assistNumber]);
   const assist2InRoster = useMemo(() => assist2Number.trim() ? teamRoster.some(p => p.number === assist2Number.trim()) : null, [teamRoster, assist2Number]);
 
   const getPlayersByNumbers = (numbers: string[], fromOpposing = false) => {
-    const source = fromOpposing ? opposingTeamAttendance : teamAttendance;
+    const source = fromOpposing ? opposingTeamRoster : teamRoster;
     return numbers.map(num => num ? source.find(p => p.number === num) || null : null);
   };
-  const selectedPositivePlayers = useMemo(() => getPlayersByNumbers(positives, false), [teamAttendance, positives]);
-  const selectedNegativePlayers = useMemo(() => getPlayersByNumbers(negatives, true), [opposingTeamAttendance, negatives]);
+  const selectedPositivePlayers = useMemo(() => getPlayersByNumbers(positives, false), [teamRoster, positives]);
+  const selectedNegativePlayers = useMemo(() => getPlayersByNumbers(negatives, true), [opposingTeamRoster, negatives]);
 
   // Detect duplicates
   const duplicateChecker = useMemo(() => {
@@ -341,30 +344,33 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
   }, [isEditing, goal]);
 
   const goalTeam: Team = goal.team;
-  const teamAttendance = useMemo(() => state.live.attendance[goalTeam] || [], [state.live.attendance, goalTeam]);
   const opposingTeamKey: Team = goalTeam === 'home' ? 'away' : 'home';
-  const opposingTeamAttendance = useMemo(() => state.live.attendance[opposingTeamKey] || [], [state.live.attendance, opposingTeamKey]);
 
   const editTeamRoster = useMemo(() => {
     const mc = state.live.matchContext;
     return mc ? (goalTeam === 'home' ? mc.homeRoster : mc.awayRoster) : [];
   }, [state.live.matchContext, goalTeam]);
 
+  const editOpposingTeamRoster = useMemo(() => {
+    const mc = state.live.matchContext;
+    return mc ? (opposingTeamKey === 'home' ? mc.homeRoster : mc.awayRoster) : [];
+  }, [state.live.matchContext, opposingTeamKey]);
+
   // Player resolution
-  const selectedScorerPlayer = useMemo(() => teamAttendance.find(p => p.number === scorerNumberInput), [teamAttendance, scorerNumberInput]);
-  const selectedAssistPlayer = useMemo(() => teamAttendance.find(p => p.number === assistNumberInput), [teamAttendance, assistNumberInput]);
-  const selectedAssist2Player = useMemo(() => teamAttendance.find(p => p.number === assist2NumberInput), [teamAttendance, assist2NumberInput]);
+  const selectedScorerPlayer = useMemo(() => editTeamRoster.find(p => p.number === scorerNumberInput), [editTeamRoster, scorerNumberInput]);
+  const selectedAssistPlayer = useMemo(() => editTeamRoster.find(p => p.number === assistNumberInput), [editTeamRoster, assistNumberInput]);
+  const selectedAssist2Player = useMemo(() => editTeamRoster.find(p => p.number === assist2NumberInput), [editTeamRoster, assist2NumberInput]);
 
   const editScorerInRoster = useMemo(() => scorerNumberInput.trim() ? editTeamRoster.some(p => p.number === scorerNumberInput.trim()) : null, [editTeamRoster, scorerNumberInput]);
   const editAssistInRoster = useMemo(() => assistNumberInput.trim() ? editTeamRoster.some(p => p.number === assistNumberInput.trim()) : null, [editTeamRoster, assistNumberInput]);
   const editAssist2InRoster = useMemo(() => assist2NumberInput.trim() ? editTeamRoster.some(p => p.number === assist2NumberInput.trim()) : null, [editTeamRoster, assist2NumberInput]);
 
   const getPlayersByNumbers = (numbers: string[], fromOpposing = false) => {
-    const source = fromOpposing ? opposingTeamAttendance : teamAttendance;
+    const source = fromOpposing ? editOpposingTeamRoster : editTeamRoster;
     return numbers.map(num => num ? source.find(p => p.number === num) || null : null);
   };
-  const selectedPositivePlayers = useMemo(() => getPlayersByNumbers(positivesInput, false), [teamAttendance, positivesInput]);
-  const selectedNegativePlayers = useMemo(() => getPlayersByNumbers(negativesInput, true), [opposingTeamAttendance, negativesInput]);
+  const selectedPositivePlayers = useMemo(() => getPlayersByNumbers(positivesInput, false), [editTeamRoster, positivesInput]);
+  const selectedNegativePlayers = useMemo(() => getPlayersByNumbers(negativesInput, true), [editOpposingTeamRoster, negativesInput]);
 
   // Detect duplicates
   const duplicateChecker = useMemo(() => {
@@ -686,12 +692,12 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
             <div className="flex-grow min-w-0">
               <p className="font-semibold text-card-foreground">
                 Gol #{goal.scorer?.playerNumber || 'S/N'}
-                {teamAttendance.find(p => p.number === goal.scorer?.playerNumber)?.name && <span className="text-sm font-normal"> {teamAttendance.find(p => p.number === goal.scorer?.playerNumber)?.name}</span>}
+                {editTeamRoster.find(p => p.number === goal.scorer?.playerNumber)?.name && <span className="text-sm font-normal"> {editTeamRoster.find(p => p.number === goal.scorer?.playerNumber)?.name}</span>}
                 {goal.assist?.playerNumber && (
-                  <span className="text-sm font-normal text-muted-foreground"> (Asist. #{goal.assist.playerNumber}{(() => { const a = teamAttendance.find(p => p.number === goal.assist?.playerNumber); return a ? ` ${a.name}` : ''; })()})</span>
+                  <span className="text-sm font-normal text-muted-foreground"> (Asist. #{goal.assist.playerNumber}{(() => { const a = editTeamRoster.find(p => p.number === goal.assist?.playerNumber); return a ? ` ${a.name}` : ''; })()})</span>
                 )}
                 {goal.assist2?.playerNumber && (
-                  <span className="text-sm font-normal text-muted-foreground"> (Asist. 2 #{goal.assist2.playerNumber}{(() => { const a = teamAttendance.find(p => p.number === goal.assist2?.playerNumber); return a ? ` ${a.name}` : ''; })()})</span>
+                  <span className="text-sm font-normal text-muted-foreground"> (Asist. 2 #{goal.assist2.playerNumber}{(() => { const a = editTeamRoster.find(p => p.number === goal.assist2?.playerNumber); return a ? ` ${a.name}` : ''; })()})</span>
                 )}
               </p>
               <p className="text-sm text-muted-foreground font-normal">
@@ -699,12 +705,12 @@ function EditableGoalItem({ goal }: { goal: GoalLog }) {
               </p>
               {goal.positives && goal.positives.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="font-semibold">Positivas:</span> {goal.positives.map(p => { const name = teamAttendance.find(a => a.number === p?.playerNumber)?.name; return `#${p?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
+                  <span className="font-semibold">Positivas:</span> {goal.positives.map(p => { const name = editTeamRoster.find(a => a.number === p?.playerNumber)?.name; return `#${p?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
                 </p>
               )}
               {goal.negatives && goal.negatives.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="font-semibold">Negativas:</span> {goal.negatives.map(n => { const name = opposingTeamAttendance.find(a => a.number === n?.playerNumber)?.name; return `#${n?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
+                  <span className="font-semibold">Negativas:</span> {goal.negatives.map(n => { const name = editOpposingTeamRoster.find(a => a.number === n?.playerNumber)?.name; return `#${n?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
                 </p>
               )}
             </div>

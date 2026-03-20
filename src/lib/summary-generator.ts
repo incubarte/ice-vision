@@ -1,4 +1,4 @@
-import type { GameState, GameSummary, SummaryPlayerStats, GoalLog, ShotLog, AttendedPlayerInfo, Team, PlayerData, PenaltyLog, VoiceGameEvent, SummaryRosterEntry, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodStats, SummaryPeriodSummary, SummaryGoalkeeperChange, SummaryShootoutAttempt, GoalkeeperChangeLog } from "@/types";
+import type { GameState, GameSummary, SummaryPlayerStats, GoalLog, ShotLog, Team, PlayerData, PenaltyLog, VoiceGameEvent, SummaryRosterEntry, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodStats, SummaryPeriodSummary, SummaryGoalkeeperChange, SummaryShootoutAttempt, GoalkeeperChangeLog } from "@/types";
 
 // Helper: look up a player by number in a roster, return their id
 function findPlayerIdByNumber(number: string, roster: PlayerData[]): string | undefined {
@@ -14,55 +14,19 @@ function convertPlayerRef(ref: { playerNumber: string } | null | undefined, rost
 }
 
 // Build summary roster from matchContext roster + live attendance.
-// The result is the union: every roster player (with isPresent flag) PLUS
-// any attendance-only players (transient players not originally in the roster).
-// Attendance is the source of truth for display numbers.
-function buildSummaryRoster(roster: PlayerData[], attendance: AttendedPlayerInfo[]): SummaryRosterEntry[] {
-    const matchedNames = new Set<string>();
+// Attendance is now a simple string[] of jersey numbers of present players.
+// The roster is the source of truth for player data (name, type, id).
+function buildSummaryRoster(roster: PlayerData[], attendanceNumbers: string[]): SummaryRosterEntry[] {
+    const attendanceSet = new Set(attendanceNumbers);
 
-    // Start with all roster players
-    const entries: SummaryRosterEntry[] = roster.map(p => {
-        const att = attendance.find(a => a.name === p.name);
-        if (att) matchedNames.add(att.name);
-        return {
-            id: p.id,
-            number: att?.number ?? p.number,  // attendance number wins (may have been edited)
-            name: p.name,
-            type: att?.type || p.type,
-            isPresent: !!att,
-        };
-    });
-
-    // Add attendance-only players (not found in roster by name)
-    attendance.forEach(att => {
-        if (matchedNames.has(att.name)) return;
-        // Try to find a roster entry by number as fallback (transient players added
-        // by ensurePlayerInRoster have auto-generated names like "Player #10")
-        const rosterByNumber = roster.find(p => p.number === att.number && !entries.some(e => e.id === p.id && e.isPresent));
-        if (rosterByNumber && !matchedNames.has(rosterByNumber.name)) {
-            // The roster entry exists but under a different name — update it
-            const existingIdx = entries.findIndex(e => e.id === rosterByNumber.id);
-            if (existingIdx !== -1) {
-                entries[existingIdx] = {
-                    ...entries[existingIdx],
-                    number: att.number,
-                    isPresent: true,
-                };
-                matchedNames.add(att.name);
-                return;
-            }
-        }
-        // Truly unmatched attendance entry — add with a generated id
-        entries.push({
-            id: att.id || `anon-${att.number || att.name}`,
-            number: att.number,
-            name: att.name,
-            type: att.type || 'player',
-            isPresent: true,
-        });
-    });
-
-    return entries;
+    // Build from roster, marking isPresent based on attendance set
+    return roster.map(p => ({
+        id: p.id,
+        number: p.number,
+        name: p.name,
+        type: p.type,
+        isPresent: attendanceSet.has(p.number),
+    }));
 }
 
 // Convert live GoalLog → SummaryGoalEntry
@@ -125,7 +89,7 @@ export const recalculateAllStatsFromLogs = (
         goals: { home: any[], away: any[] },
         home: { homeShotsLog?: ShotLog[] },
         away: { awayShotsLog?: ShotLog[] },
-        attendance?: { home: (AttendedPlayerInfo | SummaryRosterEntry)[], away: (AttendedPlayerInfo | SummaryRosterEntry)[] }
+        attendance?: { home: string[] | SummaryRosterEntry[], away: string[] | SummaryRosterEntry[] }
     }>,
     homeTeamRoster: PlayerData[],
     awayTeamRoster: PlayerData[]

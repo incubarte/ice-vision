@@ -23,10 +23,9 @@ export function GoalCelebrationOverlay({ celebration }: GoalCelebrationOverlayPr
     const mc = state.live.matchContext;
     const logoDataUrl = mc ? (goal.team === 'home' ? mc.homeTeamLogoDataUrl : mc.awayTeamLogoDataUrl) : null;
     const roster = mc ? (goal.team === 'home' ? mc.homeRoster : mc.awayRoster) : [];
-    const attendance = state.live.attendance[goal.team] || [];
-    const scorerName = attendance.find(p => p.number === goal.scorer?.playerNumber)?.name || roster.find(p => p.number === goal.scorer?.playerNumber)?.name;
-    const assistName = goal.assist?.playerNumber ? (attendance.find(p => p.number === goal.assist?.playerNumber)?.name || roster.find(p => p.number === goal.assist?.playerNumber)?.name) : undefined;
-    const assist2Name = goal.assist2?.playerNumber ? (attendance.find(p => p.number === goal.assist2?.playerNumber)?.name || roster.find(p => p.number === goal.assist2?.playerNumber)?.name) : undefined;
+    const scorerName = roster.find(p => p.number === goal.scorer?.playerNumber)?.name;
+    const assistName = goal.assist?.playerNumber ? roster.find(p => p.number === goal.assist?.playerNumber)?.name : undefined;
+    const assist2Name = goal.assist2?.playerNumber ? roster.find(p => p.number === goal.assist2?.playerNumber)?.name : undefined;
 
     console.log('[GoalCelebrationOverlay] Rendered. Config showPlayerPhotos:', state.config.showPlayerPhotosInGoalCelebration, 'Type:', typeof state.config.showPlayerPhotosInGoalCelebration);
 

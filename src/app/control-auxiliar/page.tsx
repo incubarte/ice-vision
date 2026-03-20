@@ -33,26 +33,30 @@ export default function ControlAuxiliarPage() {
     }
   };
 
-  // Get present players for each team
+  // Get present players for each team (from roster filtered by attendance)
   const homePresentPlayers = useMemo(() => {
-    return (state.live.attendance?.home || [])
-      .filter(p => p.isPresent && p.type === 'player')
+    const roster = state.live.matchContext?.homeRoster || [];
+    const attendanceSet = new Set(state.live.attendance?.home || []);
+    return roster
+      .filter(p => attendanceSet.has(p.number) && p.type === 'player')
       .sort((a, b) => {
         const numA = parseInt(a.number) || 999;
         const numB = parseInt(b.number) || 999;
         return numA - numB;
       });
-  }, [state.live.attendance?.home]);
+  }, [state.live.matchContext?.homeRoster, state.live.attendance?.home]);
 
   const awayPresentPlayers = useMemo(() => {
-    return (state.live.attendance?.away || [])
-      .filter(p => p.isPresent && p.type === 'player')
+    const roster = state.live.matchContext?.awayRoster || [];
+    const attendanceSet = new Set(state.live.attendance?.away || []);
+    return roster
+      .filter(p => attendanceSet.has(p.number) && p.type === 'player')
       .sort((a, b) => {
         const numA = parseInt(a.number) || 999;
         const numB = parseInt(b.number) || 999;
         return numA - numB;
       });
-  }, [state.live.attendance?.away]);
+  }, [state.live.matchContext?.awayRoster, state.live.attendance?.away]);
 
   const homeTeamName = state.live.homeTeamName || 'Equipo Local';
   const awayTeamName = state.live.awayTeamName || 'Equipo Visitante';

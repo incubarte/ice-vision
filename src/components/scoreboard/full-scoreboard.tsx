@@ -420,12 +420,17 @@ export function FullScoreboard({ className }: { className?: string }) {
     remainingWarmupSeconds <= config.rosterPresentationDuration;
 
   // Verificar si los equipos tienen suficientes fotos
-  // Obtener IDs de jugadores presentes desde attendance (filtrar solo los que tienen isPresent !== false)
-  const homePresentPlayerIds = live.attendance.home
-    .filter(p => p.isPresent !== false)
+  // Attendance is now string[] of jersey numbers. Look up player IDs from roster.
+  const homeRoster = matchContext?.homeRoster || [];
+  const awayRoster = matchContext?.awayRoster || [];
+  const homeAttendanceSet = new Set(live.attendance.home || []);
+  const awayAttendanceSet = new Set(live.attendance.away || []);
+
+  const homePresentPlayerIds = homeRoster
+    .filter(p => homeAttendanceSet.has(p.number))
     .map(p => p.id);
-  const awayPresentPlayerIds = live.attendance.away
-    .filter(p => p.isPresent !== false)
+  const awayPresentPlayerIds = awayRoster
+    .filter(p => awayAttendanceSet.has(p.number))
     .map(p => p.id);
 
   // Debug attendance data

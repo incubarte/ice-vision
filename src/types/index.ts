@@ -630,7 +630,7 @@ export interface LiveState {
   shotsLog: { home: ShotLog[], away: ShotLog[] };
   substitutionsLog: { home: PlayerSubstitutionLog[], away: PlayerSubstitutionLog[] }; // Log of player substitutions
   playersOnField: { home: string[], away: string[] }; // IDs of players currently on the field
-  attendance: { home: AttendedPlayerInfo[], away: AttendedPlayerInfo[] };
+  attendance: { home: string[], away: string[] }; // Jersey numbers of present players
   goalkeeperChangesLog: { home: GoalkeeperChangeLog[], away: GoalkeeperChangeLog[] }; // Log of goalkeeper changes during the match
   homeActiveGoalkeeperNumber: string | null; // Number of the currently active home goalkeeper
   awayActiveGoalkeeperNumber: string | null; // Number of the currently active away goalkeeper
@@ -799,8 +799,8 @@ export type GameAction =
   | { type: 'ADD_PLAYER_TO_TEAM'; payload: { teamId: string; player: Omit<PlayerData, 'id'> & { id?: string } } }
   | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName'>> } }
   | { type: 'REMOVE_PLAYER_FROM_TEAM'; payload: { teamId: string; playerId: string } }
-  | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerNames: string[] } }
-  | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerName: string; updates: Partial<Pick<AttendedPlayerInfo, 'name' | 'number'>> } }
+  | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerNumbers: string[] } }
+  | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerName: string; updates: { number: string } } }
   | { type: 'ADD_STAFF_TO_TOURNAMENT'; payload: { tournamentId: string; staff: Omit<StaffMember, 'id'> & { id?: string } } }
   | { type: 'UPDATE_STAFF_IN_TOURNAMENT'; payload: { tournamentId: string; staffId: string; updates: Partial<Omit<StaffMember, 'id'>> } }
   | { type: 'REMOVE_STAFF_FROM_TOURNAMENT'; payload: { tournamentId: string; staffId: string } }

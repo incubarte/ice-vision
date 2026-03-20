@@ -287,6 +287,7 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
 
     // 2. Check Attendance warnings (only if starting Period 1)
     if (state.live.clock.currentPeriod === 0 && state.live.clock.periodDisplayOverride === "Warm-up") {
+      // Attendance is now string[] of jersey numbers
       const homeAttendance = state.live.attendance.home;
       const awayAttendance = state.live.attendance.away;
       const minPlayers = state.config.playersPerTeamOnIce;
@@ -311,22 +312,8 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
         warnings.push(`⚠️ Jugadores insuficientes: ${insufficientTeams.join(', ')}`);
       }
 
-      // Check for players without numbers (only present players)
-      const homePlayersWithoutNumber = homeAttendance.filter(p => p.isPresent !== false && (!p.number || p.number.trim() === ''));
-      const awayPlayersWithoutNumber = awayAttendance.filter(p => p.isPresent !== false && (!p.number || p.number.trim() === ''));
-
-      if (homePlayersWithoutNumber.length > 0 || awayPlayersWithoutNumber.length > 0) {
-        const teamsWithMissingNumbers: string[] = [];
-        if (homePlayersWithoutNumber.length > 0) {
-          const playerNames = homePlayersWithoutNumber.map(p => p.name).join(', ');
-          teamsWithMissingNumbers.push(`${state.live.homeTeamName}: ${playerNames}`);
-        }
-        if (awayPlayersWithoutNumber.length > 0) {
-          const playerNames = awayPlayersWithoutNumber.map(p => p.name).join(', ');
-          teamsWithMissingNumbers.push(`${state.live.awayTeamName}: ${playerNames}`);
-        }
-        warnings.push(`⚠️ Jugadores sin número asignado:\n${teamsWithMissingNumbers.join('\n')}`);
-      }
+      // Players without numbers check is no longer needed since attendance is just jersey numbers.
+      // A player in attendance always has a number by definition.
     }
 
     // Define the final action to execute

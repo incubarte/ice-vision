@@ -23,13 +23,12 @@ async function getGameContext(): Promise<GameContext> {
     const awayTeam = liveState.awayTeamName || '';
     const teamNames = [homeTeam, awayTeam].filter(Boolean);
 
-    // Extract player numbers from attendance
+    // Extract player numbers from attendance (now string[] of jersey numbers)
     let playerInfo = '';
     const validPlayers: { [team: string]: string[] } = {};
 
     if (liveState.attendance?.home) {
-      const homePlayers = liveState.attendance.home
-        .map((p: any) => p.number)
+      const homePlayers = (liveState.attendance.home as string[])
         .filter((n: string) => n && n !== '');
       if (homePlayers.length > 0) {
         validPlayers[homeTeam] = homePlayers;
@@ -38,8 +37,7 @@ async function getGameContext(): Promise<GameContext> {
     }
 
     if (liveState.attendance?.away) {
-      const awayPlayers = liveState.attendance.away
-        .map((p: any) => p.number)
+      const awayPlayers = (liveState.attendance.away as string[])
         .filter((n: string) => n && n !== '');
       if (awayPlayers.length > 0) {
         validPlayers[awayTeam] = awayPlayers;

@@ -232,9 +232,9 @@ test.describe('Full Game Lifecycle', () => {
     const inputPlayerOne = controlsPage.locator('span').filter({ hasText: 'HOME PLAYER ONE' }).locator('..').locator('input[placeholder="#"]');
     await expect(inputPlayerOne).toBeVisible({ timeout: 3000 });
 
-    // Step 1: Change HOME PLAYER ONE's number (#10) to #99 (temp)
+    // Step 1: Change HOME PLAYER ONE's number (#10) to #20
     await inputPlayerOne.click({ force: true });
-    await inputPlayerOne.fill('99');
+    await inputPlayerOne.fill('20');
     await inputPlayerOne.press('Enter');
 
     // Step 2: Change HOME PLAYER TWO's number (#20) to #10
@@ -242,11 +242,6 @@ test.describe('Full Game Lifecycle', () => {
     await inputPlayerTwo.click({ force: true });
     await inputPlayerTwo.fill('10');
     await inputPlayerTwo.press('Enter');
-
-    // Step 3: Change HOME PLAYER ONE's number (#99) to #20
-    await inputPlayerOne.click({ force: true });
-    await inputPlayerOne.fill('20');
-    await inputPlayerOne.press('Enter');
 
     // Verify: Switch to Goles tab and check the goal display uses updated names
     await controlsPage.getByRole('tab', { name: 'Goles' }).click();
@@ -313,15 +308,17 @@ test.describe('Full Game Lifecycle', () => {
     expect(period1.stats.goals.home).toHaveLength(2);
     expect(period1.stats.goals.away).toHaveLength(0);
 
-    // First home goal: scorer #10 (player-h1), assist #20 (player-h2)
+    // First home goal: scorer #10, assist #20
+    // After number swap (#10↔#20): #10 → player-h2, #20 → player-h1
+    // Summary uses final roster mapping (operator verified)
     const homeGoal1 = period1.stats.goals.home[0];
-    expect(homeGoal1.scorer?.playerId).toBe('player-h1');
-    expect(homeGoal1.assist?.playerId).toBe('player-h2');
+    expect(homeGoal1.scorer?.playerId).toBe('player-h2');
+    expect(homeGoal1.assist?.playerId).toBe('player-h1');
 
-    // Second home goal: scorer #20 (player-h2), assist #10 (player-h1)
+    // Second home goal: scorer #20, assist #10
     const homeGoal2 = period1.stats.goals.home[1];
-    expect(homeGoal2.scorer?.playerId).toBe('player-h2');
-    expect(homeGoal2.assist?.playerId).toBe('player-h1');
+    expect(homeGoal2.scorer?.playerId).toBe('player-h1');
+    expect(homeGoal2.assist?.playerId).toBe('player-h2');
 
     // Period 1 should have 1 away penalty for #21 (player-a2)
     expect(period1.stats.penalties.away).toHaveLength(1);

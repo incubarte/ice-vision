@@ -109,16 +109,16 @@ const GoalsDisplayCard = ({ team, teamName, goals, onAddGoal }: { team: Team; te
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="font-bold">#{goal.scorer?.playerNumber || 'S/N'}</span>
-                            {(() => { const name = state.live.attendance[goal.team]?.find(p => p.number === goal.scorer?.playerNumber)?.name; return name ? <span className="text-sm text-muted-foreground truncate">{name}</span> : null; })()}
+                            {(() => { const name = (state.live.matchContext ? (goal.team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : []).find(p => p.number === goal.scorer?.playerNumber)?.name; return name ? <span className="text-sm text-muted-foreground truncate">{name}</span> : null; })()}
                           </div>
 
                           {(goal.assist || goal.assist2) && (
                             <div className="text-sm text-muted-foreground space-y-1 ml-6">
                               {goal.assist && (
-                                <div>Asist. 1: #{goal.assist.playerNumber} {state.live.attendance[goal.team]?.find(p => p.number === goal.assist?.playerNumber)?.name || ''}</div>
+                                <div>Asist. 1: #{goal.assist.playerNumber} {(state.live.matchContext ? (goal.team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : []).find(p => p.number === goal.assist?.playerNumber)?.name || ''}</div>
                               )}
                               {goal.assist2 && (
-                                <div>Asist. 2: #{goal.assist2.playerNumber} {state.live.attendance[goal.team]?.find(p => p.number === goal.assist2?.playerNumber)?.name || ''}</div>
+                                <div>Asist. 2: #{goal.assist2.playerNumber} {(state.live.matchContext ? (goal.team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : []).find(p => p.number === goal.assist2?.playerNumber)?.name || ''}</div>
                               )}
                             </div>
                           )}
@@ -126,14 +126,14 @@ const GoalsDisplayCard = ({ team, teamName, goals, onAddGoal }: { team: Team; te
                           {goal.positives && goal.positives.length > 0 && (
                             <div className="text-xs text-muted-foreground mt-2 ml-6">
                               <span className="font-semibold">Positivas:</span>{' '}
-                              {goal.positives.map(p => { const name = state.live.attendance[goal.team]?.find(a => a.number === p?.playerNumber)?.name; return `#${p?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
+                              {goal.positives.map(p => { const name = (state.live.matchContext ? (goal.team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : []).find(a => a.number === p?.playerNumber)?.name; return `#${p?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
                             </div>
                           )}
 
                           {goal.negatives && goal.negatives.length > 0 && (
                             <div className="text-xs text-muted-foreground mt-1 ml-6">
                               <span className="font-semibold">Negativas:</span>{' '}
-                              {goal.negatives.map(n => { const opposingTeam = goal.team === 'home' ? 'away' : 'home'; const name = state.live.attendance[opposingTeam]?.find(a => a.number === n?.playerNumber)?.name; return `#${n?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
+                              {goal.negatives.map(n => { const opposingTeam = goal.team === 'home' ? 'away' : 'home'; const name = (state.live.matchContext ? (opposingTeam === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : []).find(a => a.number === n?.playerNumber)?.name; return `#${n?.playerNumber}${name ? ` ${name}` : ''}`; }).join(', ')}
                             </div>
                           )}
 

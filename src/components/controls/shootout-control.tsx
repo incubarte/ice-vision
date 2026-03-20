@@ -45,7 +45,11 @@ const ShooterSelector = ({
   const [playerSearchTerm, setPlayerSearchTerm] = useState('');
   const justSelectedPlayerRef = useRef(false);
   
-  const attendancePlayers = useMemo(() => state.live.attendance[team] || [], [state.live.attendance, team]);
+  const attendancePlayers = useMemo(() => {
+    const attendanceSet = new Set(state.live.attendance[team] || []);
+    const roster = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
+    return roster.filter(p => p.number && attendanceSet.has(p.number));
+  }, [state.live.attendance, state.live.matchContext, team]);
 
   const filteredPlayers = useMemo(() => {
     if (attendancePlayers.length === 0) return [];
@@ -157,8 +161,8 @@ const ShooterSelector = ({
 };
 
 
-const ShootoutAttemptRow = ({ attempt, attendance }: { attempt: ShootoutAttempt; attendance: { number: string; name: string }[] }) => {
-    const playerName = attendance.find(p => p.number === attempt.playerNumber)?.name || attempt.playerName || 'Jugador no listado';
+const ShootoutAttemptRow = ({ attempt, roster }: { attempt: ShootoutAttempt; roster: { number: string; name: string }[] }) => {
+    const playerName = roster.find(p => p.number === attempt.playerNumber)?.name || attempt.playerName || 'Jugador no listado';
     return (
         <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
             <div className="flex items-center gap-2">
@@ -374,7 +378,7 @@ export const ShootoutControl = () => {
                                 <Undo2 className="h-4 w-4 mr-1" /> Deshacer
                             </Button>
                         </div>
-                        {shootout.homeAttempts.length > 0 ? shootout.homeAttempts.map(a => <ShootoutAttemptRow key={a.id} attempt={a} attendance={state.live.attendance.home || []} />) : <p className="text-sm text-muted-foreground italic">Sin tiros registrados.</p>}
+                        {shootout.homeAttempts.length > 0 ? shootout.homeAttempts.map(a => <ShootoutAttemptRow key={a.id} attempt={a} roster={state.live.matchContext?.homeRoster || []} />) : <p className="text-sm text-muted-foreground italic">Sin tiros registrados.</p>}
                     </div>
                      <div className="space-y-2">
                          <div className="flex items-center justify-between">
@@ -383,7 +387,7 @@ export const ShootoutControl = () => {
                                 <Undo2 className="h-4 w-4 mr-1" /> Deshacer
                             </Button>
                         </div>
-                        {shootout.awayAttempts.length > 0 ? shootout.awayAttempts.map(a => <ShootoutAttemptRow key={a.id} attempt={a} attendance={state.live.attendance.away || []} />) : <p className="text-sm text-muted-foreground italic">Sin tiros registrados.</p>}
+                        {shootout.awayAttempts.length > 0 ? shootout.awayAttempts.map(a => <ShootoutAttemptRow key={a.id} attempt={a} roster={state.live.matchContext?.awayRoster || []} />) : <p className="text-sm text-muted-foreground italic">Sin tiros registrados.</p>}
                     </div>
                 </div>
 

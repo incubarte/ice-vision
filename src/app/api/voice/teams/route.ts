@@ -14,9 +14,9 @@ export async function GET() {
     const homeTeamSubName = liveState.homeTeamSubName || undefined;
     const awayTeamSubName = liveState.awayTeamSubName || undefined;
 
-    // Extract attendance with isPresent flag
-    const attendanceHomeMap = new Map((liveState.attendance?.home || []).map((p: any) => [p.id, p.isPresent !== false]));
-    const attendanceAwayMap = new Map((liveState.attendance?.away || []).map((p: any) => [p.id, p.isPresent !== false]));
+    // Attendance is now string[] of jersey numbers of present players
+    const attendanceHomeSet = new Set<string>(liveState.attendance?.home || []);
+    const attendanceAwaySet = new Set<string>(liveState.attendance?.away || []);
 
     // Get full team rosters from tournament
     const configPath = path.join(process.cwd(), 'tmp', 'new-storage', 'data', 'config.json');
@@ -27,69 +27,70 @@ export async function GET() {
     let allHomePlayers: any[] = [];
     let allAwayPlayers: any[] = [];
 
-    if (tournamentId) {
-      try {
-        // Read teams from the tournament's teams.json file
-        const teamsPath = path.join(
-          process.cwd(),
-          'tmp', 'new-storage', 'data', 'tournaments',
-          tournamentId,
-          'teams.json'
-        );
-        const teamsData = await readFile(teamsPath, 'utf-8');
-        const teamsFile = JSON.parse(teamsData);
+    // First try to use matchContext roster (preferred, snapshot at game setup)
+    if (liveState.matchContext?.homeRoster) {
+      allHomePlayers = liveState.matchContext.homeRoster.map((p: any) => ({
+        id: p.id,
+        number: p.number || '',
+        name: p.name || 'Sin nombre',
+        isPresent: attendanceHomeSet.has(p.number || '')
+      }));
+    }
 
-        if (teamsFile.teams) {
-          // Match by name and subName
-          const homeTeamData = teamsFile.teams.find((t: any) =>
-            t.name === homeTeamName &&
-            (t.subName || undefined) === homeTeamSubName
+    if (liveState.matchContext?.awayRoster) {
+      allAwayPlayers = liveState.matchContext.awayRoster.map((p: any) => ({
+        id: p.id,
+        number: p.number || '',
+        name: p.name || 'Sin nombre',
+        isPresent: attendanceAwaySet.has(p.number || '')
+      }));
+    }
+
+    // Fallback: try tournament teams file
+    if (allHomePlayers.length === 0 || allAwayPlayers.length === 0) {
+      if (tournamentId) {
+        try {
+          const teamsPath = path.join(
+            process.cwd(),
+            'tmp', 'new-storage', 'data', 'tournaments',
+            tournamentId,
+            'teams.json'
           );
-          const awayTeamData = teamsFile.teams.find((t: any) =>
-            t.name === awayTeamName &&
-            (t.subName || undefined) === awayTeamSubName
-          );
+          const teamsData = await readFile(teamsPath, 'utf-8');
+          const teamsFile = JSON.parse(teamsData);
 
-          if (homeTeamData?.players) {
-            allHomePlayers = homeTeamData.players.map((p: any) => ({
-              id: p.id,
-              number: p.number || '',
-              name: p.name || 'Sin nombre',
-              isPresent: attendanceHomeMap.get(p.id) || false
-            }));
-          }
+          if (teamsFile.teams) {
+            const homeTeamData = teamsFile.teams.find((t: any) =>
+              t.name === homeTeamName &&
+              (t.subName || undefined) === homeTeamSubName
+            );
+            const awayTeamData = teamsFile.teams.find((t: any) =>
+              t.name === awayTeamName &&
+              (t.subName || undefined) === awayTeamSubName
+            );
 
-          if (awayTeamData?.players) {
-            allAwayPlayers = awayTeamData.players.map((p: any) => ({
-              id: p.id,
-              number: p.number || '',
-              name: p.name || 'Sin nombre',
-              isPresent: attendanceAwayMap.get(p.id) || false
-            }));
+            if (allHomePlayers.length === 0 && homeTeamData?.players) {
+              allHomePlayers = homeTeamData.players.map((p: any) => ({
+                id: p.id,
+                number: p.number || '',
+                name: p.name || 'Sin nombre',
+                isPresent: attendanceHomeSet.has(p.number || '')
+              }));
+            }
+
+            if (allAwayPlayers.length === 0 && awayTeamData?.players) {
+              allAwayPlayers = awayTeamData.players.map((p: any) => ({
+                id: p.id,
+                number: p.number || '',
+                name: p.name || 'Sin nombre',
+                isPresent: attendanceAwaySet.has(p.number || '')
+              }));
+            }
           }
+        } catch (error) {
+          console.error('Could not load full roster:', error);
         }
-      } catch (error) {
-        console.error('Could not load full roster:', error);
       }
-    }
-
-    // If no roster found, use attendance only
-    if (allHomePlayers.length === 0) {
-      allHomePlayers = (liveState.attendance?.home || []).map((p: any) => ({
-        id: p.id,
-        number: p.number || '',
-        name: p.name || 'Sin nombre',
-        isPresent: true
-      }));
-    }
-
-    if (allAwayPlayers.length === 0) {
-      allAwayPlayers = (liveState.attendance?.away || []).map((p: any) => ({
-        id: p.id,
-        number: p.number || '',
-        name: p.name || 'Sin nombre',
-        isPresent: true
-      }));
     }
 
     // Sort by number (numeric sort)

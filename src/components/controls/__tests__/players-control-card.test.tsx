@@ -116,22 +116,24 @@ describe('PlayersControlCard — Player Number Changes', () => {
     expect(numberInput('HOME PLAYER ONE')).toBeEnabled();
     expect(numberInput('HOME PLAYER ONE').value).toBe('20');
 
-    // HOME PLAYER TWO should be inactive with number 20
-    expect(numberInput('HOME PLAYER TWO')).toBeDisabled();
-    expect(numberInput('HOME PLAYER TWO').value).toBe('20');
+    // HOME PLAYER TWO should have its number cleared (collision), with red border
+    expect(numberInput('HOME PLAYER TWO')).toBeEnabled();
+    expect(numberInput('HOME PLAYER TWO').value).toBe('');
 
-    // Now activate HOME PLAYER TWO
+    // Try to activate HOME PLAYER TWO (should fail — no number)
     await user.click(playerRow('HOME PLAYER TWO'));
     rerender();
 
     // Row count still 3
     expect(screen.getAllByPlaceholderText('#')).toHaveLength(3);
-    expect(screen.getByText('2/3 presentes')).toBeInTheDocument();
+    // Still 1 present — player without number can't be toggled on
+    expect(screen.getByText('1/3 presentes')).toBeInTheDocument();
 
-    // Both active with number 20
+    // HOME PLAYER ONE still active with number 20
     expect(numberInput('HOME PLAYER ONE')).toBeEnabled();
     expect(numberInput('HOME PLAYER ONE').value).toBe('20');
+    // HOME PLAYER TWO still has empty number
     expect(numberInput('HOME PLAYER TWO')).toBeEnabled();
-    expect(numberInput('HOME PLAYER TWO').value).toBe('20');
+    expect(numberInput('HOME PLAYER TWO').value).toBe('');
   });
 });

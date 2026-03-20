@@ -30,12 +30,10 @@ const getEndReasonVariant = (reason?: 'completed' | 'deleted' | 'goal_on_pp'): "
 export function PenaltyLogDialog({ isOpen, onOpenChange, team, teamName }: PenaltyLogDialogProps) {
   const { state } = useGameState();
 
-  const attendance = state.live.attendance[team] || [];
   const roster = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
 
   const lookupPlayerName = (playerNumber: string): string | undefined => {
-    return attendance.find(p => p.number === playerNumber)?.name
-      || roster.find(p => p.number === playerNumber)?.name;
+    return roster.find(p => p.number === playerNumber)?.name;
   };
 
   const penaltyLogs = useMemo(() => {

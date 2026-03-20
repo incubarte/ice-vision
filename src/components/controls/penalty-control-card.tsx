@@ -101,9 +101,9 @@ const PenaltyItem = ({ penalty, team, isEditing, onEditStart, onEditConfirm, onE
     const { state, dispatch } = useGameState();
     const [editTimeValue, setEditTimeValue] = useState('');
 
-    const attendancePlayers = state.live.attendance[team] || [];
+    const rosterPlayers = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
 
-    const matchedPlayerForPenaltyDisplay = attendancePlayers.find(
+    const matchedPlayerForPenaltyDisplay = rosterPlayers.find(
       pData => pData.number === penalty.playerNumber || (penalty.playerNumber === "S/N" && !pData.number)
     );
 
@@ -417,7 +417,11 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
     .map(item => item.penalty);
 
   const teamSubName = team === 'home' ? state.live.homeTeamSubName : state.live.awayTeamSubName;
-  const attendancePlayers = useMemo(() => state.live.attendance[team] || [], [state.live.attendance, team]);
+  const attendancePlayers = useMemo(() => {
+    const attendanceSet = new Set(state.live.attendance[team] || []);
+    const roster = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
+    return roster.filter(p => p.number && attendanceSet.has(p.number));
+  }, [state.live.attendance, state.live.matchContext, team]);
 
   const teamHasPlayers = useMemo(() => {
       if (!state.config.enablePlayerSelectionForPenalties) return false;

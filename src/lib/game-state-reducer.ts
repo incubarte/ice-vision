@@ -19,7 +19,6 @@ import type {
   PlayerSubstitutionLog,
   ShootoutAttempt,
   GoalkeeperChangeLog,
-  AttendedPlayerInfo,
   PlayerData,
   PenaltyTypeDefinition,
   Team,
@@ -399,6 +398,20 @@ export const applyScoreboardLayoutProfileToState = (state: GameState, profileId:
   return { ...state, config: { ...state.config, selectedScoreboardLayoutProfileId: id, scoreboardLayout: layoutSettings } };
 };
 
+/**
+ * Normalize attendance from any format to string[] (jersey numbers only).
+ * Accepts: string[], {number: string}[], or mixed arrays.
+ */
+export function normalizeAttendance(raw: unknown[]): string[] {
+  return raw
+    .map(entry => {
+      if (typeof entry === 'string') return entry;
+      if (typeof entry === 'object' && entry !== null && 'number' in entry) return String((entry as any).number);
+      return '';
+    })
+    .filter(n => n !== '');
+}
+
 // ─── gameReducer ───────────────────────────────────────────────────────────────
 
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
@@ -465,7 +478,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       }
 
       if (serverState.live && serverState.live.clock) {
-        finalState.live = serverState.live;
+        finalState.live = {
+          ...serverState.live,
+          attendance: {
+            home: normalizeAttendance(serverState.live.attendance?.home || []),
+            away: normalizeAttendance(serverState.live.attendance?.away || []),
+          },
+        };
       }
 
       newState = applyFormatAndTimingsProfileToState(finalState, finalState.config.selectedFormatAndTimingsProfileId);
@@ -687,28 +706,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const newAttendance = { ...live.attendance };
       newAttendance[teamScored] = [...newAttendance[teamScored]];
 
-      if (newGoal.scorer?.playerNumber) {
-        const scorerExists = newAttendance[teamScored].some(p => p.number === newGoal.scorer?.playerNumber);
-        if (!scorerExists) {
-          const rosterPlayer = mcRoster.find(p => p.number === newGoal.scorer?.playerNumber);
-          newAttendance[teamScored].push({
-            number: newGoal.scorer.playerNumber,
-            name: rosterPlayer!.name,
-            type: rosterPlayer!.type || 'player',
-          });
-        }
+      if (newGoal.scorer?.playerNumber && !newAttendance[teamScored].includes(newGoal.scorer.playerNumber)) {
+        newAttendance[teamScored].push(newGoal.scorer.playerNumber);
       }
 
-      if (newGoal.assist?.playerNumber) {
-        const assistExists = newAttendance[teamScored].some(p => p.number === newGoal.assist?.playerNumber);
-        if (!assistExists) {
-          const rosterPlayer = mcRoster.find(p => p.number === newGoal.assist?.playerNumber);
-          newAttendance[teamScored].push({
-            number: newGoal.assist.playerNumber,
-            name: rosterPlayer!.name,
-            type: rosterPlayer!.type || 'player',
-          });
-        }
+      if (newGoal.assist?.playerNumber && !newAttendance[teamScored].includes(newGoal.assist.playerNumber)) {
+        newAttendance[teamScored].push(newGoal.assist.playerNumber);
       }
 
       const newScore: ScoreState = {
@@ -953,15 +956,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const newAttendance = { ...live.attendance };
       if (!penaltyDef.isBenchPenalty) {
         newAttendance[team] = [...newAttendance[team]];
-        const playerExists = newAttendance[team].some(p => p.number === playerNumber);
-        if (!playerExists) {
-          const penaltyRoster = live.matchContext ? (team === 'home' ? live.matchContext.homeRoster : live.matchContext.awayRoster) : [];
-          const rosterPlayer = penaltyRoster.find(p => p.number === playerNumber);
-          newAttendance[team].push({
-            number: playerNumber,
-            name: rosterPlayer!.name,
-            type: rosterPlayer!.type || 'player',
-          });
+        if (!newAttendance[team].includes(playerNumber)) {
+          newAttendance[team].push(playerNumber);
         }
       }
 
@@ -1010,7 +1006,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         }
       };
       const teamName = team === 'home' ? live.homeTeamName : live.awayTeamName;
-      const penaltyPlayerName = newAttendance[team].find(p => p.number === playerNumber)?.name;
+      const penaltyRosterForName = live.matchContext ? (team === 'home' ? live.matchContext.homeRoster : live.matchContext.awayRoster) : [];
+      const penaltyPlayerName = penaltyRosterForName.find(p => p.number === playerNumber)?.name;
       toastMessage = { title: "Penalidad Agregada", description: `Jugador ${playerNumber.toUpperCase()}${penaltyPlayerName ? ` (${penaltyPlayerName})` : ''} de ${teamName} recibió una penalidad de ${penaltyDef.name}.` };
 
       break;
@@ -2128,20 +2125,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
           // Add to attendance if not already there
           const currentAttendanceList = newState.live.attendance[teamType] || [];
-          if (!currentAttendanceList.some(p => p.id === newPlayerId)) {
+          if (newPlayer.number && !currentAttendanceList.includes(newPlayer.number)) {
             newState = {
               ...newState,
               live: {
                 ...newState.live,
                 attendance: {
                   ...newState.live.attendance,
-                  [teamType]: [...currentAttendanceList, {
-                    id: newPlayerId,
-                    name: newPlayer.name,
-                    number: newPlayer.number,
-                    type: newPlayer.type,
-                    isPresent: true
-                  }]
+                  [teamType]: [...currentAttendanceList, newPlayer.number]
                 }
               }
             };
@@ -2269,45 +2260,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       break;
     }
     case 'SET_TEAM_ATTENDANCE': {
-      const { team, playerNames } = action.payload;
-      const mc = state.live.matchContext;
-      const rosterPlayers = mc ? (team === 'home' ? mc.homeRoster : mc.awayRoster) : undefined;
-      const teamData = rosterPlayers ? { players: rosterPlayers } : undefined;
-
-      const playerNamesSet = new Set(playerNames);
-      const currentAttendance = state.live.attendance[team] || [];
-
-      // Build attendance with only present players
-      let attendedPlayerInfo: AttendedPlayerInfo[] = [];
-      if (teamData) {
-        // Include roster players whose names are in playerNames
-        attendedPlayerInfo = teamData.players
-          .filter(p => playerNamesSet.has(p.name))
-          .map(p => {
-            // Preserve match-specific overrides (e.g. number changes) from current attendance
-            const existing = currentAttendance.find(a => a.name === p.name);
-            return {
-              number: existing?.number || p.number,
-              name: p.name,
-              type: existing?.type || p.type,
-            };
-          });
-
-        // Also preserve ad-hoc players (added during game, not in roster)
-        const adHocPlayers = currentAttendance.filter(a =>
-          !teamData.players.some(p => p.name === a.name)
-        );
-        adHocPlayers.forEach(a => {
-          if (playerNamesSet.has(a.name)) {
-            attendedPlayerInfo.push({ number: a.number, name: a.name, type: a.type });
-          }
-        });
-      } else {
-        // If no team data found, filter current attendance by playerNames
-        attendedPlayerInfo = currentAttendance
-          .filter(p => playerNamesSet.has(p.name))
-          .map(p => ({ number: p.number, name: p.name, type: p.type }));
-      }
+      const { team, playerNumbers } = action.payload;
 
       newState = {
         ...state,
@@ -2315,7 +2268,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           ...state.live,
           attendance: {
             ...state.live.attendance,
-            [team]: attendedPlayerInfo,
+            [team]: playerNumbers,
           },
         },
       };
@@ -2323,54 +2276,36 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'UPDATE_ATTENDANCE_PLAYER': {
       const { team, playerName, updates } = action.payload;
-      const currentAttendance = state.live.attendance[team] || [];
-      // Match by name — names are unique and immutable during a match
-      const playerIndex = currentAttendance.findIndex(p => p.name === playerName);
+      const newNumber = updates.number.trim();
 
-      let newAttendanceList;
-      if (playerIndex !== -1) {
-        newAttendanceList = currentAttendance.map((player, i) =>
-          i === playerIndex
-            ? { ...player, ...updates }
-            : player
-        );
-      } else {
-        // Find player in roster to initialize their data if they're not in attendance yet
-        const mcForAttUpdate = state.live.matchContext;
-        const rosterForLookup = mcForAttUpdate
-          ? (team === 'home' ? mcForAttUpdate.homeRoster : mcForAttUpdate.awayRoster)
-          : undefined;
-        const rosterPlayer = rosterForLookup?.find(p => p.name === playerName);
-
-        if (rosterPlayer) {
-          newAttendanceList = [...currentAttendance, {
-            number: rosterPlayer.number,
-            name: rosterPlayer.name,
-            type: rosterPlayer.type,
-            ...updates
-          }];
-        } else {
-          // Absolute fallback - shouldn't happen from typical UI
-          newAttendanceList = [...currentAttendance, {
-            number: '',
-            name: playerName,
-            ...updates
-          } as AttendedPlayerInfo];
-        }
-      }
-
-      // Also update the player's number in matchContext roster (so summary generator maps correctly)
       let updatedMatchContext = state.live.matchContext;
-      if (updatedMatchContext && updates.number !== undefined) {
-        const rosterKey = team === 'home' ? 'homeRoster' : 'awayRoster';
-        const roster = updatedMatchContext[rosterKey];
-        const rosterIdx = roster.findIndex(p => p.name === playerName);
-        if (rosterIdx !== -1) {
-          const updatedRoster = roster.map((p, i) =>
-            i === rosterIdx ? { ...p, number: updates.number! } : p
-          );
-          updatedMatchContext = { ...updatedMatchContext, [rosterKey]: updatedRoster };
-        }
+      if (!updatedMatchContext) break;
+
+      const rosterKey = team === 'home' ? 'homeRoster' : 'awayRoster';
+      const roster = updatedMatchContext[rosterKey];
+      const playerIdx = roster.findIndex(p => p.name === playerName);
+      if (playerIdx === -1) break;
+
+      const oldNumber = roster[playerIdx].number;
+
+      // Build updated roster: set the player's number, clear conflicting player's number
+      const updatedRoster = roster.map((p, i) => {
+        if (i === playerIdx) return { ...p, number: newNumber };
+        // Clear number from any other player that had this number (collision)
+        if (newNumber && p.number === newNumber) return { ...p, number: '' };
+        return p;
+      });
+      updatedMatchContext = { ...updatedMatchContext, [rosterKey]: updatedRoster };
+
+      // Update attendance: replace old number with new, handle collision
+      let newAttendanceList = [...(state.live.attendance[team] || [])];
+      // Remove old number
+      if (oldNumber) {
+        newAttendanceList = newAttendanceList.filter(n => n !== oldNumber);
+      }
+      // Add new number (if non-empty and not already present)
+      if (newNumber && !newAttendanceList.includes(newNumber)) {
+        newAttendanceList.push(newNumber);
       }
 
       newState = {
@@ -2385,10 +2320,9 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         },
       };
 
-      const updatedPlayer = newState.live.attendance[team].find(p => p.name === playerName);
       toastMessage = {
         title: "Jugador Actualizado",
-        description: `${updatedPlayer?.name || 'Jugador'} actualizado${updates.number ? ` a #${updates.number}` : ''}`
+        description: `${playerName} actualizado${newNumber ? ` a #${newNumber}` : ''}`
       };
       break;
     }
@@ -2416,10 +2350,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         break;
       }
 
-      // Find the player in attendance
-      const player = live.attendance[team]?.find(p => p.number === playerNumber);
+      // Find the player in roster
+      const gkRoster = live.matchContext ? (team === 'home' ? live.matchContext.homeRoster : live.matchContext.awayRoster) : [];
+      const player = gkRoster.find(p => p.number === playerNumber);
       if (!player || player.type !== 'goalkeeper') {
-        console.error(`Player #${playerNumber} is not a goalkeeper in ${team} attendance`);
+        console.error(`Player #${playerNumber} is not a goalkeeper in ${team} roster`);
         break;
       }
 

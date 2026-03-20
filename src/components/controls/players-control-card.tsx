@@ -36,14 +36,16 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     };
   }, [matchContext, team, state.live]);
 
-  // Get attendance (present players only, keyed by number)
-  const attendance = state.live.attendance[team] || [];
-  const attendedNames = useMemo(() => new Set(attendance.map(p => p.name)), [attendance]);
+  // Get attendance as Set<string> of jersey numbers
+  const attendanceNumbers = useMemo(
+    () => new Set(state.live.attendance[team] || []),
+    [state.live.attendance, team]
+  );
 
   // Get active goalkeeper
   const activeGoalkeeperNumber = team === 'home' ? state.live.homeActiveGoalkeeperNumber : state.live.awayActiveGoalkeeperNumber;
 
-  // Local editable numbers
+  // Local editable numbers (keyed by player name since names are unique)
   const [editingNumbers, setEditingNumbers] = useState<Record<string, string>>({});
 
   // Add player form state
@@ -61,43 +63,24 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
   const [newPlayerNumber, setNewPlayerNumber] = useState('');
   const [newPlayerType, setNewPlayerType] = useState<'player' | 'goalkeeper'>('player');
 
-  // Sort players: combine roster with attendance overrides
+  // Sort players from roster directly
   const sortedPlayers = useMemo(() => {
-    // Build a combined list from roster, with attendance overrides
-    const players: { number: string; name: string; type?: 'player' | 'goalkeeper'; isAttended: boolean }[] = [];
+    if (!teamData?.players) return [];
 
-    if (teamData?.players) {
-      teamData.players.forEach(rosterPlayer => {
-        // Match attendance by name (unique and immutable during a match)
-        const attendanceEntry = attendance.find(a => a.name === rosterPlayer.name);
-
-        players.push({
-          number: attendanceEntry?.number || rosterPlayer.number,
-          name: rosterPlayer.name,
-          type: attendanceEntry?.type || rosterPlayer.type,
-          isAttended: !!attendanceEntry,
-        });
+    return [...teamData.players]
+      .map(rosterPlayer => ({
+        id: rosterPlayer.id,
+        number: rosterPlayer.number,
+        name: rosterPlayer.name,
+        type: rosterPlayer.type,
+        isAttended: rosterPlayer.number ? attendanceNumbers.has(rosterPlayer.number) : false,
+      }))
+      .sort((a, b) => {
+        if (a.type === 'goalkeeper' && b.type !== 'goalkeeper') return -1;
+        if (a.type !== 'goalkeeper' && b.type === 'goalkeeper') return 1;
+        return a.name.localeCompare(b.name);
       });
-    }
-
-    // Also include ad-hoc attendance players not in roster
-    attendance.forEach(a => {
-      if (!players.some(p => p.name === a.name)) {
-        players.push({
-          number: a.number,
-          name: a.name,
-          type: a.type,
-          isAttended: true,
-        });
-      }
-    });
-
-    return players.sort((a, b) => {
-      if (a.type === 'goalkeeper' && b.type !== 'goalkeeper') return -1;
-      if (a.type !== 'goalkeeper' && b.type === 'goalkeeper') return 1;
-      return a.name.localeCompare(b.name);
-    });
-  }, [teamData, attendance]);
+  }, [teamData, attendanceNumbers]);
 
   // Check if new player number is duplicate
   const isNewPlayerNumberDuplicate = useMemo(() => {
@@ -128,31 +111,39 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     );
   }, [sortedPlayers, editingNumbers]);
 
-  const handleAttendanceToggle = (playerName: string, playerNumber: string, currentlyAttended: boolean) => {
+  const handleAttendanceToggle = (player: { name: string; number: string }, currentlyAttended: boolean) => {
     // Save any pending number changes before toggling attendance
-    if (editingNumbers[playerName] !== undefined) {
-      handleSaveNumber(playerName, playerNumber);
+    if (editingNumbers[player.name] !== undefined) {
+      handleSaveNumber(player.name, player.number);
     }
 
-    // Use names as stable identifiers (unique and immutable during a match)
-    const newNames = new Set(attendedNames);
+    if (!currentlyAttended && !player.number) {
+      toast({
+        title: "Sin número",
+        description: "No se puede activar un jugador sin número de camiseta.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newNumbers = new Set(attendanceNumbers);
 
     if (currentlyAttended) {
-      newNames.delete(playerName);
+      newNumbers.delete(player.number);
       // If removing the active goalkeeper, clear the selection
-      if (playerNumber === activeGoalkeeperNumber) {
+      if (player.number === activeGoalkeeperNumber) {
         dispatch({
           type: 'SET_ACTIVE_GOALKEEPER',
           payload: { team, playerNumber: null }
         });
       }
     } else {
-      newNames.add(playerName);
+      newNumbers.add(player.number);
     }
 
     dispatch({
       type: 'SET_TEAM_ATTENDANCE',
-      payload: { team, playerNames: Array.from(newNames) }
+      payload: { team, playerNumbers: Array.from(newNumbers) }
     });
   };
 
@@ -195,7 +186,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
       return;
     }
 
-    // Update attendance only (match state), not team roster
+    // Update roster number (and handle collisions) via reducer
     dispatch({
       type: 'UPDATE_ATTENDANCE_PLAYER',
       payload: {
@@ -258,7 +249,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     // Generate new player ID
     const newPlayerId = `player-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-    // Dispatch ADD_PLAYER_TO_TEAM action
+    // Dispatch ADD_PLAYER_TO_TEAM action (also adds to attendance)
     dispatch({
       type: 'ADD_PLAYER_TO_TEAM',
       payload: {
@@ -270,12 +261,6 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
           type: newPlayerType
         }
       }
-    });
-
-    // Add to attendance automatically
-    dispatch({
-      type: 'SET_TEAM_ATTENDANCE',
-      payload: { team, playerNames: [...Array.from(attendedNames), trimmedName] }
     });
 
     toast({
@@ -312,7 +297,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
           <User className="h-5 w-5" />
           {teamName}
           <Badge variant="outline" className="ml-auto">
-            {attendance.length}/{sortedPlayers.length} presentes
+            {attendanceNumbers.size}/{sortedPlayers.length} presentes
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -324,12 +309,13 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
             const isGoalkeeper = player.type === 'goalkeeper';
             const isEditing = player.name in editingNumbers;
             const displayNumber = isEditing ? editingNumbers[player.name] : player.number;
+            const hasNoNumber = !player.number;
             const isDuplicate = displayNumber.trim() && duplicateNumbers.has(displayNumber.trim());
 
             return (
               <div
-                key={player.name}
-                onClick={() => handleAttendanceToggle(player.name, player.number, isAttended)}
+                key={player.id}
+                onClick={() => handleAttendanceToggle(player, isAttended)}
                 className={cn(
                   "flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
                   isAttended ? "bg-primary/5 border-primary/20 hover:bg-primary/10" : "bg-muted/30 border-muted hover:bg-muted/50",
@@ -372,9 +358,8 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
                   placeholder="#"
                   className={cn(
                     "w-16 h-9 text-center font-semibold",
-                    isDuplicate && "border-red-500 border-2"
+                    (hasNoNumber || isDuplicate) && "border-red-500 border-2"
                   )}
-                  disabled={!isAttended}
                 />
 
                 {/* Player name */}

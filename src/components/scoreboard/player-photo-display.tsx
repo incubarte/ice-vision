@@ -175,7 +175,7 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
               #{goal.scorer?.playerNumber || 'S/N'}
             </p>
             <p className="text-white/90 text-4xl font-semibold">
-              {state.live.attendance[goal.team]?.find(p => p.number === goal.scorer?.playerNumber)?.name}
+              {(state.live.matchContext ? (goal.team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : []).find(p => p.number === goal.scorer?.playerNumber)?.name}
             </p>
           </div>
         </motion.div>

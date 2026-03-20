@@ -24,12 +24,14 @@ export function GoldenGoalDialog({ isOpen, onOpenChange }: GoldenGoalDialogProps
   const [scorerNumber, setScorerNumber] = useState('');
   const [assistNumber, setAssistNumber] = useState('');
 
-  const homeAttendance = useMemo(() => state.live.attendance.home || [], [state.live.attendance]);
-  const awayAttendance = useMemo(() => state.live.attendance.away || [], [state.live.attendance]);
+  const selectedTeamRoster = useMemo(() => {
+    const mc = state.live.matchContext;
+    if (!mc || !selectedTeam) return [];
+    return selectedTeam === 'home' ? mc.homeRoster : mc.awayRoster;
+  }, [state.live.matchContext, selectedTeam]);
 
-  const selectedTeamAttendance = selectedTeam === 'home' ? homeAttendance : awayAttendance;
-  const scorerPlayer = useMemo(() => selectedTeamAttendance.find(p => p.number === scorerNumber), [selectedTeamAttendance, scorerNumber]);
-  const assistPlayer = useMemo(() => selectedTeamAttendance.find(p => p.number === assistNumber), [selectedTeamAttendance, assistNumber]);
+  const scorerPlayer = useMemo(() => selectedTeamRoster.find(p => p.number === scorerNumber), [selectedTeamRoster, scorerNumber]);
+  const assistPlayer = useMemo(() => selectedTeamRoster.find(p => p.number === assistNumber), [selectedTeamRoster, assistNumber]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -65,9 +65,9 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
   const matchedPlayer = React.useMemo(() => {
     // Determine which team this penalty belongs to based on team name
     const team = live.homeTeamName === teamName ? 'home' : 'away';
-    const attendance = live.attendance[team] || [];
-    return attendance.find(p => p.number === penalty.playerNumber || (penalty.playerNumber === "S/N" && !p.number)) || null;
-  }, [live.attendance, live.homeTeamName, teamName, penalty.playerNumber]);
+    const roster = live.matchContext ? (team === 'home' ? live.matchContext.homeRoster : live.matchContext.awayRoster) : [];
+    return roster.find(p => p.number === penalty.playerNumber || (penalty.playerNumber === "S/N" && !p.number)) || null;
+  }, [live.matchContext, live.homeTeamName, teamName, penalty.playerNumber]);
 
   const isWaitingSlot = penalty._status === 'pending_concurrent';
   const isPendingPuck = penalty._status === 'pending_puck';
