@@ -60,6 +60,7 @@ export default function ManageTeamPage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [editingPlayer, setEditingPlayer] = useState<PlayerData | null>(null);
+  const [playerToDelete, setPlayerToDelete] = useState<PlayerData | null>(null);
 
   const sortedPlayers = useMemo(() => {
     if (!team?.players) return [];
@@ -242,7 +243,7 @@ export default function ManageTeamPage() {
           viewMode === 'list' ? (
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
               {sortedPlayers.map(player => (
-                <PlayerListItem key={player.id} player={player} teamId={team.id} onRemovePlayer={handleRemovePlayer} allPlayers={team.players} />
+                <PlayerListItem key={player.id} player={player} teamId={team.id} onRemovePlayer={(playerId) => { const p = team.players.find(pl => pl.id === playerId); if (p) setPlayerToDelete(p); }} allPlayers={team.players} />
               ))}
             </div>
           ) : (
@@ -262,6 +263,16 @@ export default function ManageTeamPage() {
                     className="relative group perspective-1000 cursor-pointer"
                     onClick={() => !isReadOnly && setEditingPlayer(player)}
                   >
+                    {/* Delete button */}
+                    {!isReadOnly && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPlayerToDelete(player); }}
+                        className="absolute top-1 right-1 z-10 p-1 rounded-full bg-black/60 text-white/80 hover:bg-destructive hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={`Eliminar jugador ${player.name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     <div className="relative aspect-[3/4] preserve-3d transition-transform duration-500 group-hover:rotate-y-180">
                       {/* FRONT - Photo */}
                       <div className={`absolute inset-0 backface-hidden rounded-lg overflow-hidden border-2 transition-colors ${isTopScorer ? 'border-amber-400' : 'border-primary/20 group-hover:border-primary'}`}>
@@ -408,6 +419,31 @@ export default function ManageTeamPage() {
           onOpenChange={(open) => !open && setEditingPlayer(null)}
         />
       )}
+
+      <AlertDialog open={!!playerToDelete} onOpenChange={(open) => !open && setPlayerToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Eliminación</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que quieres eliminar al jugador #{playerToDelete?.number || 'S/N'} {playerToDelete?.name}? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                if (playerToDelete) {
+                  handleRemovePlayer(playerToDelete.id);
+                  setPlayerToDelete(null);
+                }
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

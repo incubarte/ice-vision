@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
 import type { Team, PlayerData } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,16 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
   const [editingNumbers, setEditingNumbers] = useState<Record<string, string>>({});
 
   // Add player form state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
+  useEffect(() => {
+    if (showNewPlayerForm && scrollContainerRef.current) {
+      setTimeout(() => {
+        scrollContainerRef.current?.scrollTo({ top: scrollContainerRef.current.scrollHeight, behavior: 'smooth' });
+      }, 50);
+    }
+  }, [showNewPlayerForm]);
+
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerNumber, setNewPlayerNumber] = useState('');
   const [newPlayerType, setNewPlayerType] = useState<'player' | 'goalkeeper'>('player');
@@ -308,7 +317,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2 max-h-[600px] overflow-y-auto">
+        <div ref={scrollContainerRef} className="space-y-2 max-h-[600px] overflow-y-auto">
           {sortedPlayers.map(player => {
             const isAttended = player.isAttended;
             const isActiveGoalkeeper = activeGoalkeeperNumber === player.number;

@@ -313,7 +313,7 @@ export function Header() {
                   return (
                     <DropdownMenuItem
                       key={tournament.id}
-                      onClick={() => !isSelected && handleSelectTournament(tournament.id)}
+                      onClick={() => isSelected ? router.push(`/tournaments/${tournament.id}`) : handleSelectTournament(tournament.id)}
                       className={isSelected ? "font-semibold" : ""}
                     >
                       <Check className={cn("h-4 w-4 mr-2", isSelected ? "opacity-100" : "opacity-0")} />
