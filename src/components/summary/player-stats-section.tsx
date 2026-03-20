@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 
-export const PlayerStatsSection = ({ 
+export const PlayerStatsSection = ({
     team,
-    teamName, 
+    teamName,
     allPlayers,
-    playerStats, 
+    playerStats,
     attendance,
     editingAttendanceSet,
     editable,
@@ -25,11 +25,12 @@ export const PlayerStatsSection = ({
     onToggleAttendance,
     onEditToggle,
     onSave,
-}: { 
+    className,
+}: {
     team: Team;
-    teamName: string; 
+    teamName: string;
     allPlayers?: PlayerData[];
-    playerStats?: SummaryPlayerStats[]; 
+    playerStats?: SummaryPlayerStats[];
     attendance?: AttendedPlayerInfo[];
     editingAttendanceSet?: Set<string>;
     editable?: boolean;
@@ -40,6 +41,7 @@ export const PlayerStatsSection = ({
     onToggleAttendance?: (team: Team, playerId: string) => void;
     onEditToggle?: (isEditing: boolean) => void;
     onSave?: () => void;
+    className?: string;
 }) => {
     
     const sortedPlayersWithStats = useMemo(() => {
@@ -108,7 +110,7 @@ export const PlayerStatsSection = ({
     const statInputClass = "h-7 w-12 text-center mx-auto text-sm";
 
     return (
-        <Card>
+        <Card className={className}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="flex items-center gap-2 text-xl"><BarChart3 className="h-5 w-5" />Tiros</CardTitle>
                 {showAttendanceControls && (
@@ -156,7 +158,7 @@ export const PlayerStatsSection = ({
                                         <TableCell className="text-center font-mono">{player.assists || 0}</TableCell>
                                         <TableCell className="text-center">
                                             {editable ? (
-                                                <Input type="number" value={playerEditedStats?.shots ?? String(player.shots || 0)} onChange={(e) => onStatChange?.(player.id, 'shots', e.target.value)} className={statInputClass} />
+                                                <Input type="text" inputMode="numeric" value={playerEditedStats?.shots ?? String(player.shots || 0)} onChange={(e) => { if (/^\d*$/.test(e.target.value)) onStatChange?.(player.id, 'shots', e.target.value); }} className={statInputClass} />
                                             ) : ( <span className="font-mono">{player.shots || 0}</span> )}
                                         </TableCell>
                                     </TableRow>

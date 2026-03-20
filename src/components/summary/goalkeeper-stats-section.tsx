@@ -13,9 +13,10 @@ interface GoalkeeperStatsSectionProps {
   goalkeeperStats: GoalkeeperStats[];
   attendance?: SummaryRosterEntry[];
   showOnlyPresent?: boolean;
+  className?: string;
 }
 
-export function GoalkeeperStatsSection({ teamName, goalkeeperStats, attendance, showOnlyPresent = false }: GoalkeeperStatsSectionProps) {
+export function GoalkeeperStatsSection({ teamName, goalkeeperStats, attendance, showOnlyPresent = false, className }: GoalkeeperStatsSectionProps) {
   // Helper to format centiseconds to MM:SS
   const formatTime = (centiseconds: number) => {
     const totalSeconds = Math.floor(centiseconds / 100);
@@ -40,7 +41,7 @@ export function GoalkeeperStatsSection({ teamName, goalkeeperStats, attendance, 
 
   if (goalkeeperStatsWithAttendance.length === 0) {
     return (
-      <Card>
+      <Card className={className}>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Shield className="h-5 w-5 text-blue-400" />
@@ -55,7 +56,7 @@ export function GoalkeeperStatsSection({ teamName, goalkeeperStats, attendance, 
   }
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Shield className="h-5 w-5 text-blue-400" />
