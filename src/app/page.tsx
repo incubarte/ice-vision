@@ -3,8 +3,10 @@
 
 import { useEffect } from 'react';
 import { FullScoreboard } from '@/components/scoreboard/full-scoreboard';
+import { useAutoSwitchTournament } from '@/hooks/use-auto-switch-tournament';
 
 export default function ScoreboardPage() {
+  useAutoSwitchTournament();
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {

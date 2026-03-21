@@ -1669,18 +1669,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       break;
     }
     case 'UPDATE_CONFIG_FIELDS': {
-      // Block tournament switch during an active game or pending summary generation
-      if ('selectedTournamentId' in action.payload) {
-        const hasActiveGame = !!state.live?.matchId || !!state._pendingSummaryGeneration;
-        if (hasActiveGame && action.payload.selectedTournamentId !== state.config.selectedTournamentId) {
-          console.warn('[GameState] Blocked tournament switch via UPDATE_CONFIG_FIELDS: game in progress');
-          // Strip selectedTournamentId from payload, apply the rest if any
-          const { selectedTournamentId: _, ...rest } = action.payload;
-          if (Object.keys(rest).length === 0) break;
-          newState = { ...state, config: { ...state.config, ...rest } };
-          break;
-        }
-      }
       newState = {
         ...state,
         config: {
@@ -1829,12 +1817,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       break;
     }
     case 'SET_ACTIVE_TOURNAMENT': {
-      // Block tournament switch during an active game or pending summary generation
-      const hasActiveGame = !!state.live?.matchId || !!state._pendingSummaryGeneration;
-      if (hasActiveGame && action.payload.tournamentId !== state.config.selectedTournamentId) {
-        console.warn('[GameState] Blocked tournament switch: game in progress');
-        break;
-      }
       // Use activeTournament for categories if it matches, otherwise reset category
       const activeCategories = state.config.activeTournament?.id === action.payload.tournamentId
         ? state.config.activeTournament.categories

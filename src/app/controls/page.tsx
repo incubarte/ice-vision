@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, AlertTriangle, PlayCircle, Trophy, Wifi, Power, PowerOff, Loader2, Copy, ShieldAlert, LogIn, Swords, PlusCircle, Check, X, Fingerprint, FileText, Flag, MessageSquare, CalendarCheck, Trash2, Info, Edit3, CheckCircle, XCircle, Cloud } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAutoSwitchTournament } from '@/hooks/use-auto-switch-tournament';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 import { safeUUID } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -731,6 +732,7 @@ const AccessRequestManager = () => {
 
 export default function ControlsPage() {
   const { state, dispatch, isLoading: isGameStateLoading } = useGameState();
+  useAutoSwitchTournament();
   const { authStatus } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
