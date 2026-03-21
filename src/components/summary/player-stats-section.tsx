@@ -107,12 +107,12 @@ export const PlayerStatsSection = ({
         }, { goals: 0, assists: 0, shots: 0 });
     }, [sortedPlayersWithStats, editable, editedStats]);
     
-    const statInputClass = "h-7 w-12 text-center mx-auto text-sm";
+    const statInputClass = "h-5 w-12 text-center mx-auto text-sm px-0 py-0 border-0 border-b rounded-none focus-visible:ring-0 focus-visible:border-primary";
 
     return (
-        <Card className={className}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="flex items-center gap-2 text-xl"><BarChart3 className="h-5 w-5" />Tiros</CardTitle>
+        <Card className={cn("h-full", className)}>
+            <CardHeader className="flex flex-row items-center justify-between py-2 px-4">
+                <CardTitle className="flex items-center gap-2 text-base"><BarChart3 className="h-4 w-4" />Tiros</CardTitle>
                 {showAttendanceControls && (
                     isAttendanceEditing ? (
                         <div className="flex gap-2">
@@ -126,16 +126,16 @@ export const PlayerStatsSection = ({
                     )
                 )}
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 pb-3">
                 {sortedPlayersWithStats.length > 0 ? (
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead>#</TableHead>
-                                <TableHead>Nombre</TableHead>
-                                <TableHead className="text-center">G</TableHead>
-                                <TableHead className="text-center">A</TableHead>
-                                <TableHead className="text-center">Tiros</TableHead>
+                            <TableRow className="h-4">
+                                <TableHead className="h-8 px-2 py-2 text-xs">#</TableHead>
+                                <TableHead className="h-8 px-2 py-2 text-xs">Nombre</TableHead>
+                                <TableHead className="h-auto text-center py-1 text-xs">G</TableHead>
+                                <TableHead className="h-auto text-center py-1 text-xs">A</TableHead>
+                                <TableHead className="h-auto text-center py-1 text-xs">Tiros</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -143,20 +143,21 @@ export const PlayerStatsSection = ({
                                 const playerEditedStats = editable && editedStats ? editedStats[player.id] : null;
 
                                 return (
-                                    <TableRow 
-                                        key={player.id} 
+                                    <TableRow
+                                        key={player.id}
                                         className={cn(
+                                            "h-7",
                                             (!player.attended && !isAttendanceEditing) && "hidden",
                                             isAttendanceEditing && !player.attended && "text-muted-foreground opacity-50",
                                             isAttendanceEditing && "cursor-pointer"
                                         )}
                                         onClick={isAttendanceEditing ? () => onToggleAttendance?.(team, player.id) : undefined}
                                     >
-                                        <TableCell className="font-semibold">{player.number || 'S/N'}</TableCell>
-                                        <TableCell className="text-xs">{player.name}</TableCell>
-                                        <TableCell className="text-center font-mono">{player.goals || 0}</TableCell>
-                                        <TableCell className="text-center font-mono">{player.assists || 0}</TableCell>
-                                        <TableCell className="text-center">
+                                        <TableCell className="font-semibold py-1">{player.number || 'S/N'}</TableCell>
+                                        <TableCell className="text-xs py-1">{player.name}</TableCell>
+                                        <TableCell className="text-center font-mono py-1">{player.goals || 0}</TableCell>
+                                        <TableCell className="text-center font-mono py-1">{player.assists || 0}</TableCell>
+                                        <TableCell className="text-center py-1">
                                             {editable ? (
                                                 <Input type="text" inputMode="numeric" value={playerEditedStats?.shots ?? String(player.shots || 0)} onChange={(e) => { if (/^\d*$/.test(e.target.value)) onStatChange?.(player.id, 'shots', e.target.value); }} className={statInputClass} />
                                             ) : ( <span className="font-mono">{player.shots || 0}</span> )}
@@ -166,11 +167,11 @@ export const PlayerStatsSection = ({
                             )}
                         </TableBody>
                          <UiTableFooter>
-                            <TableRow>
-                                <TableCell colSpan={2} className="text-right font-bold">TOTAL (Asistentes)</TableCell>
-                                <TableCell className="text-center font-bold font-mono">{totals.goals}</TableCell>
-                                <TableCell className="text-center font-bold font-mono">{totals.assists}</TableCell>
-                                <TableCell className="text-center font-bold font-mono">{totals.shots}</TableCell>
+                            <TableRow className="h-7">
+                                <TableCell colSpan={2} className="text-right font-bold py-1">TOTAL</TableCell>
+                                <TableCell className="text-center font-bold font-mono py-1">{totals.goals}</TableCell>
+                                <TableCell className="text-center font-bold font-mono py-1">{totals.assists}</TableCell>
+                                <TableCell className="text-center font-bold font-mono py-1">{totals.shots}</TableCell>
                             </TableRow>
                         </UiTableFooter>
                     </Table>

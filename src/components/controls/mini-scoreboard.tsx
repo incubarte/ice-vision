@@ -585,7 +585,7 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
                 onBlur={() => handleTeamNameInputBlur('home', localHomeTeamName)}
                 onKeyDown={(e) => handleTeamNameInputKeyDown('home', localHomeTeamName, e)}
                 placeholder="Nombre Local"
-                className="h-8 text-sm uppercase w-auto text-center"
+                className="h-8 text-sm uppercase w-full text-center"
                 aria-label="Nombre del equipo local"
                 autoComplete="off"
                 disabled={isMatchFromFixture}
@@ -816,7 +816,7 @@ export function MiniScoreboard({ onScoreClick }: MiniScoreboardProps) {
                 onBlur={() => handleTeamNameInputBlur('away', localAwayTeamName)}
                 onKeyDown={(e) => handleTeamNameInputKeyDown('away', localAwayTeamName, e)}
                 placeholder="Nombre Visitante"
-                className="h-8 text-sm uppercase w-auto text-center"
+                className="h-8 text-sm uppercase w-full text-center"
                 aria-label="Nombre del equipo visitante"
                 autoComplete="off"
                 disabled={isMatchFromFixture}

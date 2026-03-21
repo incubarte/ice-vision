@@ -57,90 +57,39 @@ export function GoalkeeperStatsSection({ teamName, goalkeeperStats, attendance, 
 
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Shield className="h-5 w-5 text-blue-400" />
+      <CardHeader className="py-2 px-4">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Shield className="h-4 w-4 text-blue-400" />
           {teamName ? `Arqueros - ${teamName}` : 'Arqueros'}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {goalkeeperStatsWithAttendance.map(gkStat => (
-          <div key={gkStat.playerId} className={cn("border rounded-lg p-3 space-y-3", !gkStat.isPresent && "opacity-50 text-muted-foreground")}>
-            {/* Goalkeeper Header */}
-            <div className="flex items-start justify-between border-b pb-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-blue-400" />
-                  <h3 className="font-bold">{gkStat.playerName}</h3>
-                  <span className="text-xs text-muted-foreground">#{gkStat.playerNumber}</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold">{formatTime(gkStat.totalTimeOnIce)}</div>
-                <div className="text-xs text-muted-foreground">Tiempo Total</div>
-              </div>
-            </div>
-
-            {/* Totals Summary */}
-            <div className="grid grid-cols-4 gap-2">
-              <div className="text-center p-2 bg-muted/30 rounded">
-                <div className="text-lg font-bold">{gkStat.totalShotsAgainst}</div>
-                <div className="text-xs text-muted-foreground">Tiros</div>
-              </div>
-              <div className="text-center p-2 bg-muted/30 rounded">
-                <div className="text-lg font-bold text-green-600">
-                  {gkStat.totalShotsAgainst === 0 ? '-' : gkStat.totalSaves}
-                </div>
-                <div className="text-xs text-muted-foreground">Atajados</div>
-              </div>
-              <div className="text-center p-2 bg-muted/30 rounded">
-                <div className="text-lg font-bold text-destructive">{gkStat.totalGoalsAgainst}</div>
-                <div className="text-xs text-muted-foreground">Goles</div>
-              </div>
-              <div className="text-center p-2 bg-muted/30 rounded">
-                <div className="text-lg font-bold text-blue-600">
-                  {gkStat.totalShotsAgainst === 0 ? '-' : `${gkStat.savePercentage}%`}
-                </div>
-                <div className="text-xs text-muted-foreground">% Efect.</div>
-              </div>
-            </div>
-
-            {/* Period Breakdown */}
-            {gkStat.periodStats.length > 0 && (
-              <div>
-                <h4 className="text-xs font-semibold mb-1 text-muted-foreground">Por Período</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs py-2">Período</TableHead>
-                      <TableHead className="text-center text-xs py-2">Tiempo</TableHead>
-                      <TableHead className="text-center text-xs py-2">Tiros</TableHead>
-                      <TableHead className="text-center text-xs py-2">Ataj.</TableHead>
-                      <TableHead className="text-center text-xs py-2">Goles</TableHead>
-                      <TableHead className="text-center text-xs py-2">%</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {gkStat.periodStats.map(periodStat => (
-                      <TableRow key={periodStat.period}>
-                        <TableCell className="font-medium text-xs py-2">{periodStat.period}</TableCell>
-                        <TableCell className="text-center font-mono text-xs py-2">{formatTime(periodStat.timeOnIce)}</TableCell>
-                        <TableCell className="text-center font-mono text-xs py-2">{periodStat.shotsAgainst}</TableCell>
-                        <TableCell className="text-center font-mono text-xs py-2 text-green-600">
-                          {periodStat.shotsAgainst === 0 ? '-' : periodStat.saves}
-                        </TableCell>
-                        <TableCell className="text-center font-mono text-xs py-2 text-destructive">{periodStat.goalsAgainst}</TableCell>
-                        <TableCell className="text-center font-mono text-xs py-2 text-blue-600">
-                          {periodStat.shotsAgainst === 0 ? '-' : `${periodStat.savePercentage}%`}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        ))}
+      <CardContent className="px-4 pb-3">
+        <Table>
+          <TableHeader>
+            <TableRow className="h-4">
+              <TableHead className="h-8 px-2 py-2 text-xs">#</TableHead>
+              <TableHead className="h-8 px-2 py-2 text-xs">Nombre</TableHead>
+              <TableHead className="h-8 px-2 py-2 text-xs text-center">Tiros</TableHead>
+              <TableHead className="h-8 px-2 py-2 text-xs text-center">Ataj.</TableHead>
+              <TableHead className="h-8 px-2 py-2 text-xs text-center">Goles</TableHead>
+              <TableHead className="h-8 px-2 py-2 text-xs text-center">%</TableHead>
+              <TableHead className="h-8 px-2 py-2 text-xs text-center">Tiempo</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {goalkeeperStatsWithAttendance.map(gkStat => (
+              <TableRow key={gkStat.playerId} className={cn("h-7", !gkStat.isPresent && "opacity-50 text-muted-foreground")}>
+                <TableCell className="py-1 font-semibold">{gkStat.playerNumber}</TableCell>
+                <TableCell className="py-1 text-xs">{gkStat.playerName}</TableCell>
+                <TableCell className="py-1 text-center font-mono">{gkStat.totalShotsAgainst}</TableCell>
+                <TableCell className="py-1 text-center font-mono text-green-600">{gkStat.totalShotsAgainst === 0 ? '-' : gkStat.totalSaves}</TableCell>
+                <TableCell className="py-1 text-center font-mono text-destructive">{gkStat.totalGoalsAgainst}</TableCell>
+                <TableCell className="py-1 text-center font-mono text-blue-600">{gkStat.totalShotsAgainst === 0 ? '-' : `${gkStat.savePercentage}%`}</TableCell>
+                <TableCell className="py-1 text-center font-mono text-xs">{formatTime(gkStat.totalTimeOnIce)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

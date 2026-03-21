@@ -339,7 +339,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   return (
     <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[96vh] flex flex-col py-3 gap-2">
+      <DialogContent className="max-w-6xl h-[96vh] flex flex-col py-3 gap-2" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader className="pb-0">
           <DialogTitle className="flex items-center justify-between text-lg pr-8">
             <span>Resumen</span>
@@ -669,41 +669,36 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                               periodStats: []
                             }))
                           };
-                          const periodCardClass = isEvenPeriod ? "bg-muted/40 border-muted-foreground/20" : "bg-primary/10 border-primary/20";
+                          const periodBg = periodIdx % 2 === 0 ? 'bg-sky-400/30' : 'bg-indigo-500/30';
+                          const periodCardAccent = periodIdx % 2 === 0 ? 'border-t-2 border-t-sky-400' : 'border-t-2 border-t-indigo-500';
                           return (
                             <div
                               key={`stats-${periodText}`}
                               data-period-index={periodIdx}
                               className="w-full flex-shrink-0 overflow-y-auto px-2"
                             >
-                              {/* Desktop: side by side with period title in between */}
+                              {/* Desktop: period strip left, then two team columns */}
                               <div className="hidden md:block space-y-3">
-                                <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-start">
-                                    <PlayerStatsSection className={periodCardClass} team="home" teamName={homeTeam?.name || ''} allPlayers={homePlayers} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
-                                    <div className={cn(
-                                      "writing-mode-vertical flex items-center justify-center px-2 py-4 rounded-lg font-bold text-lg tracking-widest",
-                                      isEvenPeriod ? "text-muted-foreground" : "text-primary"
-                                    )} style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-                                      {periodText}
-                                    </div>
-                                    <PlayerStatsSection className={periodCardClass} team="away" teamName={awayTeam?.name || ''} allPlayers={awayPlayers} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
+                                <div className={cn("flex items-center justify-center py-1 rounded-lg", periodBg)}>
+                                  <span className="font-bold text-sm">{periodText}</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-6">
-                                  <GoalkeeperStatsSection className={periodCardClass} goalkeeperStats={periodGKStats.home} attendance={localSummary.attendance.home} showOnlyPresent={true} />
-                                  <GoalkeeperStatsSection className={periodCardClass} goalkeeperStats={periodGKStats.away} attendance={localSummary.attendance.away} showOnlyPresent={true} />
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="flex-1"><PlayerStatsSection className={periodCardAccent} team="home" teamName={homeTeam?.name || ''} allPlayers={homePlayers} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} /></div>
+                                  <div className="flex-1"><PlayerStatsSection className={periodCardAccent} team="away" teamName={awayTeam?.name || ''} allPlayers={awayPlayers} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} /></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <GoalkeeperStatsSection className={periodCardAccent} goalkeeperStats={periodGKStats.home} attendance={localSummary.attendance.home} showOnlyPresent={true} />
+                                  <GoalkeeperStatsSection className={periodCardAccent} goalkeeperStats={periodGKStats.away} attendance={localSummary.attendance.away} showOnlyPresent={true} />
                                 </div>
                               </div>
                               {/* Mobile: stacked with period title */}
                               <div className="md:hidden space-y-3">
-                                <h3 className={cn(
-                                  "text-lg font-bold text-center",
-                                  isEvenPeriod ? "text-muted-foreground" : "text-primary"
-                                )}>{periodText}</h3>
-                                <PlayerStatsSection className={periodCardClass} team="home" teamName={homeTeam?.name || ''} allPlayers={homePlayers} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
-                                <GoalkeeperStatsSection className={periodCardClass} goalkeeperStats={periodGKStats.home} attendance={localSummary.attendance.home} showOnlyPresent={true} />
+                                <h3 className={cn("text-lg font-bold text-center py-1 rounded-lg", periodBg)}>{periodText}</h3>
+                                <PlayerStatsSection className={periodCardAccent} team="home" teamName={homeTeam?.name || ''} allPlayers={homePlayers} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
+                                <GoalkeeperStatsSection className={periodCardAccent} goalkeeperStats={periodGKStats.home} attendance={localSummary.attendance.home} showOnlyPresent={true} />
                                 <Separator />
-                                <PlayerStatsSection className={periodCardClass} team="away" teamName={awayTeam?.name || ''} allPlayers={awayPlayers} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
-                                <GoalkeeperStatsSection className={periodCardClass} goalkeeperStats={periodGKStats.away} attendance={localSummary.attendance.away} showOnlyPresent={true} />
+                                <PlayerStatsSection className={periodCardAccent} team="away" teamName={awayTeam?.name || ''} allPlayers={awayPlayers} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
+                                <GoalkeeperStatsSection className={periodCardAccent} goalkeeperStats={periodGKStats.away} attendance={localSummary.attendance.away} showOnlyPresent={true} />
                               </div>
                             </div>
                           );
@@ -724,23 +719,23 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
           )}
         </Tabs>
 
-        <DialogFooter className="border-t pt-3 mt-auto">
+        <DialogFooter className="border-t pt-2 mt-auto">
           {isEditing && activeTab === 'statsByPeriod' ? (
             <>
-              <Button type="button" variant="destructive" onClick={handleCancelClick}><XCircle className="mr-2 h-4 w-4" />Abortar</Button>
-              <Button type="button" variant="default" className="bg-green-600 hover:bg-green-700" onClick={handleSaveShotsClick}><Check className="mr-2 h-4 w-4" />Confirmar</Button>
+              <Button type="button" size="sm" variant="destructive" onClick={handleCancelClick}><XCircle className="mr-1.5 h-3.5 w-3.5" />Abortar</Button>
+              <Button type="button" size="sm" className="bg-green-600 hover:bg-green-700" onClick={handleSaveShotsClick}><Check className="mr-1.5 h-3.5 w-3.5" />Confirmar</Button>
             </>
           ) : (
             <>
               <DialogClose asChild>
-                <Button type="button" variant="outline"><X className="mr-2 h-4 w-4" />Cerrar</Button>
+                <Button type="button" size="sm" variant="outline"><X className="mr-1.5 h-3.5 w-3.5" />Cerrar</Button>
               </DialogClose>
               {!isReadOnly && activeTab === 'statsByPeriod' && (
-                <Button type="button" variant="outline" onClick={e => { e.stopPropagation(); handleEditClick(); }}>
-                  <Edit3 className="mr-2 h-4 w-4" />Editar Tiros
+                <Button type="button" size="sm" variant="outline" onClick={e => { e.stopPropagation(); handleEditClick(); }}>
+                  <Edit3 className="mr-1.5 h-3.5 w-3.5" />Editar Tiros
                 </Button>
               )}
-              {!isReadOnly && <Button type="button" onClick={handleSaveAllChanges}><Check className="mr-2 h-4 w-4" />Guardar Cambios</Button>}
+              {!isReadOnly && <Button type="button" size="sm" onClick={handleSaveAllChanges}><Check className="mr-1.5 h-3.5 w-3.5" />Guardar Cambios</Button>}
             </>
           )}
         </DialogFooter>
