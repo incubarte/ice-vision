@@ -329,6 +329,25 @@ describe('Game Reducer - Goals', () => {
       expect(result.live.pendingPowerPlayGoal?.team).toBe('home');
       expect(result.live.pendingPowerPlayGoal?.penaltyId).toBe('pen1');
     });
+
+    it('should log goal with the game period text, not "TIME OUT", when added during a timeout', () => {
+      const state = setupGameState({ period: 2, time: 60000 });
+      state.live.clock.isClockRunning = false;
+      state.live.clock.periodDisplayOverride = 'Time Out';
+      state.live.clock.preTimeoutState = {
+        period: 2,
+        time: 60000,
+        override: null,
+        absoluteElapsedTimeCs: state.live.clock.absoluteElapsedTimeCs,
+      } as any;
+
+      const result = gameReducer(state, {
+        type: 'ADD_GOAL',
+        payload: { team: 'home', scorer: { playerNumber: '10' } },
+      });
+
+      expect(result.live.goals.home[0].periodText).toBe('2ND');
+    });
   });
 
   describe('EDIT_GOAL', () => {

@@ -154,4 +154,55 @@ describe('Game Reducer - Penalty Logic', () => {
     expect(finalState.live.penalties.home.length).toBe(0);
     expect(finalState.live.pendingPowerPlayGoal).toBeNull();
   });
+
+  it('should log penalty with the game period text, not "TIME OUT", when added during a timeout', () => {
+    let state = setupPenaltyTestState();
+    state.live.clock.currentPeriod = 2;
+    state.live.clock.currentTime = 60000; // 10 mins left in 2nd period
+
+    // Simulate a timeout: clock is stopped, periodDisplayOverride is "Time Out"
+    state.live.clock.isClockRunning = false;
+    state.live.clock.periodDisplayOverride = 'Time Out';
+    state.live.clock.preTimeoutState = {
+      period: 2,
+      time: 60000,
+      override: null,
+      absoluteElapsedTimeCs: state.live.clock.absoluteElapsedTimeCs,
+    };
+
+    // Add a penalty during the timeout (this is what the controls UI does)
+    state = gameReducer(state, {
+      type: 'ADD_PENALTY',
+      payload: {
+        team: 'home',
+        penalty: { penaltyTypeId: 'minor', playerNumber: '10' },
+      },
+    });
+
+    // The penalty log should record the actual game period ("2ND"), not "TIME OUT"
+    const penaltyLog = state.live.penaltiesLog.home[0];
+    expect(penaltyLog).toBeDefined();
+    expect(penaltyLog.addPeriodText).toBe('2ND');
+  });
+
+  it('should log penalty with the game period text, not "Break", when added during a break', () => {
+    let state = setupPenaltyTestState();
+    state.live.clock.currentPeriod = 1;
+    state.live.clock.currentTime = 12000; // break duration
+    state.live.clock.isClockRunning = false;
+    state.live.clock.periodDisplayOverride = 'Break';
+
+    state = gameReducer(state, {
+      type: 'ADD_PENALTY',
+      payload: {
+        team: 'away',
+        penalty: { penaltyTypeId: 'minor', playerNumber: '10' },
+      },
+    });
+
+    // Should record as "1ST" (the period that just ended), not "Break"
+    const penaltyLog = state.live.penaltiesLog.away[0];
+    expect(penaltyLog).toBeDefined();
+    expect(penaltyLog.addPeriodText).toBe('1ST');
+  });
 });

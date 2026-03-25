@@ -261,7 +261,7 @@ test.describe('Full Game Lifecycle', () => {
     // Break auto-started (autoStartBreaks=true), so just wait for "Iniciar Reloj" for period 2
     await expect(controlsPage.getByRole('button', { name: 'Iniciar Reloj' })).toBeVisible({ timeout: 10000 });
 
-    // ─── PHASE 6: PERIOD 2 — SCORE AWAY GOAL ───
+    // ─── PHASE 6: PERIOD 2 — SCORE AWAY GOAL, TIMEOUT, AND PENALTY DURING TIMEOUT ───
 
     // Score an away goal: scorer #11, assist #21
     await addGoal(controlsPage, 'away', '11', { assist1: '21' });
@@ -270,6 +270,26 @@ test.describe('Full Game Lifecycle', () => {
     await expect(
       controlsPage.locator('p').filter({ hasText: '(Visitante)' }).locator('..').locator('button').filter({ hasText: /^1$/ }).first()
     ).toBeVisible({ timeout: 5000 });
+
+    // Add a penalty for home player #10 BEFORE the timeout (during normal 2nd period)
+    await addPenalty(controlsPage, 'home', '10');
+
+    // Call a timeout (click the Time Out button → confirm for home team)
+    const timeoutBtn = controlsPage.getByRole('button', { name: 'Iniciar Time Out' });
+    await expect(timeoutBtn).toBeEnabled({ timeout: 3000 });
+    await timeoutBtn.click();
+    await controlsPage.getByRole('button', { name: /Para Test Home/i }).click();
+
+    // Verify we're in Time Out state (the period display shows "TIME OUT")
+    await expect(controlsPage.locator('.text-lg').getByText('TIME OUT', { exact: true })).toBeVisible({ timeout: 5000 });
+
+    // Add a penalty for away #21 while in "Time Out" state — this is the bug scenario.
+    // With autoStartTimeouts=true and 1s duration, the timeout may auto-end during this step,
+    // but the penalty is registered while periodDisplayOverride is still "Time Out".
+    await addPenalty(controlsPage, 'away', '21');
+
+    // The timeout auto-ends (1 second, autoStart=true). Wait for period 2 to be back.
+    await expect(controlsPage.getByRole('button', { name: 'Iniciar Reloj' })).toBeVisible({ timeout: 15000 });
 
     // Start clock for period 2
     await startClock(controlsPage);
@@ -334,6 +354,14 @@ test.describe('Full Game Lifecycle', () => {
     const awayGoal = period2.stats.goals.away[0];
     expect(awayGoal.scorer?.playerId).toBe('player-a1');
     expect(awayGoal.assist?.playerId).toBe('player-a2');
+
+    // Period 2 should have 2 penalties:
+    // - home #10 (player-h2, added before timeout)
+    // - away #21 (player-a2, added DURING timeout — must still appear in 2ND period)
+    expect(period2.stats.penalties.home).toHaveLength(1);
+    expect(period2.stats.penalties.home[0].playerId).toBe('player-h2');
+    expect(period2.stats.penalties.away).toHaveLength(1);
+    expect(period2.stats.penalties.away[0].playerId).toBe('player-a2');
 
     // Verify played periods
     expect(summary.playedPeriods).toContain('1ST');

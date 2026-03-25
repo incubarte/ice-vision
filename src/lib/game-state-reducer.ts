@@ -673,11 +673,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       let periodTextForLog: string;
       if (action.payload.periodText) {
         periodTextForLog = action.payload.periodText;
+      } else if (live.shootout?.isActive) {
+        periodTextForLog = 'SHOOTOUT';
       } else {
-        periodTextForLog = getActualPeriodText(live.clock.currentPeriod, live.clock.periodDisplayOverride, config.numberOfRegularPeriods || 2, live.shootout);
-        if (live.clock.periodDisplayOverride === 'Break' || live.clock.periodDisplayOverride === 'Pre-OT Break') {
-          periodTextForLog = getPeriodText(live.clock.currentPeriod, config.numberOfRegularPeriods || 2);
-        }
+        periodTextForLog = getPeriodText(live.clock.currentPeriod, config.numberOfRegularPeriods || 2);
       }
 
       const teamScored = action.payload.team;
@@ -949,7 +948,11 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         isBenchPenalty: penaltyDef.isBenchPenalty,
         addTimestamp: Date.now(),
         addGameTime: addGameTime ?? live.clock.currentTime,
-        addPeriodText: addPeriodText ?? getActualPeriodText(live.clock.currentPeriod, live.clock.periodDisplayOverride, config.numberOfRegularPeriods || 2, live.shootout),
+        addPeriodText: addPeriodText ?? (
+          live.shootout?.isActive
+            ? 'SHOOTOUT'
+            : getPeriodText(live.clock.currentPeriod, config.numberOfRegularPeriods || 2)
+        ),
       };
 
       // Add player to attendance if they don't exist (and it's not a bench penalty)
