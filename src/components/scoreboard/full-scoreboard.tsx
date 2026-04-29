@@ -26,6 +26,7 @@ import { useTournamentLogo } from '@/hooks/use-tournament-logo';
 import { PlayoffBracketPreview } from './playoff-bracket-preview';
 import { RosterPresentation } from './roster-presentation';
 import { teamHasEnoughPhotos } from '@/lib/roster-utils';
+import { useGoalConfetti } from '@/hooks/use-goal-confetti';
 
 const ValentinoCaffeAd = () => {
   return (
@@ -157,6 +158,8 @@ export function FullScoreboard({ className }: { className?: string }) {
     }
     return () => clearTimeout(timer);
   }, [live?.goalCelebration, dispatch]);
+
+  useGoalConfetti(live?.goalCelebration ?? null);
 
   // Detectar cuando el período cambia de Warmup a otro período y activar transición de Olympia
   useEffect(() => {
@@ -406,9 +409,6 @@ export function FullScoreboard({ className }: { className?: string }) {
   const homeTeam = activeTournament?.teams?.find(t => t.id === matchContext?.homeTeamId);
   const awayTeam = activeTournament?.teams?.find(t => t.id === matchContext?.awayTeamId);
 
-  // Debug log for goal celebration
-  console.log('[FullScoreboard] goalCelebration:', goalCelebration);
-
   // Determinar si mostrar roster presentation (últimos X segundos de warmup)
   // currentTime está en centisegundos, convertir a segundos
   const remainingWarmupSeconds = isWarmup ? Math.floor(clock.currentTime / 100) : 0;
@@ -433,34 +433,9 @@ export function FullScoreboard({ className }: { className?: string }) {
     .filter(p => awayAttendanceSet.has(p.number))
     .map(p => p.id);
 
-  // Debug attendance data
-  console.log('[RosterDebug - Attendance]', {
-    homeAttendance: live.attendance.home,
-    awayAttendance: live.attendance.away,
-    homePresentPlayerIds,
-    awayPresentPlayerIds,
-    homeTeamPlayers: homeTeam?.players?.length,
-    awayTeamPlayers: awayTeam?.players?.length,
-  });
-
   const homeTeamHasPhotos = homeTeam ? teamHasEnoughPhotos(homeTeam, homePresentPlayerIds, config.rosterPresentationMinPhotoPercentage) : false;
   const awayTeamHasPhotos = awayTeam ? teamHasEnoughPhotos(awayTeam, awayPresentPlayerIds, config.rosterPresentationMinPhotoPercentage) : false;
 
-  // Debug roster presentation
-  console.log('[RosterDebug]', {
-    isWarmup,
-    isFixtureMatch,
-    remainingWarmupSeconds,
-    showRosterPresentation: config.showRosterPresentation,
-    duration: config.rosterPresentationDuration,
-    shouldShowRosterByTime,
-    homeAttendanceCount: live.attendance.home.length,
-    awayAttendanceCount: live.attendance.away.length,
-    homeTeamHasPhotos,
-    awayTeamHasPhotos,
-    homeTeamId: homeTeam?.id,
-    awayTeamId: awayTeam?.id,
-  });
 
   // Decidir si mostrar roster (al menos un equipo debe tener fotos, o ambos si la config lo requiere)
   const shouldShowRosterPresentation = shouldShowRosterByTime && (

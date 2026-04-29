@@ -12,33 +12,13 @@ export function teamHasEnoughPhotos(
   presentPlayers: string[],
   minPhotoPercentage: number = 0.5
 ): boolean {
-  if (!team.players || team.players.length === 0) {
-    console.log('[teamHasEnoughPhotos]', team.name, '- No players in team');
-    return false;
-  }
+  if (!team.players || team.players.length === 0) return false;
 
-  // Filter only present players
   const presentTeamPlayers = team.players.filter(p => presentPlayers.includes(p.id));
+  if (presentTeamPlayers.length === 0) return false;
 
-  if (presentTeamPlayers.length === 0) {
-    console.log('[teamHasEnoughPhotos]', team.name, '- No present players');
-    return false;
-  }
-
-  // Count how many present players have photos
   const playersWithPhotos = presentTeamPlayers.filter(p => p.photoFileName).length;
-
-  // Calculate percentage
   const photoPercentage = playersWithPhotos / presentTeamPlayers.length;
-
-  console.log('[teamHasEnoughPhotos]', team.name, {
-    totalPlayers: team.players.length,
-    presentPlayers: presentTeamPlayers.length,
-    playersWithPhotos,
-    photoPercentage,
-    minPhotoPercentage,
-    hasEnough: photoPercentage >= minPhotoPercentage
-  });
 
   return photoPercentage >= minPhotoPercentage;
 }

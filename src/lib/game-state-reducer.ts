@@ -2150,6 +2150,27 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
             },
           },
         };
+
+        // Also patch the live matchContext roster so the running game sees the updated player data
+        const mc = newState.live.matchContext;
+        if (mc) {
+          const patchRoster = (roster: typeof mc.homeRoster) =>
+            roster.map(p => p.id === playerId ? { ...p, ...updates } : p);
+
+          if (teamId === mc.homeTeamId || teamId === mc.awayTeamId) {
+            newState = {
+              ...newState,
+              live: {
+                ...newState.live,
+                matchContext: {
+                  ...mc,
+                  homeRoster: teamId === mc.homeTeamId ? patchRoster(mc.homeRoster) : mc.homeRoster,
+                  awayRoster: teamId === mc.awayTeamId ? patchRoster(mc.awayRoster) : mc.awayRoster,
+                },
+              },
+            };
+          }
+        }
       }
       break;
     }

@@ -27,8 +27,6 @@ export function GoalCelebrationOverlay({ celebration }: GoalCelebrationOverlayPr
     const assistName = goal.assist?.playerNumber ? roster.find(p => p.number === goal.assist?.playerNumber)?.name : undefined;
     const assist2Name = goal.assist2?.playerNumber ? roster.find(p => p.number === goal.assist2?.playerNumber)?.name : undefined;
 
-    console.log('[GoalCelebrationOverlay] Rendered. Config showPlayerPhotos:', state.config.showPlayerPhotosInGoalCelebration, 'Type:', typeof state.config.showPlayerPhotosInGoalCelebration);
-
     if (!goal) return null;
 
     const scoringTeamName = goal.team === 'home' ? state.live.homeTeamName : state.live.awayTeamName;

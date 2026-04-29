@@ -34,6 +34,8 @@ export interface PlayerData {
   type: PlayerType;
   name: string;
   photoFileName?: string; // Optional filename for player photo (e.g., "john_doe_a3f2.png")
+  celebrationVideoFileName?: string; // Optional .webm filename for goal celebration animation
+  celebrationMediaType?: 'photo' | 'video' | 'none'; // What to show in goal celebration (default: none)
 }
 
 export type MatchPhase = 'clasificacion' | 'playoffs';
@@ -797,7 +799,7 @@ export type GameAction =
   | { type: 'DELETE_TEAMS_FROM_TOURNAMENT'; payload: { tournamentId: string, teamIds: string[] } }
   | { type: 'UPDATE_TEAM_DETAILS'; payload: { teamId: string; name: string; subName?: string; category: string; logoDataUrl?: string | null } }
   | { type: 'ADD_PLAYER_TO_TEAM'; payload: { teamId: string; player: Omit<PlayerData, 'id'> & { id?: string } } }
-  | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName'>> } }
+  | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName' | 'celebrationVideoFileName' | 'celebrationMediaType'>> } } // celebrationMediaType: 'photo'|'video'|'none'
   | { type: 'REMOVE_PLAYER_FROM_TEAM'; payload: { teamId: string; playerId: string } }
   | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerNumbers: string[] } }
   | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerName: string; updates: { number: string } } }
