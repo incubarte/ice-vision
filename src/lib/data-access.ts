@@ -125,6 +125,30 @@ export async function writeSingleMatchSummary(
     console.log(`[Data Access] Saved summary for match ${matchId} (only this file was modified)`);
 }
 
+/**
+ * Write raw source files used to generate a summary, for auditing/debugging purposes.
+ * Saved to tournaments/{tournamentId}/summaries/raw/{matchId}/
+ */
+export async function writeRawSummaryFiles(
+    tournamentId: string,
+    matchId: string,
+    files: {
+        liveState: any;
+        shotsMetrics: any;
+        voiceEvents: any;
+    }
+): Promise<void> {
+    const rawPrefix = `tournaments/${tournamentId}/summaries/raw/${matchId}`;
+
+    await Promise.all([
+        storageProvider.writeFile(`${rawPrefix}/live.json`, JSON.stringify(files.liveState, null, 2)),
+        storageProvider.writeFile(`${rawPrefix}/shots-metrics.json`, JSON.stringify(files.shotsMetrics, null, 2)),
+        storageProvider.writeFile(`${rawPrefix}/voice-events.json`, JSON.stringify(files.voiceEvents, null, 2)),
+    ]);
+
+    console.log(`[Data Access] Saved raw summary files for match ${matchId}`);
+}
+
 export async function writeTournament(tournament: Tournament): Promise<void> {
     const tournamentPrefix = `tournaments/${tournament.id}/`;
     const teamsKey = `${tournamentPrefix}teams.json`;

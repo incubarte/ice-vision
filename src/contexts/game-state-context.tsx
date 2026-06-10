@@ -252,11 +252,12 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
 
       console.log(`[GameState] Triggering summary generation on server for match ${matchId}`);
 
-      // Call server API to generate summary (it will read voice events and save the summary)
+      // Call server API to generate summary (live state passed directly to avoid race condition
+      // where live.json might not be persisted to disk yet when the API reads it)
       fetch('/api/generate-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId })
+        body: JSON.stringify({ matchId, liveState: state.live })
       })
         .then(res => res.json())
         .then(data => {

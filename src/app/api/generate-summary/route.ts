@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTournament, readConfig, writeSingleMatchSummary, readLiveState, readShotsMetrics } from '@/lib/data-access';
+import { readTournament, readConfig, writeSingleMatchSummary, writeRawSummaryFiles, readLiveState, readShotsMetrics } from '@/lib/data-access';
 import { generateSummaryData } from '@/lib/summary-generator';
 import fs from 'fs';
 import path from 'path';
@@ -7,15 +7,18 @@ import type { VoiceGameEvent, GameState } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
-    const { matchId } = await request.json();
+    const body = await request.json();
+    const { matchId, liveState: liveStateFromBody } = body;
 
     if (!matchId) {
       return NextResponse.json({ success: false, error: 'matchId is required' }, { status: 400 });
     }
 
-    // Read live state to get tournamentId from matchContext
+    // Use live state from request body if provided (avoids race condition where live.json
+    // may not be persisted yet when the summary generation is triggered).
+    // Fall back to reading from disk for backwards compatibility.
     const config = await readConfig();
-    const liveState = await readLiveState();
+    const liveState = liveStateFromBody ?? await readLiveState();
 
     const tournamentId = liveState.matchContext?.tournamentId;
     if (!tournamentId) {
@@ -102,6 +105,13 @@ export async function POST(request: NextRequest) {
 
     // Save summary
     await writeSingleMatchSummary(tournamentId, matchId, summary);
+
+    // Save raw source files for auditing/debugging
+    await writeRawSummaryFiles(tournamentId, matchId, {
+      liveState: mergedLiveState,
+      shotsMetrics,
+      voiceEvents,
+    });
 
     console.log(`[Generate Summary API] Summary generated and saved for match ${matchId} with ${voiceEvents.length} voice events`);
 

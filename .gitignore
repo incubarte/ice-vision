@@ -62,3 +62,4 @@ __pycache__/
 *.pyc
 .claude/
 GEMINI.md
+.gstack/

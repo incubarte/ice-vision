@@ -670,8 +670,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     case 'ADD_GOAL': {
       const { live, config } = state;
 
+      // During a timeout, use the pre-timeout period/time (not the timeout countdown)
+      const inTimeout = !!live.clock.preTimeoutState;
+
       let periodTextForLog: string;
-      if (action.payload.periodText) {
+      if (inTimeout) {
+        periodTextForLog = getPeriodText(live.clock.preTimeoutState!.period, config.numberOfRegularPeriods || 2);
+      } else if (action.payload.periodText) {
         periodTextForLog = action.payload.periodText;
       } else if (live.shootout?.isActive) {
         periodTextForLog = 'SHOOTOUT';
@@ -696,7 +701,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         }
       }
 
-      const newGoal: GoalLog = { ...action.payload, id: safeUUID(), periodText: periodTextForLog };
+      const newGoal: GoalLog = {
+        ...action.payload,
+        id: safeUUID(),
+        periodText: periodTextForLog,
+        gameTime: inTimeout ? live.clock.preTimeoutState!.time : action.payload.gameTime,
+      };
 
       const newLiveGoals = { ...live.goals };
       newLiveGoals[action.payload.team] = [...newLiveGoals[action.payload.team], newGoal];
@@ -919,6 +929,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const { team, penalty, addGameTime, addPeriodText } = action.payload;
       const { penaltyTypeId, playerNumber } = penalty;
       const { config, live } = state;
+      const penaltyInTimeout = !!live.clock.preTimeoutState;
       const penaltyDef = config.penaltyTypes.find(p => p.id === penaltyTypeId);
 
       if (!penaltyDef) {
@@ -947,11 +958,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         clearsOnGoal: penaltyDef.clearsOnGoal,
         isBenchPenalty: penaltyDef.isBenchPenalty,
         addTimestamp: Date.now(),
-        addGameTime: addGameTime ?? live.clock.currentTime,
+        addGameTime: penaltyInTimeout
+          ? live.clock.preTimeoutState!.time
+          : (addGameTime ?? live.clock.currentTime),
         addPeriodText: addPeriodText ?? (
           live.shootout?.isActive
             ? 'SHOOTOUT'
-            : getPeriodText(live.clock.currentPeriod, config.numberOfRegularPeriods || 2)
+            : getPeriodText(
+                penaltyInTimeout ? live.clock.preTimeoutState!.period : live.clock.currentPeriod,
+                config.numberOfRegularPeriods || 2
+              )
         ),
       };
 
