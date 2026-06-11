@@ -85,7 +85,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
       <div className="flex items-center justify-between">
         <div className="flex items-start gap-2 p-3 text-sm border rounded-lg bg-muted/50 text-muted-foreground flex-1 mr-4">
           <Info className="h-5 w-5 mt-0.5 shrink-0"/>
-          <p>Sistema de puntos (jugadores): 2 puntos por gol, 1 punto por asistencia.</p>
+          <p>Sistema de puntos (jugadores): 1 punto por gol, 1 punto por asistencia.</p>
         </div>
         <div className="w-56">
           <Label>Filtrar por Categoría</Label>

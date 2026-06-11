@@ -112,7 +112,7 @@ export function usePlayerStats(tournament: Tournament | null | undefined, catego
     // Calculate points, shooting percentage and create array
     const statsArray = Array.from(statsMap.values()).map(stat => ({
       ...stat,
-      points: (stat.goals * 2) + stat.assists,
+      points: stat.goals + stat.assists,
       shootingPercentage: stat.shots > 0 ? Math.round((stat.goals / stat.shots) * 100) : 0,
       penaltyMinutes: Math.round(stat.penaltyMinutes),
     }));
