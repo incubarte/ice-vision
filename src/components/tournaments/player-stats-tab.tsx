@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Flag, Users } from 'lucide-react';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const ALL_CATEGORIES = "__ALL__";
 
@@ -44,6 +45,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [activeStatsTab, setActiveStatsTab] = useState('players');
   const [expandedGoalkeepers, setExpandedGoalkeepers] = useState<Set<string>>(new Set());
+  const [selectedPlayerInfo, setSelectedPlayerInfo] = useState<{ playerId: string; playerName: string } | null>(null);
 
   const playerStats = usePlayerStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
   const goalkeeperStats = useGoalkeeperStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
@@ -61,6 +63,47 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
       return newSet;
     });
   };
+
+  const playerMatchBreakdown = useMemo(() => {
+    if (!selectedPlayerInfo || !hydratedTournament) return [];
+    const { playerId } = selectedPlayerInfo;
+    const allTeams = hydratedTournament.teams || [];
+
+    return (hydratedTournament.matches || [])
+      .filter(m => m.summary && m.summary.statsByPeriod)
+      .map(match => {
+        let goals = 0;
+        let assists = 0;
+        let playerTeamId: string | null = null;
+
+        match.summary!.statsByPeriod!.forEach(period => {
+          (['home', 'away'] as const).forEach(side => {
+            const teamId = side === 'home' ? match.homeTeamId : match.awayTeamId;
+            if (!teamId) return;
+            const team = allTeams.find(t => t.id === teamId);
+            if (!team) return;
+            const isPlayerOnTeam = team.players.some(p => p.id === playerId);
+            if (!isPlayerOnTeam) return;
+            playerTeamId = teamId;
+
+            (period.stats.goals[side] || []).forEach(goal => {
+              if (goal.scorer?.playerId === playerId) goals++;
+              if (goal.assist?.playerId === playerId) assists++;
+              if (goal.assist2?.playerId === playerId) assists++;
+            });
+          });
+        });
+
+        if (goals === 0 && assists === 0) return null;
+
+        const opponentId = playerTeamId === match.homeTeamId ? match.awayTeamId : match.homeTeamId;
+        const opponentName = allTeams.find(t => t.id === opponentId)?.name || 'Desconocido';
+        const date = match.date ? new Date(match.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+
+        return { matchId: match.id, date, opponentName, goals, assists };
+      })
+      .filter(Boolean) as { matchId: string; date: string; opponentName: string; goals: number; assists: number }[];
+  }, [selectedPlayerInfo, hydratedTournament]);
 
   if (!isHydrated) {
     return (
@@ -141,7 +184,19 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                   {playerStats.map(stat => (
                     <TableRow key={stat.playerId}>
                       <TableCell className="text-center font-bold">{stat.rank}</TableCell>
-                      <TableCell className="font-medium">{stat.playerName}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5">
+                          {stat.playerName}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                            onClick={() => setSelectedPlayerInfo({ playerId: stat.playerId, playerName: stat.playerName })}
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{stat.categoryName}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{stat.teamName}</TableCell>
                       <TableCell className="text-center font-mono">{stat.goals}</TableCell>
@@ -388,6 +443,43 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
           )}
         </TabsContent>
       </Tabs>
+      {/* Player Match Breakdown Dialog */}
+      <Dialog open={!!selectedPlayerInfo} onOpenChange={(open) => { if (!open) setSelectedPlayerInfo(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-muted-foreground" />
+              Detalle de {selectedPlayerInfo?.playerName}
+            </DialogTitle>
+          </DialogHeader>
+          {playerMatchBreakdown.length === 0 ? (
+            <p className="text-center text-muted-foreground py-6 text-sm">
+              No hay goles ni asistencias registradas.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Vs.</TableHead>
+                  <TableHead className="text-center">G</TableHead>
+                  <TableHead className="text-center">A</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {playerMatchBreakdown.map(row => (
+                  <TableRow key={row.matchId}>
+                    <TableCell className="font-mono text-sm">{row.date}</TableCell>
+                    <TableCell className="text-sm">{row.opponentName}</TableCell>
+                    <TableCell className="text-center font-mono font-semibold">{row.goals}</TableCell>
+                    <TableCell className="text-center font-mono font-semibold">{row.assists}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
