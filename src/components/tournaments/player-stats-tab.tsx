@@ -74,6 +74,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
       .map(match => {
         let goals = 0;
         let assists = 0;
+        let shots = 0;
         let playerTeamId: string | null = null;
 
         match.summary!.statsByPeriod!.forEach(period => {
@@ -91,18 +92,22 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
               if (goal.assist?.playerId === playerId) assists++;
               if (goal.assist2?.playerId === playerId) assists++;
             });
+
+            (period.stats.playerStats[side] || []).forEach(ps => {
+              if (ps.id === playerId) shots += ps.shots;
+            });
           });
         });
 
-        if (goals === 0 && assists === 0) return null;
+        if (goals === 0 && assists === 0 && shots === 0) return null;
 
         const opponentId = playerTeamId === match.homeTeamId ? match.awayTeamId : match.homeTeamId;
         const opponentName = allTeams.find(t => t.id === opponentId)?.name || 'Desconocido';
         const date = match.date ? new Date(match.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
 
-        return { matchId: match.id, date, opponentName, goals, assists };
+        return { matchId: match.id, date, opponentName, goals, assists, shots };
       })
-      .filter(Boolean) as { matchId: string; date: string; opponentName: string; goals: number; assists: number }[];
+      .filter(Boolean) as { matchId: string; date: string; opponentName: string; goals: number; assists: number; shots: number }[];
   }, [selectedPlayerInfo, hydratedTournament]);
 
   if (!isHydrated) {
@@ -464,6 +469,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                   <TableHead>Vs.</TableHead>
                   <TableHead className="text-center">G</TableHead>
                   <TableHead className="text-center">A</TableHead>
+                  <TableHead className="text-center">Tiros</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -473,6 +479,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                     <TableCell className="text-sm">{row.opponentName}</TableCell>
                     <TableCell className="text-center font-mono font-semibold">{row.goals}</TableCell>
                     <TableCell className="text-center font-mono font-semibold">{row.assists}</TableCell>
+                    <TableCell className="text-center font-mono">{row.shots}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
