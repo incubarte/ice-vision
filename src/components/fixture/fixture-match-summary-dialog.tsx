@@ -253,6 +253,26 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   const handleCancelClick = () => setIsEditing(false);
   
   const handleSaveShotsClick = () => {
+    // Validate shots >= goals per player per period before saving
+    if (localSummary) {
+      for (const periodSummary of localSummary.statsByPeriod) {
+        if (editedShots[periodSummary.period]) {
+          for (const teamStr of ['home', 'away'] as Team[]) {
+            for (const pStat of (periodSummary.stats.playerStats[teamStr] || [])) {
+              const editedVal = editedShots[periodSummary.period]?.[pStat.id];
+              if (editedVal) {
+                const shots = parseInt(editedVal.shots, 10) || 0;
+                if (shots < (pStat.goals || 0)) {
+                  toast({ title: "Error en tiros", description: "Los tiros de un jugador no pueden ser menores a sus goles en el mismo período.", variant: "destructive" });
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     setLocalSummary(prevSummary => {
       if (!prevSummary) return undefined;
       const newSummary = JSON.parse(JSON.stringify(prevSummary));

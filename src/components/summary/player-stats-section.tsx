@@ -141,6 +141,9 @@ export const PlayerStatsSection = ({
                         <TableBody>
                             {sortedPlayersWithStats.map(player => {
                                 const playerEditedStats = editable && editedStats ? editedStats[player.id] : null;
+                                const currentShotsValue = playerEditedStats?.shots ?? String(player.shots || 0);
+                                const shotsNum = currentShotsValue === '' ? 0 : parseInt(currentShotsValue, 10);
+                                const isShotsInvalid = editable && shotsNum < (player.goals || 0);
 
                                 return (
                                     <TableRow
@@ -159,7 +162,7 @@ export const PlayerStatsSection = ({
                                         <TableCell className="text-center font-mono py-1">{player.assists || 0}</TableCell>
                                         <TableCell className="text-center py-1">
                                             {editable ? (
-                                                <Input type="text" inputMode="numeric" value={playerEditedStats?.shots ?? String(player.shots || 0)} onChange={(e) => { if (/^\d*$/.test(e.target.value)) onStatChange?.(player.id, 'shots', e.target.value); }} className={statInputClass} />
+                                                <Input type="text" inputMode="numeric" value={currentShotsValue} onChange={(e) => { if (/^\d*$/.test(e.target.value)) onStatChange?.(player.id, 'shots', e.target.value); }} className={cn(statInputClass, isShotsInvalid && "border-b-red-500 text-red-600")} />
                                             ) : ( <span className="font-mono">{player.shots || 0}</span> )}
                                         </TableCell>
                                     </TableRow>
