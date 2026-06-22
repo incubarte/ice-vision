@@ -160,7 +160,10 @@ export class SupabaseStorageProvider implements StorageProvider {
             if (!serviceKey) {
                 throw new Error('Supabase service key is not set for RW mode.');
             }
-            this.supabase = createClient(supabaseUrl, serviceKey);
+            // auth options required for the service role key to properly bypass RLS
+            this.supabase = createClient(supabaseUrl, serviceKey, {
+                auth: { autoRefreshToken: false, persistSession: false }
+            });
         } else { // ro mode
             const anonKey = process.env.SUPABASE_ANON_KEY!;
             if (!anonKey) {
