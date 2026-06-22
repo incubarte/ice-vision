@@ -2024,7 +2024,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         },
         body: JSON.stringify({ tournamentId, matchId, summary })
       })
-      .then(res => res.json())
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) {
+          console.error('[GameState] Failed to save summary:', res.status, data);
+        } else {
+          console.log('[GameState] Summary saved to Supabase:', data);
+        }
+      })
       .catch(err => console.error('[GameState] Error saving summary:', err));
 
       const t = state.config.activeTournament;
