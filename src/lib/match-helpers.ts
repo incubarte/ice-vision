@@ -36,8 +36,14 @@ export function calculateScoreFromSummary(summary: GameSummary): { home: number;
 }
 
 /**
- * Checks if a match went to overtime or shootout
+ * Checks if a match went to overtime or shootout.
+ * Checks the flag first, then falls back to inspecting actual data
+ * (handles old/manually-edited summaries where the flag may be missing).
  */
 export function hasOvertimeOrShootout(summary: GameSummary): boolean {
-  return summary.overTimeOrShootouts || false;
+  if (summary.overTimeOrShootouts) return true;
+  if (summary.shootout && (summary.shootout.homeAttempts.length > 0 || summary.shootout.awayAttempts.length > 0)) return true;
+  if ((summary.playedPeriods || []).some(p => p.startsWith('OT'))) return true;
+  if ((summary.statsByPeriod || []).some(p => p.period.startsWith('OT'))) return true;
+  return false;
 }

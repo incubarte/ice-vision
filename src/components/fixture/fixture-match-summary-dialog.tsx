@@ -189,6 +189,10 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                 period.stats.goals[team] = period.stats.goals[team].filter((g: SummaryGoalEntry) => g.id !== originalGoalId);
                 break;
         }
+        // Ensure overTimeOrShootouts flag is set if any OT period has goals
+        if (periodText.startsWith('OT') && (action === 'add' || action === 'update')) {
+            newSummary.overTimeOrShootouts = true;
+        }
         return newSummary;
     });
   };
