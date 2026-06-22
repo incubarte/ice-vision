@@ -33,12 +33,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, PlusCircle, Edit, Trash2, Info, Loader2 } from "lucide-react";
+import { Trophy, PlusCircle, Edit, Trash2, Info, Loader2, ChevronDown } from "lucide-react";
 import { safeUUID } from "@/lib/utils";
 import type { CategoryData } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Tournament } from "@/types";
+import type { Tournament, TournamentMetadata } from "@/types";
 import { cn } from "@/lib/utils";
 import { useRouter } from 'next/navigation';
 import { TournamentLogo } from "@/components/tournaments/tournament-logo";
@@ -393,32 +393,80 @@ function CreateEditTournamentDialog({
   );
 }
 
+function TournamentCard({ tournament, isLoadingTournament, isReadOnly, onCardClick, onEdit, onDelete }: {
+  tournament: TournamentMetadata;
+  isLoadingTournament: string | null;
+  isReadOnly: boolean;
+  onCardClick: (id: string) => void;
+  onEdit: (t: TournamentMetadata) => void;
+  onDelete: (t: TournamentMetadata) => void;
+}) {
+  return (
+    <Card
+      className={cn("hover:shadow-lg transition-shadow cursor-pointer", isLoadingTournament === tournament.id && "animate-pulse")}
+      onClick={() => onCardClick(tournament.id)}
+    >
+      <CardContent className="p-4 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <TournamentLogo tournamentId={tournament.id} size={96} />
+          <div className="flex flex-col">
+            <span className="font-semibold text-lg text-card-foreground">{tournament.name}</span>
+            <Badge className={cn("w-fit", statusMap[tournament.status]?.className)}>
+              {statusMap[tournament.status]?.text || tournament.status}
+            </Badge>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {isLoadingTournament === tournament.id && (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          )}
+          {!isReadOnly && (
+            <>
+              <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(tournament); }}>
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button variant="destructive" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(tournament); }}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function TournamentsPage() {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const router = useRouter();
   const [isCreateEditDialogOpen, setIsCreateEditDialogOpen] = useState(false);
-  const [tournamentToEdit, setTournamentToEdit] = useState<Tournament | null>(null);
-  const [tournamentToDelete, setTournamentToDelete] = useState<Tournament | null>(null);
+  const [tournamentToEdit, setTournamentToEdit] = useState<TournamentMetadata | null>(null);
+  const [tournamentToDelete, setTournamentToDelete] = useState<TournamentMetadata | null>(null);
   const [isLoadingTournament, setIsLoadingTournament] = useState<string | null>(null);
 
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
 
-  const tournaments = useMemo(() => {
+  const [pastCollapsed, setPastCollapsed] = useState(true);
+
+  const { currentTournaments, pastTournaments } = useMemo(() => {
     const allTournaments = state.config.tournaments || [];
-    if (isReadOnly) {
-      return allTournaments.filter(t => t.status === 'active' || t.status === 'finished');
-    }
-    return allTournaments;
+    const visible = isReadOnly
+      ? allTournaments.filter(t => t.status === 'active' || t.status === 'finished')
+      : allTournaments;
+    return {
+      currentTournaments: visible.filter(t => t.status !== 'finished'),
+      pastTournaments: visible.filter(t => t.status === 'finished'),
+    };
   }, [state.config.tournaments, isReadOnly]);
 
 
-  const handleEdit = (tournament: Tournament) => {
+  const handleEdit = (tournament: TournamentMetadata) => {
     setTournamentToEdit(tournament);
     setIsCreateEditDialogOpen(true);
   };
 
-  const handleDelete = (tournament: Tournament) => {
+  const handleDelete = (tournament: TournamentMetadata) => {
     setTournamentToDelete(tournament);
   };
 
@@ -454,57 +502,49 @@ export default function TournamentsPage() {
         )}
       </div>
 
+      {/* Torneos Actuales */}
       <div className="space-y-4">
-        {tournaments.length === 0 ? (
+        {currentTournaments.length === 0 && pastTournaments.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
             <Info className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No has creado ningún torneo todavía.</p>
             {!isReadOnly && <p className="text-sm text-muted-foreground">¡Usa el botón de arriba para crear el primero!</p>}
           </div>
+        ) : currentTournaments.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No hay torneos activos o inactivos.</p>
         ) : (
-          tournaments.map((tournament) => (
-            <Card
-              key={tournament.id}
-              className={cn("hover:shadow-lg transition-shadow cursor-pointer", isLoadingTournament === tournament.id && "animate-pulse")}
-              onClick={() => handleTournamentClick(tournament.id)}
-            >
-              <CardContent className="p-4 flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <TournamentLogo tournamentId={tournament.id} size={96} />
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-lg text-card-foreground">{tournament.name}</span>
-                    <Badge className={cn("w-fit", statusMap[tournament.status]?.className)}>
-                      {statusMap[tournament.status]?.text || tournament.status}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isLoadingTournament === tournament.id && (
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  )}
-                  {!isReadOnly && (
-                    <>
-                      <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(tournament); }}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="destructive" size="icon" onClick={(e) => { e.stopPropagation(); handleDelete(tournament); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          currentTournaments.map((tournament) => (
+            <TournamentCard key={tournament.id} tournament={tournament} isLoadingTournament={isLoadingTournament} isReadOnly={isReadOnly} onCardClick={handleTournamentClick} onEdit={handleEdit} onDelete={handleDelete} />
           ))
         )}
       </div>
+
+      {/* Torneos Anteriores (colapsable) */}
+      {pastTournaments.length > 0 && (
+        <div className="space-y-3">
+          <button
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium w-full text-left"
+            onClick={() => setPastCollapsed(v => !v)}
+          >
+            <ChevronDown className={cn("h-4 w-4 transition-transform", !pastCollapsed && "rotate-180")} />
+            Torneos Anteriores ({pastTournaments.length})
+          </button>
+          {!pastCollapsed && (
+            <div className="space-y-4">
+              {pastTournaments.map((tournament) => (
+                <TournamentCard key={tournament.id} tournament={tournament} isLoadingTournament={isLoadingTournament} isReadOnly={isReadOnly} onCardClick={handleTournamentClick} onEdit={handleEdit} onDelete={handleDelete} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {!isReadOnly && (
         <>
           <CreateEditTournamentDialog
             isOpen={isCreateEditDialogOpen}
             onOpenChange={setIsCreateEditDialogOpen}
-            tournamentToEdit={tournamentToEdit}
+            tournamentToEdit={tournamentToEdit as Tournament | null}
           />
 
           {tournamentToDelete && (
