@@ -5,7 +5,7 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Edit3, Check, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Edit3, Check, XCircle, ChevronLeft, ChevronRight, PlusCircle } from "lucide-react";
 import type { MatchData, Tournament, GameSummary, SummaryPlayerStats, PlayerData, Team, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodSummary, AttendedPlayerInfo } from "@/types";
 import { useGameState, getCategoryNameById } from "@/contexts/game-state-context";
 import { GoalsSection } from "../summary/goals-section";
@@ -30,6 +30,25 @@ interface FixtureMatchSummaryDialogProps {
 }
 
 type EditableStats = Record<string, Record<string, { shots: string }>>;
+
+const REG_PERIOD_NAMES = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH'];
+
+function getNextPeriodText(playedPeriods: string[], numRegularPeriods: number): string {
+  if (!playedPeriods || playedPeriods.length === 0) return '1ST';
+  const last = playedPeriods[playedPeriods.length - 1];
+  if (last === 'OT') return 'OT2';
+  if (last.startsWith('OT')) {
+    const n = parseInt(last.substring(2), 10);
+    return `OT${(isNaN(n) ? 1 : n) + 1}`;
+  }
+  const idx = REG_PERIOD_NAMES.indexOf(last);
+  if (idx !== -1) {
+    const nextNum = idx + 2; // 1-indexed period number
+    if (nextNum <= numRegularPeriods) return REG_PERIOD_NAMES[idx + 1];
+    return 'OT';
+  }
+  return 'OT';
+}
 
 export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournament }: FixtureMatchSummaryDialogProps) {
   const { state, dispatch } = useGameState();
@@ -251,7 +270,34 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   };
   
   const handleCancelClick = () => setIsEditing(false);
-  
+
+  const handleAddPeriod = () => {
+    if (isReadOnly || !localSummary) return;
+    const numRegPeriods = state.config.numberOfRegularPeriods ?? 3;
+    const nextPeriod = getNextPeriodText(localSummary.playedPeriods || [], numRegPeriods);
+    const emptyHomePlayers: SummaryPlayerStats[] = homePlayers.map(p => ({ id: p.id, goals: 0, assists: 0, shots: 0 }));
+    const emptyAwayPlayers: SummaryPlayerStats[] = awayPlayers.map(p => ({ id: p.id, goals: 0, assists: 0, shots: 0 }));
+    const newPeriodSummary: SummaryPeriodSummary = {
+      period: nextPeriod,
+      stats: {
+        goals: { home: [], away: [] },
+        penalties: { home: [], away: [] },
+        playerStats: { home: emptyHomePlayers, away: emptyAwayPlayers },
+      },
+    };
+    setLocalSummary(prev => {
+      if (!prev) return prev;
+      const isOT = nextPeriod.startsWith('OT');
+      return {
+        ...prev,
+        playedPeriods: [...(prev.playedPeriods || []), nextPeriod],
+        statsByPeriod: [...(prev.statsByPeriod || []), newPeriodSummary],
+        ...(isOT ? { overTimeOrShootouts: true } : {}),
+      };
+    });
+    toast({ title: "Período Agregado", description: `Se agregó el período ${nextPeriod} al resumen.` });
+  };
+
   const handleSaveShotsClick = () => {
     // Validate shots >= goals per player per period before saving
     if (localSummary) {
@@ -753,6 +799,11 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
               {!isReadOnly && activeTab === 'statsByPeriod' && (
                 <Button type="button" size="sm" variant="outline" onClick={e => { e.stopPropagation(); handleEditClick(); }}>
                   <Edit3 className="mr-1.5 h-3.5 w-3.5" />Editar Tiros
+                </Button>
+              )}
+              {!isReadOnly && (
+                <Button type="button" size="sm" variant="outline" onClick={handleAddPeriod}>
+                  <PlusCircle className="mr-1.5 h-3.5 w-3.5" />Agregar Período
                 </Button>
               )}
               {!isReadOnly && <Button type="button" size="sm" onClick={handleSaveAllChanges}><Check className="mr-1.5 h-3.5 w-3.5" />Guardar Cambios</Button>}
