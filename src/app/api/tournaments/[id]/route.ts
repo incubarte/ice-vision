@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { Tournament } from '@/types';
 import { readTournament, writeTournament, readTournaments } from '@/lib/data-access';
+import { createAdminStorageProvider } from '@/lib/storage';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
@@ -38,7 +39,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') {
+    const adminSecret = request.headers.get('x-admin-secret');
+    const isAdminRequest = !!process.env.ADMIN_WRITE_SECRET
+        && adminSecret === process.env.ADMIN_WRITE_SECRET;
+
+    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true' && !isAdminRequest) {
         return NextResponse.json({ success: false, message: 'La aplicación está en modo de solo lectura. No se permiten escrituras.' }, { status: 403 });
     }
 
@@ -50,14 +55,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             return NextResponse.json({ message: 'Invalid tournament data provided.' }, { status: 400 });
         }
         
-        await writeTournament(tournament);
+        const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
+        await writeTournament(tournament, provider);
 
         // Trigger sync if configured (fire and forget - don't wait)
-        fetch(`${request.url.split('/api/')[0]}/api/sync-trigger`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ trigger: 'after-summary-edit' })
-        }).catch(err => console.error('[Tournament] Sync trigger failed:', err));
+        if (process.env.STORAGE_PROVIDER !== 'supabase_rw') {
+            fetch(`${request.url.split('/api/')[0]}/api/sync-trigger`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trigger: 'after-summary-edit' })
+            }).catch(err => console.error('[Tournament] Sync trigger failed:', err));
+        }
 
         return NextResponse.json({ success: true, message: `Tournament ${tournamentId} saved successfully.` });
     } catch (error) {

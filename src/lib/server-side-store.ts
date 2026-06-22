@@ -7,7 +7,7 @@ import path from 'path';
 import os from 'os';
 import localtunnel, { type Tunnel } from 'localtunnel';
 import { readConfig, readLiveState, readTournaments, readShotsMetrics } from './data-access';
-import { isReadOnlyMode } from './storage';
+import { isReadOnlyMode, isSupabaseMode } from './storage';
 
 let accessRequests: Map<string, AccessRequest> = new Map();
 
@@ -147,7 +147,7 @@ export async function updateTunnelState(updates: Partial<TunnelState>) {
 export async function getGameState(): Promise<LiveGameState | null> {
   // In read-only mode (supabase_ro), always fetch fresh data from Supabase
   // to ensure we get the latest live.json updates
-  if (isReadOnlyMode()) {
+  if (isSupabaseMode()) {
     const liveState = await readLiveState();
     storedGameState = liveState as LiveGameState;
     return storedGameState;
@@ -167,7 +167,7 @@ export function setGameState(newGameState: LiveGameState): void {
 
 export async function getShotsMetrics(): Promise<ShotsMetrics | null> {
   // In read-only mode (supabase_ro), always fetch fresh data from Supabase
-  if (isReadOnlyMode()) {
+  if (isSupabaseMode()) {
     const metrics = await readShotsMetrics();
     storedShotsMetrics = metrics as ShotsMetrics;
     return storedShotsMetrics;

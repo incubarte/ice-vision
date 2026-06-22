@@ -2012,13 +2012,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       break;
     }
     case 'SAVE_MATCH_SUMMARY': {
-      const { matchId, summary } = action.payload;
+      const { matchId, summary, adminSecret } = action.payload;
       const tournamentId = state.config.selectedTournamentId;
       if (!tournamentId || state.config.activeTournament?.id !== tournamentId) break;
 
       fetch('/api/match-summary', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+        },
         body: JSON.stringify({ tournamentId, matchId, summary })
       })
       .then(res => res.json())

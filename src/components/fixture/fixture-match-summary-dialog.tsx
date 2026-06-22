@@ -21,6 +21,7 @@ import { AddPenaltyForm } from "../shared/add-penalty-form";
 import { safeUUID, cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculateScoreFromSummary } from "@/lib/match-helpers";
+import { useAdminMode } from '@/hooks/use-admin-mode';
 
 interface FixtureMatchSummaryDialogProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
     setStatsPeriodIndex(index);
   }, []);
 
-  const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
+  const { isReadOnly, adminSecret } = useAdminMode();
 
   useEffect(() => {
     if (isOpen && match?.summary) {
@@ -246,7 +247,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   
   const handleSaveAllChanges = () => {
     if (isReadOnly || !localSummary || !match || !tournament) return;
-    dispatch({ type: 'SAVE_MATCH_SUMMARY', payload: { matchId: match.id, summary: localSummary } });
+    dispatch({ type: 'SAVE_MATCH_SUMMARY', payload: { matchId: match.id, summary: localSummary, adminSecret: adminSecret ?? undefined } });
     toast({ title: "Resumen Guardado", description: "Todos los cambios en el resumen del partido han sido guardados."});
     onOpenChange(false);
   };

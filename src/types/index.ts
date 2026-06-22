@@ -788,7 +788,7 @@ export type GameAction =
   | { type: 'UPDATE_MATCH_IN_TOURNAMENT'; payload: { tournamentId: string; match: MatchData } }
   | { type: 'DELETE_MATCH_FROM_TOURNAMENT'; payload: { tournamentId: string; matchId: string } }
   | { type: 'CLEAN_MATCH_SUMMARY'; payload: { tournamentId: string; matchId: string } }
-  | { type: 'SAVE_MATCH_SUMMARY'; payload: { matchId: string; summary: GameSummary; } }
+  | { type: 'SAVE_MATCH_SUMMARY'; payload: { matchId: string; summary: GameSummary; adminSecret?: string } }
   | { type: 'INITIALIZE_STATE'; payload: Partial<GameState> }
   | { type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: Partial<Tournament> } }
   | { type: 'SET_STATE_FROM_LOCAL_BROADCAST'; payload: GameState }

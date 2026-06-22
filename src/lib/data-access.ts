@@ -1,9 +1,33 @@
 import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics } from '@/types';
 import { storageProvider } from './storage';
-import { FileNotFoundError } from './storage/providers';
+import { FileNotFoundError, StorageProvider } from './storage/providers';
 import { updateManifestEntry } from './sync-manifest';
 
 // --- High-Level Data Access Functions ---
+
+async function updateRemoteManifestEntry(filePath: string, content: string, provider: StorageProvider): Promise<void> {
+    try {
+        const { hashContent, getGMTTimestamp } = await import('./sync-manifest');
+        let manifest: any = { lastSync: getGMTTimestamp(), files: {} };
+        try {
+            const existing = await provider.readFile('sync-manifest.json');
+            manifest = JSON.parse(existing);
+        } catch {
+            // manifest doesn't exist yet, use empty one
+        }
+        const hash = hashContent(content);
+        if (!manifest.files) manifest.files = {};
+        manifest.files[filePath] = {
+            hash,
+            lastModified: getGMTTimestamp(),
+            size: Buffer.byteLength(content, 'utf-8'),
+        };
+        await provider.writeFile('sync-manifest.json', JSON.stringify(manifest, null, 2));
+    } catch (error) {
+        console.error(`[DataAccess] Failed to update remote manifest for ${filePath}:`, error);
+        // Non-fatal: don't throw, the file write already succeeded
+    }
+}
 
 async function readJsonFile<T>(filePath: string): Promise<T | null> {
     console.log(`[data-access] Attempting to read '${filePath}'...`);
@@ -114,13 +138,21 @@ export async function readTournament(tournamentId: string): Promise<Partial<Tour
 export async function writeSingleMatchSummary(
     tournamentId: string,
     matchId: string,
-    summary: any
+    summary: any,
+    provider?: StorageProvider
 ): Promise<void> {
     const summaryKey = `tournaments/${tournamentId}/summaries/${matchId}.json`;
     const summaryContent = JSON.stringify(summary, null, 2);
 
-    await storageProvider.writeFile(summaryKey, summaryContent);
-    await updateManifestEntry(summaryKey, summaryContent);
+    if (provider) {
+        // Admin request: write via the provided rw provider and update remote manifest
+        await provider.writeFile(summaryKey, summaryContent);
+        await updateRemoteManifestEntry(summaryKey, summaryContent, provider);
+    } else {
+        // Normal path: use the default storageProvider (may be local or supabase_ro)
+        await storageProvider.writeFile(summaryKey, summaryContent);
+        await updateManifestEntry(summaryKey, summaryContent);
+    }
 
     console.log(`[Data Access] Saved summary for match ${matchId} (only this file was modified)`);
 }
@@ -149,7 +181,7 @@ export async function writeRawSummaryFiles(
     console.log(`[Data Access] Saved raw summary files for match ${matchId}`);
 }
 
-export async function writeTournament(tournament: Tournament): Promise<void> {
+export async function writeTournament(tournament: Tournament, provider?: StorageProvider): Promise<void> {
     const tournamentPrefix = `tournaments/${tournament.id}/`;
     const teamsKey = `${tournamentPrefix}teams.json`;
     const fixtureKey = `${tournamentPrefix}fixture.json`;
@@ -174,16 +206,23 @@ export async function writeTournament(tournament: Tournament): Promise<void> {
         const teamsContent = JSON.stringify(teamsData, null, 2);
         const fixtureContent = JSON.stringify(fixtureData, null, 2);
 
-        // Write teams and fixture files only (NOT summaries)
-        await Promise.all([
-            storageProvider.writeFile(teamsKey, teamsContent),
-            storageProvider.writeFile(fixtureKey, fixtureContent),
-        ]);
-
-        // Update manifest SEQUENTIALLY to avoid race conditions
-        // (manifest reads/writes need to be atomic)
-        await updateManifestEntry(teamsKey, teamsContent);
-        await updateManifestEntry(fixtureKey, fixtureContent);
+        if (provider) {
+            // Admin request: write via the provided rw provider and update remote manifest
+            await Promise.all([
+                provider.writeFile(teamsKey, teamsContent),
+                provider.writeFile(fixtureKey, fixtureContent),
+            ]);
+            await updateRemoteManifestEntry(teamsKey, teamsContent, provider);
+            await updateRemoteManifestEntry(fixtureKey, fixtureContent, provider);
+        } else {
+            // Normal path: use the default storageProvider
+            await Promise.all([
+                storageProvider.writeFile(teamsKey, teamsContent),
+                storageProvider.writeFile(fixtureKey, fixtureContent),
+            ]);
+            await updateManifestEntry(teamsKey, teamsContent);
+            await updateManifestEntry(fixtureKey, fixtureContent);
+        }
 
         // NOTE: Summaries are NOT updated here
         // They are updated individually when saved via writeSingleMatchSummary()

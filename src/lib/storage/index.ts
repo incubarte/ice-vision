@@ -24,3 +24,15 @@ export function isReadOnlyMode(): boolean {
     const providerType = process.env.STORAGE_PROVIDER || 'local';
     return providerType === 'supabase_ro';
 }
+
+export function isSupabaseMode(): boolean {
+    const providerType = process.env.STORAGE_PROVIDER || 'local';
+    return providerType === 'supabase_ro' || providerType === 'supabase_rw';
+}
+
+// Creates a one-off RW provider for admin requests, independently of STORAGE_PROVIDER.
+// This way STORAGE_PROVIDER can stay as supabase_ro and the service key is only
+// used when an explicit admin request is made.
+export function createAdminStorageProvider(): StorageProvider {
+    return new SupabaseStorageProvider('rw');
+}
