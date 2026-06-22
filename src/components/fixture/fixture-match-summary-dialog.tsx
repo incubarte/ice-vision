@@ -5,7 +5,7 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Edit3, Check, XCircle, ChevronLeft, ChevronRight, PlusCircle } from "lucide-react";
+import { X, Edit3, Check, XCircle, ChevronLeft, ChevronRight, PlusCircle, MinusCircle } from "lucide-react";
 import type { MatchData, Tournament, GameSummary, SummaryPlayerStats, PlayerData, Team, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodSummary, AttendedPlayerInfo } from "@/types";
 import { useGameState, getCategoryNameById } from "@/contexts/game-state-context";
 import { GoalsSection } from "../summary/goals-section";
@@ -271,6 +271,29 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   };
   
   const handleCancelClick = () => setIsEditing(false);
+
+  const lastOTPeriod = useMemo(() => {
+    const played = localSummary?.playedPeriods || [];
+    const lastPeriod = played[played.length - 1];
+    return lastPeriod?.startsWith('OT') ? lastPeriod : null;
+  }, [localSummary?.playedPeriods]);
+
+  const handleRemovePeriod = () => {
+    if (isReadOnly || !localSummary || !lastOTPeriod) return;
+    setLocalSummary(prev => {
+      if (!prev) return prev;
+      const newPlayedPeriods = prev.playedPeriods.filter(p => p !== lastOTPeriod);
+      const newStatsByPeriod = (prev.statsByPeriod || []).filter(p => p.period !== lastOTPeriod);
+      const stillHasOT = newPlayedPeriods.some(p => p.startsWith('OT'));
+      return {
+        ...prev,
+        playedPeriods: newPlayedPeriods,
+        statsByPeriod: newStatsByPeriod,
+        overTimeOrShootouts: stillHasOT ? prev.overTimeOrShootouts : false,
+      };
+    });
+    toast({ title: "Período Eliminado", description: `Se eliminó el período ${lastOTPeriod} del resumen.` });
+  };
 
   const handleAddPeriod = () => {
     if (isReadOnly || !localSummary) return;
@@ -800,6 +823,11 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
               {!isReadOnly && activeTab === 'statsByPeriod' && (
                 <Button type="button" size="sm" variant="outline" onClick={e => { e.stopPropagation(); handleEditClick(); }}>
                   <Edit3 className="mr-1.5 h-3.5 w-3.5" />Editar Tiros
+                </Button>
+              )}
+              {!isReadOnly && lastOTPeriod && (
+                <Button type="button" size="sm" variant="outline" onClick={handleRemovePeriod}>
+                  <MinusCircle className="mr-1.5 h-3.5 w-3.5" />Eliminar {lastOTPeriod}
                 </Button>
               )}
               {!isReadOnly && (
