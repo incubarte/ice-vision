@@ -813,6 +813,14 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
           {isEditing && activeTab === 'statsByPeriod' ? (
             <>
               <Button type="button" size="sm" variant="destructive" onClick={handleCancelClick}><XCircle className="mr-1.5 h-3.5 w-3.5" />Abortar</Button>
+              {lastOTPeriod && (
+                <Button type="button" size="sm" variant="outline" onClick={handleRemovePeriod}>
+                  <MinusCircle className="mr-1.5 h-3.5 w-3.5" />Eliminar {lastOTPeriod}
+                </Button>
+              )}
+              <Button type="button" size="sm" variant="outline" onClick={handleAddPeriod}>
+                <PlusCircle className="mr-1.5 h-3.5 w-3.5" />Agregar Período
+              </Button>
               <Button type="button" size="sm" className="bg-green-600 hover:bg-green-700" onClick={handleSaveShotsClick}><Check className="mr-1.5 h-3.5 w-3.5" />Confirmar</Button>
             </>
           ) : (
@@ -823,16 +831,6 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
               {!isReadOnly && activeTab === 'statsByPeriod' && (
                 <Button type="button" size="sm" variant="outline" onClick={e => { e.stopPropagation(); handleEditClick(); }}>
                   <Edit3 className="mr-1.5 h-3.5 w-3.5" />Editar Tiros
-                </Button>
-              )}
-              {!isReadOnly && lastOTPeriod && (
-                <Button type="button" size="sm" variant="outline" onClick={handleRemovePeriod}>
-                  <MinusCircle className="mr-1.5 h-3.5 w-3.5" />Eliminar {lastOTPeriod}
-                </Button>
-              )}
-              {!isReadOnly && (
-                <Button type="button" size="sm" variant="outline" onClick={handleAddPeriod}>
-                  <PlusCircle className="mr-1.5 h-3.5 w-3.5" />Agregar Período
                 </Button>
               )}
               {!isReadOnly && <Button type="button" size="sm" onClick={handleSaveAllChanges}><Check className="mr-1.5 h-3.5 w-3.5" />Guardar Cambios</Button>}
