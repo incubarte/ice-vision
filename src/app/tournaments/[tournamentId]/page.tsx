@@ -83,6 +83,18 @@ export default function TournamentDetailPage() {
     );
   }
 
+  // Wait for full tournament data (teams, matches, etc.) to finish loading.
+  // After the initial load, the context fetches full data async — until it arrives,
+  // activeTournament may be null or point to a different tournament.
+  if (state.config.activeTournament?.id !== tournamentId) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-10rem)] text-center p-4">
+        <HockeyPuckSpinner className="h-24 w-24 text-primary mb-4" />
+        <p className="text-xl text-foreground">Cargando datos del torneo...</p>
+      </div>
+    );
+  }
+
   // Calculate grid columns based on enabled tabs
   const getGridColsClass = () => {
     let cols = 2; // Fixture + Standings always present
