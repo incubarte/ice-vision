@@ -23,6 +23,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Input } from '../ui/input';
 import { calculateScoreFromSummary } from '@/lib/match-helpers';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
+import { useAdminMode } from '@/hooks/use-admin-mode';
 
 // Helper para obtener el nombre del equipo o posición
 function getTeamOrPositionName(teamId: string | undefined, teams: TeamData[] | undefined): string {
@@ -112,7 +113,7 @@ export function FixtureCalendarView({ tournamentId }: FixtureCalendarViewProps =
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [teamSearch, setTeamSearch] = useState('');
 
-  const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
+  const { isReadOnly } = useAdminMode();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Use tournamentId prop if provided, otherwise fall back to selectedTournamentId from state

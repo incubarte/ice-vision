@@ -48,12 +48,28 @@ export async function updateGameStateOnServer(live: LiveState) {
 }
 
 
+function readAdminSecret(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('adminAccess');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed.expiresAt > Date.now()) return parsed.secret;
+    localStorage.removeItem('adminAccess');
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function saveTournamentOnServer(tournament: Tournament) {
   try {
+    const adminSecret = readAdminSecret();
     const response = await fetch(`/api/tournaments/${tournament.id}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
       },
       body: JSON.stringify({ tournament }),
     });

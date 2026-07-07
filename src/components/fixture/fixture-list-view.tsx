@@ -23,6 +23,7 @@ import { Calendar } from '../ui/calendar';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 import { deleteMatchWithSummary, cleanMatchSummary } from '@/lib/summary-management';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
+import { useAdminMode } from '@/hooks/use-admin-mode';
 
 // Helper para obtener el nombre del equipo o posición
 function getTeamOrPositionName(teamId: string | undefined, teams: TeamData[] | undefined): string {
@@ -140,7 +141,7 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
   const router = useRouter();
   const { selectedTournamentId, tournaments, activeTournament } = state.config;
 
-  const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
+  const { isReadOnly } = useAdminMode();
 
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
   const [matchToEdit, setMatchToEdit] = useState<MatchData | null>(null);
