@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
-import type { MatchData, Tournament, TeamData, CategoryData, MatchPhase, PlayoffMatchType, PlayoffMatchup } from '@/types';
+import type { MatchData, Tournament, TeamData, CategoryData, MatchPhase, PlayoffMatchType, PlayoffMatchup, Playoff58MatchType, Playoff58Matchup } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,6 +16,7 @@ import { Calendar as CalendarIcon, Star } from 'lucide-react';
 import { format, setHours, setMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { useStandings } from '@/hooks/use-standings';
 import { cn, generateMatchId } from '@/lib/utils';
 
 interface AddEditMatchDialogProps {
@@ -39,6 +40,9 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
     const [phase, setPhase] = useState<MatchPhase>('clasificacion');
     const [playoffType, setPlayoffType] = useState<PlayoffMatchType>('semifinal');
     const [playoffMatchup, setPlayoffMatchup] = useState<PlayoffMatchup>('1vs4');
+    const [playoff58Type, setPlayoff58Type] = useState<Playoff58MatchType>('semifinal');
+    const [playoff58Matchup, setPlayoff58Matchup] = useState<Playoff58Matchup>('5vs8');
+    const [playoff58Name, setPlayoff58Name] = useState<string>('');
     const initialCategoryRef = useRef<string>('');
 
     const isEditing = !!matchToEdit;
@@ -66,6 +70,9 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
             setPhase(matchToEdit?.phase || 'clasificacion');
             setPlayoffType(matchToEdit?.playoffType || 'semifinal');
             setPlayoffMatchup(matchToEdit?.playoffMatchup || '1vs4');
+            setPlayoff58Type(matchToEdit?.playoff58Type || 'semifinal');
+            setPlayoff58Matchup(matchToEdit?.playoff58Matchup || '5vs8');
+            setPlayoff58Name(matchToEdit?.playoff58Name || '');
         } else {
             // Reset initial category ref when dialog closes
             initialCategoryRef.current = '';
@@ -80,10 +87,43 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
         setAwayTeamId('');
     };
 
-    const teamsInCategory = useMemo(() => {
+    // Todos los equipos de la categoría (para contar y para standings)
+    const allTeamsInCategory = useMemo(() => {
         if (!categoryId || !tournament?.teams) return [];
         return tournament.teams.filter(t => t.category === categoryId);
     }, [categoryId, tournament]);
+
+    // Standings de clasificación — necesarios para filtrar equipos por posición
+    const standings = useStandings(tournament, categoryId);
+
+    // ¿Hay partidos de clasificación jugados? Si no, no podemos derivar posiciones
+    const hasClassificationData = standings.length > 0 && standings.some(s => s.pj > 0);
+
+    // Equipos filtrados según la fase seleccionada
+    // playoffs (ganadores): top 4 | playoffs-5-8: posiciones 5-8 | relegation: posición 5+
+    // Si no hay datos de clasificación, muestra todos los equipos de la categoría
+    const teamsInCategory = useMemo(() => {
+        if (!hasClassificationData || standings.length === 0) return allTeamsInCategory;
+
+        if (phase === 'playoffs') {
+            const top4Ids = new Set(standings.slice(0, 4).map(s => s.id));
+            return allTeamsInCategory.filter(t => top4Ids.has(t.id));
+        }
+        if (phase === 'playoffs-5-8') {
+            const pos5to8Ids = new Set(standings.slice(4, 8).map(s => s.id));
+            return allTeamsInCategory.filter(t => pos5to8Ids.has(t.id));
+        }
+        if (phase === 'relegation') {
+            const pos5plusIds = new Set(standings.slice(4).map(s => s.id));
+            return allTeamsInCategory.filter(t => pos5plusIds.has(t.id));
+        }
+        return allTeamsInCategory;
+    }, [phase, allTeamsInCategory, standings, hasClassificationData]);
+
+    // Playoffs 5-8 requiere mínimo 8 equipos (para tener posiciones 5°-8°)
+    const hasEnoughTeamsFor58 = allTeamsInCategory.length >= 8;
+    // Relegation requiere mínimo 6 equipos (para que quede al menos un partido entre equipos del 5° en adelante)
+    const hasEnoughTeamsForRelegation = allTeamsInCategory.length >= 6;
 
     // Obtener partidos de playoffs existentes en esta categoría
     const existingPlayoffMatches = useMemo(() => {
@@ -139,6 +179,46 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
             .map(m => m.playoffMatchup!);
     }, [existingPlayoffMatches]);
 
+    // Detectar fase secundaria activa para esta categoría (playoffs-5-8 o relegation)
+    const secondaryPhaseInfo = useMemo(() => {
+        if (!tournament?.matches || !categoryId) return { phase: null as MatchPhase | null, playoff58Name: null as string | null };
+        const match = tournament.matches.find(
+            m => m.categoryId === categoryId &&
+                 (m.phase === 'playoffs-5-8' || m.phase === 'relegation') &&
+                 (!isEditing || m.id !== matchToEdit?.id)
+        );
+        return {
+            phase: (match?.phase ?? null) as MatchPhase | null,
+            playoff58Name: match?.playoff58Name ?? null,
+        };
+    }, [tournament, categoryId, isEditing, matchToEdit]);
+
+    // Partidos de playoffs-5-8 existentes para validación de límites
+    const existing58Matches = useMemo(() => {
+        if (!tournament?.matches || !categoryId) return [];
+        return tournament.matches.filter(
+            m => m.categoryId === categoryId &&
+                 m.phase === 'playoffs-5-8' &&
+                 (!isEditing || m.id !== matchToEdit?.id)
+        );
+    }, [tournament, categoryId, isEditing, matchToEdit]);
+
+    const playoff58Counts = useMemo(() => ({
+        semifinal: existing58Matches.filter(m => m.playoff58Type === 'semifinal').length,
+        final: existing58Matches.filter(m => m.playoff58Type === 'final').length,
+        '3er-puesto': existing58Matches.filter(m => m.playoff58Type === '3er-puesto').length,
+    }), [existing58Matches]);
+
+    const usedSemifinal58Matchups = useMemo(() =>
+        existing58Matches
+            .filter(m => m.playoff58Type === 'semifinal' && m.playoff58Matchup)
+            .map(m => m.playoff58Matchup!),
+        [existing58Matches]
+    );
+
+    const isMatchup58Available = (matchup: string): boolean =>
+        !usedSemifinal58Matchups.includes(matchup as Playoff58Matchup);
+
     // Auto-seleccionar el matchup disponible o limpiar si no es válido
     useEffect(() => {
         if (phase === 'playoffs' && playoffType === 'semifinal') {
@@ -173,6 +253,47 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
             }
             if (homeTeamId === awayTeamId) {
                 toast({ title: 'Error', description: 'El equipo local y visitante no pueden ser el mismo.', variant: 'destructive' });
+                return;
+            }
+        }
+
+        // Para relegation, equipos obligatorios
+        if (phase === 'relegation') {
+            if (!homeTeamId || !awayTeamId) {
+                toast({ title: 'Error', description: 'Para partidos de Relegation debes seleccionar ambos equipos.', variant: 'destructive' });
+                return;
+            }
+            if (homeTeamId === awayTeamId) {
+                toast({ title: 'Error', description: 'El equipo local y visitante no pueden ser el mismo.', variant: 'destructive' });
+                return;
+            }
+        }
+
+        // Para playoffs-5-8
+        if (phase === 'playoffs-5-8') {
+            const nameToUse = secondaryPhaseInfo.playoff58Name || playoff58Name.trim();
+            if (!nameToUse) {
+                toast({ title: 'Error', description: 'Debes ingresar un nombre para el mini-torneo (ej: Copa Plata).', variant: 'destructive' });
+                return;
+            }
+            if (playoff58Type === 'semifinal' && playoff58Counts.semifinal >= 2) {
+                toast({ title: 'Error', description: 'Ya existen 2 semifinales para esta categoría.', variant: 'destructive' });
+                return;
+            }
+            if (playoff58Type === 'final' && playoff58Counts.final >= 1) {
+                toast({ title: 'Error', description: 'Ya existe una final para esta categoría.', variant: 'destructive' });
+                return;
+            }
+            if (playoff58Type === '3er-puesto' && playoff58Counts['3er-puesto'] >= 1) {
+                toast({ title: 'Error', description: 'Ya existe un partido de 3er puesto para esta categoría.', variant: 'destructive' });
+                return;
+            }
+            if (playoff58Type === 'semifinal' && !isMatchup58Available(playoff58Matchup)) {
+                toast({ title: 'Error', description: `El enfrentamiento ${playoff58Matchup} ya está definido.`, variant: 'destructive' });
+                return;
+            }
+            if (homeTeamId && awayTeamId && homeTeamId === awayTeamId) {
+                toast({ title: 'Error', description: 'Los equipos no pueden ser el mismo.', variant: 'destructive' });
                 return;
             }
         }
@@ -230,6 +351,8 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
         const [hours, minutes] = time.split(':').map(Number);
         const finalDate = setMinutes(setHours(date, hours), minutes);
 
+        const resolved58Name = secondaryPhaseInfo.playoff58Name || playoff58Name.trim();
+
         const matchData: Omit<MatchData, 'id'> = {
             date: finalDate.toISOString(),
             categoryId,
@@ -238,7 +361,10 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
             playersPerTeam: parseInt(playersPerTeam, 10),
             phase,
             ...(phase === 'playoffs' && { playoffType }),
-            ...(phase === 'playoffs' && playoffType === 'semifinal' && { playoffMatchup })
+            ...(phase === 'playoffs' && playoffType === 'semifinal' && { playoffMatchup }),
+            ...(phase === 'playoffs-5-8' && { playoff58Type }),
+            ...(phase === 'playoffs-5-8' && playoff58Type === 'semifinal' && { playoff58Matchup }),
+            ...(phase === 'playoffs-5-8' && { playoff58Name: resolved58Name }),
         };
 
         if (isEditing && matchToEdit) {
@@ -304,9 +430,87 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                             <SelectContent>
                                 <SelectItem value="clasificacion">Clasificación</SelectItem>
                                 <SelectItem value="playoffs">Playoffs</SelectItem>
+                                <SelectItem
+                                    value="playoffs-5-8"
+                                    disabled={!hasEnoughTeamsFor58 || secondaryPhaseInfo.phase === 'relegation'}
+                                >
+                                    Playoffs 5to-8vo
+                                    {!hasEnoughTeamsFor58 ? ' (mín. 8 equipos)' : secondaryPhaseInfo.phase === 'relegation' ? ' (usa Relegation)' : ''}
+                                </SelectItem>
+                                <SelectItem
+                                    value="relegation"
+                                    disabled={!hasEnoughTeamsForRelegation || secondaryPhaseInfo.phase === 'playoffs-5-8'}
+                                >
+                                    Relegation
+                                    {!hasEnoughTeamsForRelegation ? ' (mín. 6 equipos)' : secondaryPhaseInfo.phase === 'playoffs-5-8' ? ' (usa Playoffs 5-8)' : ''}
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
+                    {secondaryPhaseInfo.phase && (phase === 'playoffs-5-8' || phase === 'relegation') && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="col-span-4 flex justify-end">
+                                <span className="text-xs bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400 px-2 py-1 rounded">
+                                    Fase fijada para esta categoría: {secondaryPhaseInfo.phase === 'playoffs-5-8' ? 'Playoffs 5to-8vo' : 'Relegation'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                    {phase === 'playoffs-5-8' && (
+                        <>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="playoff58Name" className="text-right">Nombre</Label>
+                                {secondaryPhaseInfo.playoff58Name ? (
+                                    <div className="col-span-3 flex items-center gap-2">
+                                        <span className="font-medium">{secondaryPhaseInfo.playoff58Name}</span>
+                                        <span className="text-xs bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400 px-1.5 py-0.5 rounded">Fijado</span>
+                                    </div>
+                                ) : (
+                                    <Input
+                                        id="playoff58Name"
+                                        value={playoff58Name}
+                                        onChange={(e) => setPlayoff58Name(e.target.value)}
+                                        placeholder="ej. Copa Plata"
+                                        className="col-span-3"
+                                    />
+                                )}
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="playoff58Type" className="text-right">Tipo</Label>
+                                <Select value={playoff58Type} onValueChange={(v) => setPlayoff58Type(v as Playoff58MatchType)}>
+                                    <SelectTrigger id="playoff58Type" className="col-span-3">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="semifinal">Semifinal</SelectItem>
+                                        <SelectItem value="final">Final</SelectItem>
+                                        <SelectItem value="3er-puesto">3er Puesto</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {playoff58Type === 'semifinal' && (
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="playoff58Matchup" className="text-right">Enfrentamiento</Label>
+                                    <div className="col-span-3 space-y-2">
+                                        <Select value={playoff58Matchup} onValueChange={(v) => setPlayoff58Matchup(v as Playoff58Matchup)}>
+                                            <SelectTrigger id="playoff58Matchup">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="5vs8" disabled={!isMatchup58Available('5vs8')}>5to vs 8vo</SelectItem>
+                                                <SelectItem value="6vs7" disabled={!isMatchup58Available('6vs7')}>6to vs 7mo</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {usedSemifinal58Matchups.length > 0 && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Ya definido: {usedSemifinal58Matchups.map(m => m === '5vs8' ? '5° vs 8°' : '6° vs 7°').join(', ')}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
                     {phase === 'playoffs' && (
                         <>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -369,16 +573,29 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                             )}
                         </>
                     )}
+                    {hasClassificationData && (phase === 'playoffs' || phase === 'playoffs-5-8' || phase === 'relegation') && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="col-span-4">
+                                <p className="text-xs text-muted-foreground text-right">
+                                    {phase === 'playoffs' && `Mostrando top ${Math.min(4, allTeamsInCategory.length)} equipos por clasificación`}
+                                    {phase === 'playoffs-5-8' && `Mostrando equipos del 5° al 8° por clasificación`}
+                                    {phase === 'relegation' && `Mostrando equipos del 5° en adelante por clasificación`}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="homeTeam" className="text-right">
-                            Local {phase === 'playoffs' && <span className="text-xs text-muted-foreground">(opcional)</span>}
+                            Local {(phase === 'playoffs' || phase === 'playoffs-5-8') && <span className="text-xs text-muted-foreground">(opcional)</span>}
                         </Label>
                         <Select value={homeTeamId} onValueChange={(val) => setHomeTeamId(val === 'none' ? '' : val)} disabled={!categoryId}>
                             <SelectTrigger id="homeTeam" className="col-span-3">
-                                <SelectValue placeholder={phase === 'playoffs' ? 'Equipo no definido...' : 'Seleccionar equipo local...'} />
+                                <SelectValue placeholder={(phase === 'playoffs' || phase === 'playoffs-5-8') ? 'Equipo no definido...' : 'Seleccionar equipo local...'} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="none">Equipo no seleccionado</SelectItem>
+                                {(phase === 'playoffs' || phase === 'playoffs-5-8') && (
+                                    <SelectItem value="none">Equipo no seleccionado</SelectItem>
+                                )}
                                 {teamsInCategory.map(team => (
                                     <SelectItem key={team.id} value={team.id} disabled={team.id === awayTeamId}>{team.name}</SelectItem>
                                 ))}
@@ -387,14 +604,16 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="awayTeam" className="text-right">
-                            Visitante {phase === 'playoffs' && <span className="text-xs text-muted-foreground">(opcional)</span>}
+                            Visitante {(phase === 'playoffs' || phase === 'playoffs-5-8') && <span className="text-xs text-muted-foreground">(opcional)</span>}
                         </Label>
                         <Select value={awayTeamId} onValueChange={(val) => setAwayTeamId(val === 'none' ? '' : val)} disabled={!categoryId}>
                             <SelectTrigger id="awayTeam" className="col-span-3">
-                                <SelectValue placeholder={phase === 'playoffs' ? 'Equipo no definido...' : 'Seleccionar equipo visitante...'} />
+                                <SelectValue placeholder={(phase === 'playoffs' || phase === 'playoffs-5-8') ? 'Equipo no definido...' : 'Seleccionar equipo visitante...'} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="none">Equipo no seleccionado</SelectItem>
+                                {(phase === 'playoffs' || phase === 'playoffs-5-8') && (
+                                    <SelectItem value="none">Equipo no seleccionado</SelectItem>
+                                )}
                                 {teamsInCategory.map(team => (
                                     <SelectItem key={team.id} value={team.id} disabled={team.id === homeTeamId}>{team.name}</SelectItem>
                                 ))}

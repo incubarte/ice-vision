@@ -38,9 +38,11 @@ export interface PlayerData {
   celebrationMediaType?: 'photo' | 'video' | 'none'; // What to show in goal celebration (default: none)
 }
 
-export type MatchPhase = 'clasificacion' | 'playoffs';
+export type MatchPhase = 'clasificacion' | 'playoffs' | 'playoffs-5-8' | 'relegation';
 export type PlayoffMatchType = 'semifinal' | 'final' | '3er-puesto';
 export type PlayoffMatchup = '1vs2' | '1vs3' | '1vs4' | '2vs3' | '2vs4' | '3vs4'; // Para semifinales
+export type Playoff58MatchType = 'semifinal' | 'final' | '3er-puesto';
+export type Playoff58Matchup = '5vs8' | '6vs7'; // Para semifinales del mini-torneo 5°-8°
 
 export interface MatchData {
   id: string;
@@ -50,9 +52,12 @@ export interface MatchData {
   awayTeamId?: string; // Opcional para playoffs - ID del equipo real
   playersPerTeam: number;
   summary?: GameSummary;
-  phase: MatchPhase; // Clasificación o Playoffs
-  playoffType?: PlayoffMatchType; // Solo para partidos de playoffs
-  playoffMatchup?: PlayoffMatchup; // Solo para semifinales - indica qué posiciones juegan (ej: '1vs4')
+  phase: MatchPhase; // Clasificación, Playoffs, Playoffs 5-8, o Relegation
+  playoffType?: PlayoffMatchType; // Solo para partidos de playoffs (ganadores)
+  playoffMatchup?: PlayoffMatchup; // Solo para semifinales ganadores (ej: '1vs4')
+  playoff58Type?: Playoff58MatchType; // Solo para playoffs-5-8
+  playoff58Matchup?: Playoff58Matchup; // Solo para semifinales de playoffs-5-8
+  playoff58Name?: string; // Nombre del mini-torneo (ej: 'Copa Plata'), bloqueado una vez definido
   // Note: Score and overtime info are calculated from summary using match-helpers
   // Note: Staff is stored in summary.staff, not in MatchData
 }

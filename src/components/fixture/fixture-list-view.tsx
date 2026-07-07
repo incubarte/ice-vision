@@ -42,6 +42,43 @@ function getTeamOrPositionName(teamId: string | undefined, teams: TeamData[] | u
 
 // Helper para obtener el matchup readable
 function getMatchupDisplay(match: MatchData, teams: TeamData[] | undefined): { home: string, away: string } {
+  // Playoffs 5to-8vo
+  if (match.phase === 'playoffs-5-8') {
+    if (match.playoff58Type === 'semifinal' && match.playoff58Matchup) {
+      if (match.homeTeamId && match.awayTeamId) {
+        return {
+          home: getTeamOrPositionName(match.homeTeamId, teams),
+          away: getTeamOrPositionName(match.awayTeamId, teams)
+        };
+      }
+      const map58: Record<string, { home: string, away: string }> = {
+        '5vs8': { home: '5to', away: '8vo' },
+        '6vs7': { home: '6to', away: '7mo' },
+      };
+      return map58[match.playoff58Matchup] || { home: '?', away: '?' };
+    }
+    if (match.playoff58Type === 'final') {
+      return {
+        home: match.homeTeamId ? getTeamOrPositionName(match.homeTeamId, teams) : 'Gan. Semi 1',
+        away: match.awayTeamId ? getTeamOrPositionName(match.awayTeamId, teams) : 'Gan. Semi 2'
+      };
+    }
+    if (match.playoff58Type === '3er-puesto') {
+      return {
+        home: match.homeTeamId ? getTeamOrPositionName(match.homeTeamId, teams) : 'Per. Semi 1',
+        away: match.awayTeamId ? getTeamOrPositionName(match.awayTeamId, teams) : 'Per. Semi 2'
+      };
+    }
+  }
+
+  // Relegation
+  if (match.phase === 'relegation') {
+    return {
+      home: getTeamOrPositionName(match.homeTeamId, teams),
+      away: getTeamOrPositionName(match.awayTeamId, teams)
+    };
+  }
+
   // Para partidos de playoffs, manejar casos con equipos parcialmente definidos
   if (match.phase === 'playoffs') {
     // Semifinales
@@ -278,6 +315,12 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
       if (match.phase === 'playoffs' && match.playoffType) {
         const playoffLabel = match.playoffType === 'semifinal' ? 'Semifinal' : match.playoffType === 'final' ? 'FINAL' : '3er Puesto';
         message += ` - ${playoffLabel}`;
+      } else if (match.phase === 'playoffs-5-8') {
+        const name = match.playoff58Name || 'Play. 5-8';
+        const typeLabel = match.playoff58Type === 'semifinal' ? 'Semifinal' : match.playoff58Type === 'final' ? 'Final' : '3er Puesto';
+        message += ` - ${name} (${typeLabel})`;
+      } else if (match.phase === 'relegation') {
+        message += ` - Relegation`;
       }
 
       message += `\n${homeName} vs ${awayName}\n`;
@@ -459,18 +502,26 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
                 const isPlayoff = match.phase === 'playoffs';
                 const isFinal = isPlayoff && match.playoffType === 'final';
                 const is3erPuesto = isPlayoff && match.playoffType === '3er-puesto';
+                const is58 = match.phase === 'playoffs-5-8';
+                const is58Final = is58 && match.playoff58Type === 'final';
+                const isRelegation = match.phase === 'relegation';
 
                 return (
                   <TableRow key={match.id} className={cn(
                     isFinal && "border-l-2 border-l-amber-400",
-                    is3erPuesto && "border-l-2 border-l-orange-400"
+                    is3erPuesto && "border-l-2 border-l-orange-400",
+                    is58Final && "border-l-2 border-l-orange-300",
+                    isRelegation && "border-l-2 border-l-red-400"
                   )}>
                     <TableCell>{format(new Date(match.date), "dd/MM/yy HH:mm", { locale: es })}</TableCell>
                     <TableCell>{getCategoryNameById(match.categoryId, selectedTournament?.categories) || 'N/A'}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span>
-                          {match.phase === 'clasificacion' ? 'Clasificación' : 'Playoffs'}
+                          {match.phase === 'clasificacion' ? 'Clasificación'
+                            : match.phase === 'playoffs' ? 'Playoffs'
+                            : match.phase === 'playoffs-5-8' ? (match.playoff58Name || 'Play. 5-8')
+                            : 'Relegation'}
                         </span>
                         {isPlayoff && match.playoffType && (
                           <span className={cn(
@@ -482,6 +533,18 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
                               : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400"
                           )}>
                             {match.playoffType === 'semifinal' ? 'SF' : match.playoffType === 'final' ? 'F' : '3°'}
+                          </span>
+                        )}
+                        {is58 && match.playoff58Type && (
+                          <span className={cn(
+                            "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                            is58Final
+                              ? "bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400"
+                              : match.playoff58Type === '3er-puesto'
+                              ? "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400"
+                              : "bg-orange-50 dark:bg-orange-900 text-orange-600 dark:text-orange-300"
+                          )}>
+                            {match.playoff58Type === 'semifinal' ? 'SF' : match.playoff58Type === 'final' ? 'F' : '3°'}
                           </span>
                         )}
                       </div>

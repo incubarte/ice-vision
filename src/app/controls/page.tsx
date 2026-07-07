@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, AlertTriangle, PlayCircle, Trophy, Wifi, Power, PowerOff, Loader2, Copy, ShieldAlert, LogIn, Swords, PlusCircle, Check, X, Fingerprint, FileText, Flag, MessageSquare, CalendarCheck, Trash2, Info, Edit3, CheckCircle, XCircle, Cloud } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAutoSwitchTournament } from '@/hooks/use-auto-switch-tournament';
+import { useAutoSync } from '@/hooks/use-auto-sync';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 import { safeUUID } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -736,6 +737,7 @@ export default function ControlsPage() {
   const { authStatus } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const { hasPendingConflicts, conflictCount } = useAutoSync(state.config, state.live);
 
   const [pageDisplayState, setPageDisplayState] = useState<PageDisplayState>('Checking');
   const [currentLockHolderId, setCurrentLockHolderId] = useState<string | null>(null);
@@ -1470,6 +1472,27 @@ export default function ControlsPage() {
               <p className="text-xs text-muted-foreground mt-1">Solo funciona en modo local.</p>
             </TooltipContent>
           </Tooltip>
+          {hasPendingConflicts && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer"
+                  onClick={() => toast({
+                    title: `${conflictCount} conflicto${conflictCount !== 1 ? 's' : ''} de sync pendiente${conflictCount !== 1 ? 's' : ''}`,
+                    description: 'Hay archivos con cambios en ambos lados. Resolvelos desde el panel de admin antes de sincronizar.',
+                    variant: 'destructive',
+                  })}
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  <span className="text-xs">Sync: {conflictCount} conflicto{conflictCount !== 1 ? 's' : ''}</span>
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p className="font-bold mb-1">Conflictos de sync pendientes</p>
+                <p className="text-xs">Hay archivos con cambios en ambos lados. Revisá el panel de admin.</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </TooltipProvider>
       </div>
 

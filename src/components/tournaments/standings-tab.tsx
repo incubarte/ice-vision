@@ -8,9 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trophy, Info, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
-import { useStandings } from '@/hooks/use-standings';
+import { useStandings, useRelegationStandings, type TeamStats } from '@/hooks/use-standings';
 import { cn } from '@/lib/utils';
-import { type Tournament, type MatchData, isTournamentHydrated } from '@/types';
+import { type Tournament, type MatchData, type Playoff58Matchup, isTournamentHydrated } from '@/types';
 import { calculateScoreFromSummary } from '@/lib/match-helpers';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -562,6 +562,366 @@ const PlayoffBracket = ({ categoryName, categoryId, tournament }: { categoryName
     );
 };
 
+// Helper para detectar fase secundaria activa de una categoría
+function getSecondaryPhaseInfo(tournament: Tournament, categoryId: string): {
+    phase: 'playoffs-5-8' | 'relegation' | null;
+    playoff58Name: string | null;
+} {
+    const match = tournament.matches?.find(
+        m => m.categoryId === categoryId &&
+             (m.phase === 'playoffs-5-8' || m.phase === 'relegation')
+    );
+    return {
+        phase: (match?.phase as 'playoffs-5-8' | 'relegation') ?? null,
+        playoff58Name: match?.playoff58Name ?? null,
+    };
+}
+
+// Bracket para el mini-torneo Playoffs 5to-8vo
+const Playoff58Bracket = ({ categoryId, tournament, miniTournamentName }: {
+    categoryId: string;
+    tournament: Tournament;
+    miniTournamentName: string;
+}) => {
+    const standings = useStandings(tournament, categoryId);
+
+    const classificationStatus = useMemo(() =>
+        isClassificationComplete(tournament, categoryId),
+        [tournament, categoryId]
+    );
+    const classificationComplete = classificationStatus.complete;
+
+    const playoff58Matches = useMemo(() =>
+        (tournament.matches || []).filter(m =>
+            m.categoryId === categoryId && m.phase === 'playoffs-5-8'
+        ),
+        [tournament.matches, categoryId]
+    );
+
+    const semis = playoff58Matches.filter(m => m.playoff58Type === 'semifinal');
+    const semi1 = semis[0];
+    const semi2 = semis[1];
+    const final58 = playoff58Matches.find(m => m.playoff58Type === 'final');
+    const thirdPlace58 = playoff58Matches.find(m => m.playoff58Type === '3er-puesto');
+
+    // Resolución de nombres de equipo para posiciones 5-8
+    const get58Name = (teamId: string | undefined, matchup: Playoff58Matchup | undefined, isHome: boolean): string => {
+        if (teamId) {
+            const team = tournament.teams?.find(t => t.id === teamId);
+            if (team) return team.name;
+        }
+        if (matchup) {
+            const labels: Record<string, { home: string; away: string }> = {
+                '5vs8': {
+                    home: classificationComplete ? (standings[4]?.name || '5to') : '5to',
+                    away: classificationComplete ? (standings[7]?.name || '8vo') : '8vo',
+                },
+                '6vs7': {
+                    home: classificationComplete ? (standings[5]?.name || '6to') : '6to',
+                    away: classificationComplete ? (standings[6]?.name || '7mo') : '7mo',
+                },
+            };
+            return isHome ? (labels[matchup]?.home || '?') : (labels[matchup]?.away || '?');
+        }
+        return '?';
+    };
+
+    const getSemi58Teams = (semi: MatchData | undefined) => {
+        if (!semi) return { home: '?', away: '?' };
+        return {
+            home: get58Name(semi.homeTeamId, semi.playoff58Matchup, true),
+            away: get58Name(semi.awayTeamId, semi.playoff58Matchup, false),
+        };
+    };
+
+    const getWinner58 = (match: MatchData | undefined): string | null => {
+        if (!match?.summary) return null;
+        const { home, away } = calculateScoreFromSummary(match.summary);
+        if (home > away) return get58Name(match.homeTeamId, match.playoff58Matchup, true);
+        if (away > home) return get58Name(match.awayTeamId, match.playoff58Matchup, false);
+        return null;
+    };
+
+    const getLoser58 = (match: MatchData | undefined): string | null => {
+        if (!match?.summary) return null;
+        const { home, away } = calculateScoreFromSummary(match.summary);
+        if (home > away) return get58Name(match.awayTeamId, match.playoff58Matchup, false);
+        if (away > home) return get58Name(match.homeTeamId, match.playoff58Matchup, true);
+        return null;
+    };
+
+    const semi1Teams = getSemi58Teams(semi1);
+    const semi2Teams = getSemi58Teams(semi2);
+    const semi1Winner = getWinner58(semi1);
+    const semi2Winner = getWinner58(semi2);
+    const semi1Loser = getLoser58(semi1);
+    const semi2Loser = getLoser58(semi2);
+    const finalWinner = getWinner58(final58);
+    const thirdPlaceWinner = getWinner58(thirdPlace58);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-xl">
+                    <Trophy className="h-5 w-5 text-orange-400" />
+                    <div className="flex flex-col">
+                        <span>{miniTournamentName || 'Playoffs 5to-8vo'}</span>
+                        <span className="text-sm font-normal text-muted-foreground">Posiciones 5° al 8°</span>
+                    </div>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {!classificationComplete && (
+                    <div className="mb-6 p-3 text-sm border rounded-lg bg-muted/50 text-muted-foreground flex items-start gap-2">
+                        <Info className="h-5 w-5 mt-0.5 shrink-0" />
+                        <p>
+                            La clasificación aún no finalizó. Los equipos 5° al 8° se determinarán al completarse todos los partidos.
+                            {' '}Jugados: {classificationStatus.played} de {classificationStatus.expected}
+                        </p>
+                    </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                    {/* Semifinales */}
+                    <div className="space-y-6">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">Semifinales</h3>
+                        {/* Semi 1 */}
+                        <div className={cn("border-2 rounded-lg p-4 space-y-2", semi1Winner ? "border-green-500" : "border-border")}>
+                            <div className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                {semi1?.playoff58Matchup ? `Semi 1 (${semi1.playoff58Matchup.replace('vs', ' vs ')})` : 'Semi 1'}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="font-medium">{semi1Teams.home}</span>
+                                {semi1?.summary && <span className="font-bold">{calculateScoreFromSummary(semi1.summary).home}</span>}
+                            </div>
+                            <div className="flex items-center justify-between border-t pt-2">
+                                <span className="font-medium">{semi1Teams.away}</span>
+                                {semi1?.summary && <span className="font-bold">{calculateScoreFromSummary(semi1.summary).away}</span>}
+                            </div>
+                            {semi1 ? (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t">
+                                    <Calendar className="h-3 w-3" />
+                                    {format(new Date(semi1.date), "dd/MM/yy HH:mm", { locale: es })}
+                                </div>
+                            ) : (
+                                <div className="text-xs text-muted-foreground pt-2 border-t">Partido no programado</div>
+                            )}
+                        </div>
+                        {/* Semi 2 */}
+                        <div className={cn("border-2 rounded-lg p-4 space-y-2", semi2Winner ? "border-green-500" : "border-border")}>
+                            <div className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                {semi2?.playoff58Matchup ? `Semi 2 (${semi2.playoff58Matchup.replace('vs', ' vs ')})` : 'Semi 2'}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="font-medium">{semi2Teams.home}</span>
+                                {semi2?.summary && <span className="font-bold">{calculateScoreFromSummary(semi2.summary).home}</span>}
+                            </div>
+                            <div className="flex items-center justify-between border-t pt-2">
+                                <span className="font-medium">{semi2Teams.away}</span>
+                                {semi2?.summary && <span className="font-bold">{calculateScoreFromSummary(semi2.summary).away}</span>}
+                            </div>
+                            {semi2 ? (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t">
+                                    <Calendar className="h-3 w-3" />
+                                    {format(new Date(semi2.date), "dd/MM/yy HH:mm", { locale: es })}
+                                </div>
+                            ) : (
+                                <div className="text-xs text-muted-foreground pt-2 border-t">Partido no programado</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Conectores */}
+                    <div className="hidden md:flex flex-col items-center justify-center">
+                        <div className="h-20 w-px bg-border"></div>
+                        <div className="w-full h-px bg-border"></div>
+                        <div className="h-20 w-px bg-border"></div>
+                    </div>
+
+                    {/* 3er Puesto y Final */}
+                    <div className="space-y-6">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">3er Puesto</h3>
+                        <div className={cn("border-2 rounded-lg p-4 space-y-2", thirdPlaceWinner ? "border-orange-500" : "border-border")}>
+                            <div className="text-xs font-semibold text-orange-600 dark:text-orange-400">3er Puesto</div>
+                            <div className="flex items-center justify-between">
+                                <span className="font-medium">{thirdPlace58?.homeTeamId ? get58Name(thirdPlace58.homeTeamId, undefined, true) : (semi1Loser || 'Perdedor Semi 1')}</span>
+                                {thirdPlace58?.summary && <span className="font-bold">{calculateScoreFromSummary(thirdPlace58.summary).home}</span>}
+                            </div>
+                            <div className="flex items-center justify-between border-t pt-2">
+                                <span className="font-medium">{thirdPlace58?.awayTeamId ? get58Name(thirdPlace58.awayTeamId, undefined, false) : (semi2Loser || 'Perdedor Semi 2')}</span>
+                                {thirdPlace58?.summary && <span className="font-bold">{calculateScoreFromSummary(thirdPlace58.summary).away}</span>}
+                            </div>
+                            {thirdPlace58 ? (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t">
+                                    <Calendar className="h-3 w-3" />
+                                    {format(new Date(thirdPlace58.date), "dd/MM/yy HH:mm", { locale: es })}
+                                </div>
+                            ) : (
+                                <div className="text-xs text-muted-foreground pt-2 border-t">Partido no programado</div>
+                            )}
+                            {thirdPlaceWinner && (
+                                <div className="mt-4 pt-4 border-t">
+                                    <div className="flex items-center justify-center gap-2 text-orange-600 dark:text-orange-400 font-bold">
+                                        <Trophy className="h-5 w-5" />
+                                        <span>3er Lugar: {thirdPlaceWinner}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide text-center">Final</h3>
+                        <div className={cn("border-2 rounded-lg p-4 space-y-2", finalWinner ? "border-amber-500" : "border-border")}>
+                            <div className="text-xs font-semibold text-amber-600 dark:text-amber-400">Final {miniTournamentName || ''}</div>
+                            <div className="flex items-center justify-between">
+                                <span className="font-medium">{final58?.homeTeamId ? get58Name(final58.homeTeamId, undefined, true) : (semi1Winner || 'Ganador Semi 1')}</span>
+                                {final58?.summary && <span className="font-bold">{calculateScoreFromSummary(final58.summary).home}</span>}
+                            </div>
+                            <div className="flex items-center justify-between border-t pt-2">
+                                <span className="font-medium">{final58?.awayTeamId ? get58Name(final58.awayTeamId, undefined, false) : (semi2Winner || 'Ganador Semi 2')}</span>
+                                {final58?.summary && <span className="font-bold">{calculateScoreFromSummary(final58.summary).away}</span>}
+                            </div>
+                            {final58 ? (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t">
+                                    <Calendar className="h-3 w-3" />
+                                    {format(new Date(final58.date), "dd/MM/yy HH:mm", { locale: es })}
+                                </div>
+                            ) : (
+                                <div className="text-xs text-muted-foreground pt-2 border-t">Partido no programado</div>
+                            )}
+                            {finalWinner && (
+                                <div className="mt-4 pt-4 border-t">
+                                    <div className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400 font-bold">
+                                        <Trophy className="h-5 w-5" />
+                                        <span>Campeón {miniTournamentName}: {finalWinner}</span>
+                                    </div>
+                                </div>
+            )}
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+// Tabla de posiciones para Relegation (puestos desde el 5° en adelante)
+const RelegationTable = ({ categoryName, categoryId, tournament }: {
+    categoryName: string;
+    categoryId: string;
+    tournament: Tournament;
+}) => {
+    const stats = useRelegationStandings(tournament, categoryId, 4);
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    if (stats.length === 0) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center justify-between gap-3 text-xl">
+                    <div className="flex items-center gap-3">
+                        <Trophy className="h-5 w-5 text-red-400" />
+                        <div className="flex flex-col">
+                            <span>{categoryName} — Relegation</span>
+                            <span className="text-sm font-normal text-muted-foreground">Tabla de posiciones (desde el 5°)</span>
+                        </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setIsExpanded(!isExpanded)} className="md:hidden">
+                        {isExpanded ? <><ChevronUp className="h-4 w-4 mr-1" />Reducir</> : <><ChevronDown className="h-4 w-4 mr-1" />Ver más</>}
+                    </Button>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {/* Desktop */}
+                <div className="hidden md:block">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="text-center">Puesto</TableHead>
+                                <TableHead className="w-1/2">Equipo</TableHead>
+                                <TableHead className="text-center">PJ</TableHead>
+                                <TableHead className="text-center">PG</TableHead>
+                                <TableHead className="text-center">PG <span className="text-xs opacity-80">(OT)</span></TableHead>
+                                <TableHead className="text-center">PP <span className="text-xs opacity-80">(OT)</span></TableHead>
+                                <TableHead className="text-center">PE</TableHead>
+                                <TableHead className="text-center">PP</TableHead>
+                                <TableHead className="text-center border-l">GF</TableHead>
+                                <TableHead className="text-center">GC</TableHead>
+                                <TableHead className="text-center">DIF</TableHead>
+                                <TableHead className="text-center font-bold border-l">Puntos</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {stats.map(team => (
+                                <TableRow key={team.id}>
+                                    <TableCell className="text-center font-bold">{team.displayRank}°</TableCell>
+                                    <TableCell className="font-medium">{team.name}</TableCell>
+                                    <TableCell className="text-center">{team.pj}</TableCell>
+                                    <TableCell className="text-center">{team.pg}</TableCell>
+                                    <TableCell className="text-center">{team.pg_ot}</TableCell>
+                                    <TableCell className="text-center">{team.pp_ot}</TableCell>
+                                    <TableCell className="text-center">{team.pe}</TableCell>
+                                    <TableCell className="text-center">{team.pp}</TableCell>
+                                    <TableCell className="text-center border-l">{team.gf}</TableCell>
+                                    <TableCell className="text-center">{team.gc}</TableCell>
+                                    <TableCell className="text-center font-semibold">{team.dif > 0 ? `+${team.dif}` : team.dif}</TableCell>
+                                    <TableCell className="text-center font-bold text-lg border-l">{team.puntos}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                {/* Mobile */}
+                <div className="md:hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="text-center text-xs">Puesto</TableHead>
+                                <TableHead className="text-xs">Equipo</TableHead>
+                                <TableHead className="text-center text-xs">PJ</TableHead>
+                                <TableHead className="text-center text-xs">PG</TableHead>
+                                <TableHead className="text-center text-xs">DIF</TableHead>
+                                <TableHead className="text-center font-bold text-xs">Pts</TableHead>
+                                {isExpanded && (
+                                    <>
+                                        <TableHead className="text-center text-xs">PG<br />(OT)</TableHead>
+                                        <TableHead className="text-center text-xs">PP<br />(OT)</TableHead>
+                                        <TableHead className="text-center text-xs">PE</TableHead>
+                                        <TableHead className="text-center text-xs">PP</TableHead>
+                                        <TableHead className="text-center text-xs">GF</TableHead>
+                                        <TableHead className="text-center text-xs">GC</TableHead>
+                                    </>
+                                )}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {stats.map(team => (
+                                <TableRow key={team.id}>
+                                    <TableCell className="text-center font-bold text-sm">{team.displayRank}°</TableCell>
+                                    <TableCell className="font-medium text-sm truncate max-w-[120px]">{team.name}</TableCell>
+                                    <TableCell className="text-center text-sm">{team.pj}</TableCell>
+                                    <TableCell className="text-center text-sm">{team.pg}</TableCell>
+                                    <TableCell className="text-center font-semibold text-sm">{team.dif > 0 ? `+${team.dif}` : team.dif}</TableCell>
+                                    <TableCell className="text-center font-bold text-sm">{team.puntos}</TableCell>
+                                    {isExpanded && (
+                                        <>
+                                            <TableCell className="text-center text-sm">{team.pg_ot}</TableCell>
+                                            <TableCell className="text-center text-sm">{team.pp_ot}</TableCell>
+                                            <TableCell className="text-center text-sm">{team.pe}</TableCell>
+                                            <TableCell className="text-center text-sm">{team.pp}</TableCell>
+                                            <TableCell className="text-center text-sm">{team.gf}</TableCell>
+                                            <TableCell className="text-center text-sm">{team.gc}</TableCell>
+                                        </>
+                                    )}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 interface StandingsTabProps {
     tournamentId?: string;
 }
@@ -630,14 +990,32 @@ export function StandingsTab({ tournamentId }: StandingsTabProps = {}) {
             </TabsContent>
 
             <TabsContent value="playoffs" className="space-y-8">
-                {categoriesWithTeams.map(category => (
-                    <PlayoffBracket
-                        key={category.id}
-                        categoryName={category.name}
-                        categoryId={category.id}
-                        tournament={selectedTournament}
-                    />
-                ))}
+                {categoriesWithTeams.map(category => {
+                    const secondaryInfo = getSecondaryPhaseInfo(selectedTournament, category.id);
+                    return (
+                        <React.Fragment key={category.id}>
+                            <PlayoffBracket
+                                categoryName={category.name}
+                                categoryId={category.id}
+                                tournament={selectedTournament}
+                            />
+                            {secondaryInfo.phase === 'playoffs-5-8' && (
+                                <Playoff58Bracket
+                                    categoryId={category.id}
+                                    tournament={selectedTournament}
+                                    miniTournamentName={secondaryInfo.playoff58Name || ''}
+                                />
+                            )}
+                            {secondaryInfo.phase === 'relegation' && (
+                                <RelegationTable
+                                    categoryName={category.name}
+                                    categoryId={category.id}
+                                    tournament={selectedTournament}
+                                />
+                            )}
+                        </React.Fragment>
+                    );
+                })}
 
                 {categoriesWithTeams.length === 0 && (
                     <div className="text-center py-12">

@@ -2,10 +2,10 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { Tournament, TeamData, CategoryData } from '@/types';
+import type { Tournament, TeamData, CategoryData, MatchPhase } from '@/types';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 
-interface TeamStats {
+export interface TeamStats {
   id: string;
   name: string;
   pj: number; // Partidos Jugados
@@ -18,6 +18,87 @@ interface TeamStats {
   gc: number; // Goles en Contra
   dif: number; // Diferencia de Goles
   puntos: number;
+}
+
+/** Calcula la tabla de posiciones para una fase específica. Uso interno. */
+function computeStandings(
+  tournament: Tournament,
+  categoryId: string,
+  phase: MatchPhase
+): (TeamStats & { rank: number })[] {
+  const finishedMatches = (tournament.matches || []).filter(m =>
+    m.summary &&
+    m.categoryId === categoryId &&
+    m.phase === phase
+  );
+  const teamsInCategory = (tournament.teams || []).filter(t => t.category === categoryId);
+
+  // Para relegation, solo incluir equipos que realmente jugaron partidos en esta fase
+  const participatingTeamIds = phase === 'relegation'
+    ? new Set(finishedMatches.flatMap(m => [m.homeTeamId, m.awayTeamId].filter(Boolean) as string[]))
+    : null;
+
+  const relevantTeams = participatingTeamIds
+    ? teamsInCategory.filter(t => participatingTeamIds.has(t.id))
+    : teamsInCategory;
+
+  const stats: TeamStats[] = relevantTeams.map(team => {
+    const teamStats: TeamStats = {
+      id: team.id, name: team.name,
+      pj: 0, pg: 0, pe: 0, pp: 0, pg_ot: 0, pp_ot: 0, gf: 0, gc: 0, dif: 0, puntos: 0
+    };
+
+    finishedMatches
+      .filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id)
+      .forEach(match => {
+        if (!match.summary) return;
+        teamStats.pj++;
+        const { home: homeGoals, away: awayGoals } = calculateScoreFromSummary(match.summary);
+        const wentToOTOrSO = hasOvertimeOrShootout(match.summary);
+        const isHome = match.homeTeamId === team.id;
+        teamStats.gf += isHome ? homeGoals : awayGoals;
+        teamStats.gc += isHome ? awayGoals : homeGoals;
+        if (homeGoals > awayGoals) {
+          if (isHome) { if (wentToOTOrSO) teamStats.pg_ot++; else teamStats.pg++; }
+          else { if (wentToOTOrSO) teamStats.pp_ot++; else teamStats.pp++; }
+        } else if (awayGoals > homeGoals) {
+          if (!isHome) { if (wentToOTOrSO) teamStats.pg_ot++; else teamStats.pg++; }
+          else { if (wentToOTOrSO) teamStats.pp_ot++; else teamStats.pp++; }
+        } else {
+          teamStats.pe++;
+        }
+      });
+
+    teamStats.dif = teamStats.gf - teamStats.gc;
+    teamStats.puntos = (teamStats.pg * 3) + (teamStats.pe * 1) + (teamStats.pg_ot * 2) + (teamStats.pp_ot * 1);
+    return teamStats;
+  });
+
+  stats.sort((a, b) => {
+    if (b.puntos !== a.puntos) return b.puntos - a.puntos;
+    const diffA = a.gf - a.gc;
+    const diffB = b.gf - b.gc;
+    if (diffB !== diffA) return diffB - diffA;
+    if (b.gf !== a.gf) return b.gf - a.gf;
+    return a.pj - b.pj;
+  });
+
+  const rankedStats: (TeamStats & { rank: number })[] = [];
+  if (stats.length > 0) {
+    rankedStats.push({ ...stats[0], rank: 1 });
+    for (let i = 1; i < stats.length; i++) {
+      const prev = stats[i - 1];
+      const curr = stats[i];
+      const prevRanked = rankedStats[i - 1];
+      let rank = prevRanked.rank;
+      if (curr.puntos !== prev.puntos || (curr.gf - curr.gc) !== (prev.gf - prev.gc) || curr.gf !== prev.gf) {
+        rank = i + 1;
+      }
+      rankedStats.push({ ...curr, rank });
+    }
+  }
+
+  return rankedStats;
 }
 
 export function useStandings(tournament: Tournament | null | undefined, categoryId: string) {
@@ -109,4 +190,23 @@ export function useStandings(tournament: Tournament | null | undefined, category
   }, [tournament, categoryId]);
 
   return standings;
+}
+
+/**
+ * Tabla de posiciones para la fase de Relegation.
+ * Solo incluye partidos con phase === 'relegation'.
+ * Los ranks se muestran con offset (por defecto +4) para reflejar
+ * que los equipos parten del 5° puesto del torneo general.
+ * La tabla de clasificación NO se ve afectada por estos partidos.
+ */
+export function useRelegationStandings(
+  tournament: Tournament | null | undefined,
+  categoryId: string,
+  positionOffset: number = 4
+): (TeamStats & { rank: number; displayRank: number })[] {
+  return useMemo(() => {
+    if (!tournament || !categoryId) return [];
+    const base = computeStandings(tournament, categoryId, 'relegation');
+    return base.map(t => ({ ...t, displayRank: t.rank + positionOffset }));
+  }, [tournament, categoryId, positionOffset]);
 }
