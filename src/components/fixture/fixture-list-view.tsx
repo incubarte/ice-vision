@@ -141,7 +141,7 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
   const router = useRouter();
   const { selectedTournamentId, tournaments, activeTournament } = state.config;
 
-  const { isReadOnly } = useAdminMode();
+  const { isReadOnly, adminSecret } = useAdminMode();
 
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
   const [matchToEdit, setMatchToEdit] = useState<MatchData | null>(null);
@@ -248,7 +248,7 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
 
     try {
       // Move summary to deleted-matches folder (server-side)
-      await deleteMatchWithSummary(activeTournamentId, matchToDelete.id);
+      await deleteMatchWithSummary(activeTournamentId, matchToDelete.id, adminSecret ?? undefined);
 
       // Update state
       dispatch({ type: 'DELETE_MATCH_FROM_TOURNAMENT', payload: { tournamentId: activeTournamentId, matchId: matchToDelete.id }});
@@ -266,7 +266,7 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
 
     try {
       // Move summary to deleted-summaries folder (server-side)
-      await cleanMatchSummary(activeTournamentId, matchToClean.id);
+      await cleanMatchSummary(activeTournamentId, matchToClean.id, adminSecret ?? undefined);
 
       // Update state
       dispatch({ type: 'CLEAN_MATCH_SUMMARY', payload: { tournamentId: activeTournamentId, matchId: matchToClean.id }});

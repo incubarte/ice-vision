@@ -60,8 +60,15 @@ export async function moveSummary(
  */
 export async function deleteMatchWithSummary(
   tournamentId: string,
-  matchId: string
+  matchId: string,
+  adminSecret?: string
 ): Promise<void> {
+  if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') {
+    const configuredSecret = process.env.ADMIN_WRITE_SECRET;
+    if (!configuredSecret || adminSecret !== configuredSecret) {
+      throw new Error('No autorizado');
+    }
+  }
   await moveSummary(tournamentId, matchId, 'deleted-matches', false);
 }
 
@@ -72,7 +79,14 @@ export async function deleteMatchWithSummary(
  */
 export async function cleanMatchSummary(
   tournamentId: string,
-  matchId: string
+  matchId: string,
+  adminSecret?: string
 ): Promise<void> {
+  if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') {
+    const configuredSecret = process.env.ADMIN_WRITE_SECRET;
+    if (!configuredSecret || adminSecret !== configuredSecret) {
+      throw new Error('No autorizado');
+    }
+  }
   await moveSummary(tournamentId, matchId, 'deleted-summaries', true);
 }
