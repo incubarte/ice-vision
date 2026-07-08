@@ -299,21 +299,31 @@ const PlayoffBracket = ({ categoryName, categoryId, tournament }: { categoryName
     const thirdPlaceWinner = thirdPlace ? getWinnerTeam(thirdPlace, tournament, standings) : null;
 
     // Obtener los nombres de los equipos para cada semifinal
-    // Si tienen equipos definidos, mostrarlos. Si no, usar el matchup para derivarlos de standings
+    // Para semis no jugadas: siempre derivar del matchup + standings (evita mostrar equipos
+    // asignados incorrectamente antes de que la clasificación estuviera completa).
+    // Para semis jugadas: usar los equipos reales del partido.
     const getSemiTeamNames = (semi: MatchData | undefined) => {
         if (!semi) return { home: '?', away: '?' };
 
-        // Si ambos equipos están definidos, usarlos
-        if (semi.homeTeamId && semi.awayTeamId) {
+        // Si el partido ya fue jugado, usar los equipos que realmente jugaron
+        if (semi.summary && semi.homeTeamId && semi.awayTeamId) {
             return {
                 home: getTeamName(semi.homeTeamId, tournament, standings),
                 away: getTeamName(semi.awayTeamId, tournament, standings)
             };
         }
 
-        // Si no, usar el matchup para derivar de standings (solo si clasificación completa)
+        // Antes de jugarse: derivar del matchup para garantizar equipos correctos según standings
         if (semi.playoffMatchup) {
             return getSemiMatchupNames(semi.playoffMatchup, standings, classificationComplete);
+        }
+
+        // Fallback: equipos explícitos si no hay matchup
+        if (semi.homeTeamId && semi.awayTeamId) {
+            return {
+                home: getTeamName(semi.homeTeamId, tournament, standings),
+                away: getTeamName(semi.awayTeamId, tournament, standings)
+            };
         }
 
         return { home: '?', away: '?' };
@@ -628,6 +638,31 @@ const Playoff58Bracket = ({ categoryId, tournament, miniTournamentName }: {
 
     const getSemi58Teams = (semi: MatchData | undefined) => {
         if (!semi) return { home: '?', away: '?' };
+
+        // Si el partido ya fue jugado, usar los equipos reales
+        if (semi.summary) {
+            return {
+                home: get58Name(semi.homeTeamId, semi.playoff58Matchup, true),
+                away: get58Name(semi.awayTeamId, semi.playoff58Matchup, false),
+            };
+        }
+
+        // Antes de jugarse: derivar del matchup para garantizar equipos correctos según standings
+        if (semi.playoff58Matchup) {
+            const matchupPositions: Record<string, { home: number; away: number; homeLabel: string; awayLabel: string }> = {
+                '5vs8': { home: 4, away: 7, homeLabel: '5to', awayLabel: '8vo' },
+                '6vs7': { home: 5, away: 6, homeLabel: '6to', awayLabel: '7mo' },
+            };
+            const pos = matchupPositions[semi.playoff58Matchup];
+            if (pos) {
+                return {
+                    home: classificationComplete ? (standings[pos.home]?.name || pos.homeLabel) : pos.homeLabel,
+                    away: classificationComplete ? (standings[pos.away]?.name || pos.awayLabel) : pos.awayLabel,
+                };
+            }
+        }
+
+        // Fallback
         return {
             home: get58Name(semi.homeTeamId, semi.playoff58Matchup, true),
             away: get58Name(semi.awayTeamId, semi.playoff58Matchup, false),
