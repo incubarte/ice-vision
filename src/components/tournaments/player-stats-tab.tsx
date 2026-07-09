@@ -23,6 +23,56 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 const ALL_CATEGORIES = "__ALL__";
 
+// --- Sortable column helpers ---
+type SortDir = 'asc' | 'desc';
+type SortState = { key: string; dir: SortDir };
+
+function sortData<T>(data: T[], key: string, dir: SortDir): T[] {
+  return [...data].sort((a, b) => {
+    const av = (a as Record<string, unknown>)[key];
+    const bv = (b as Record<string, unknown>)[key];
+    if (typeof av === 'string' && typeof bv === 'string') {
+      return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    }
+    const an = Number(av ?? 0);
+    const bn = Number(bv ?? 0);
+    return dir === 'asc' ? an - bn : bn - an;
+  });
+}
+
+function SortHead({ children, sortKey, sort, onSort, className, title }: {
+  children: React.ReactNode;
+  sortKey: string;
+  sort: SortState;
+  onSort: (key: string) => void;
+  className?: string;
+  title?: string;
+}) {
+  const active = sort.key === sortKey;
+  return (
+    <TableHead
+      className={cn("cursor-pointer select-none hover:bg-muted/50 transition-colors", className)}
+      title={title}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
+        {children}
+        {active
+          ? (sort.dir === 'asc' ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />)
+          : <ChevronDown className="h-3 w-3 shrink-0 opacity-20" />}
+      </span>
+    </TableHead>
+  );
+}
+
+function makeToggle(setState: React.Dispatch<React.SetStateAction<SortState>>) {
+  return (key: string) => setState(prev => ({
+    key,
+    dir: prev.key === key ? (prev.dir === 'asc' ? 'desc' : 'asc') : 'desc',
+  }));
+}
+// --- end sort helpers ---
+
 interface PlayerStatsTabProps {
   tournamentId?: string;
 }
@@ -31,7 +81,6 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const { state } = useGameState();
   const { tournaments, selectedTournamentId, activeTournament } = state.config;
 
-  // Use tournamentId prop if provided, otherwise fall back to selectedTournamentId from state
   const activeTournamentId = tournamentId || selectedTournamentId;
 
   const selectedTournament = useMemo((): Tournament | TournamentMetadata | undefined => {
@@ -50,11 +99,31 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const [expandedGoalkeepers, setExpandedGoalkeepers] = useState<Set<string>>(new Set());
   const [selectedPlayerInfo, setSelectedPlayerInfo] = useState<{ playerId: string; playerName: string } | null>(null);
 
+  // Sort states
+  const [playerSort, setPlayerSort] = useState<SortState>({ key: 'points', dir: 'desc' });
+  const [gkSort, setGkSort] = useState<SortState>({ key: 'savePercentage', dir: 'desc' });
+  const [refSort, setRefSort] = useState<SortState>({ key: 'totalMatches', dir: 'desc' });
+  const [mesaSort, setMesaSort] = useState<SortState>({ key: 'totalMatches', dir: 'desc' });
+  const [teamSort, setTeamSort] = useState<SortState>({ key: 'goalsFor', dir: 'desc' });
+
   const playerStats = usePlayerStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
   const goalkeeperStats = useGoalkeeperStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
   const refereeStats = useRefereeStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
   const mesaStats = useMesaStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
   const teamStats = useTeamStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
+
+  // Sorted data
+  const sortedPlayers = useMemo(() => sortData(playerStats, playerSort.key, playerSort.dir), [playerStats, playerSort]);
+  const sortedGk = useMemo(() => sortData(goalkeeperStats, gkSort.key, gkSort.dir), [goalkeeperStats, gkSort]);
+  const sortedReferees = useMemo(() => sortData(refereeStats, refSort.key, refSort.dir), [refereeStats, refSort]);
+  const sortedMesa = useMemo(() => sortData(mesaStats, mesaSort.key, mesaSort.dir), [mesaStats, mesaSort]);
+  const sortedTeams = useMemo(() => sortData(teamStats, teamSort.key, teamSort.dir), [teamStats, teamSort]);
+
+  const togglePlayer = makeToggle(setPlayerSort);
+  const toggleGk = makeToggle(setGkSort);
+  const toggleRef = makeToggle(setRefSort);
+  const toggleMesa = makeToggle(setMesaSort);
+  const toggleTeam = makeToggle(setTeamSort);
 
   const toggleGoalkeeperExpanded = (playerId: string) => {
     setExpandedGoalkeepers(prev => {
@@ -184,21 +253,21 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-center w-16">Puesto</TableHead>
-                    <TableHead>Jugador</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Equipo</TableHead>
-                    <TableHead className="text-center">G</TableHead>
-                    <TableHead className="text-center">A</TableHead>
-                    <TableHead className="text-center">Tiros</TableHead>
-                    <TableHead className="text-center">Efect. %</TableHead>
-                    <TableHead className="text-center"># Pen.</TableHead>
-                    <TableHead className="text-center">T. Pen. (min)</TableHead>
-                    <TableHead className="text-center font-bold">Puntos</TableHead>
+                    <SortHead sortKey="rank" sort={playerSort} onSort={togglePlayer} className="text-center w-16">Puesto</SortHead>
+                    <SortHead sortKey="playerName" sort={playerSort} onSort={togglePlayer}>Jugador</SortHead>
+                    <SortHead sortKey="categoryName" sort={playerSort} onSort={togglePlayer}>Categoría</SortHead>
+                    <SortHead sortKey="teamName" sort={playerSort} onSort={togglePlayer}>Equipo</SortHead>
+                    <SortHead sortKey="goals" sort={playerSort} onSort={togglePlayer} className="text-center">G</SortHead>
+                    <SortHead sortKey="assists" sort={playerSort} onSort={togglePlayer} className="text-center">A</SortHead>
+                    <SortHead sortKey="shots" sort={playerSort} onSort={togglePlayer} className="text-center">Tiros</SortHead>
+                    <SortHead sortKey="shootingPercentage" sort={playerSort} onSort={togglePlayer} className="text-center">Efect. %</SortHead>
+                    <SortHead sortKey="penaltyCount" sort={playerSort} onSort={togglePlayer} className="text-center"># Pen.</SortHead>
+                    <SortHead sortKey="penaltyMinutes" sort={playerSort} onSort={togglePlayer} className="text-center">T. Pen. (min)</SortHead>
+                    <SortHead sortKey="points" sort={playerSort} onSort={togglePlayer} className="text-center font-bold">Puntos</SortHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {playerStats.map(stat => (
+                  {sortedPlayers.map(stat => (
                     <TableRow key={stat.playerId}>
                       <TableCell className="text-center font-bold">{stat.rank}</TableCell>
                       <TableCell className="font-medium">
@@ -225,7 +294,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                       <TableCell className="text-center font-bold text-lg">{stat.points}</TableCell>
                     </TableRow>
                   ))}
-                  {playerStats.length === 0 && (
+                  {sortedPlayers.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={11} className="h-24 text-center">No hay estadísticas para mostrar.</TableCell>
                     </TableRow>
@@ -246,8 +315,39 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* GK sort controls */}
+              {sortedGk.length > 1 && (
+                <div className="flex flex-wrap gap-2 mb-4 text-xs text-muted-foreground items-center">
+                  <span className="font-medium">Ordenar por:</span>
+                  {[
+                    { key: 'playerName', label: 'Nombre' },
+                    { key: 'teamName', label: 'Equipo' },
+                    { key: 'matchesPlayed', label: 'Partidos' },
+                    { key: 'totalShotsAgainst', label: 'Tiros' },
+                    { key: 'totalSaves', label: 'Atajados' },
+                    { key: 'totalGoalsAgainst', label: 'Goles en Contra' },
+                    { key: 'savePercentage', label: '% Efect.' },
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => toggleGk(key)}
+                      className={cn(
+                        "px-2 py-1 rounded border text-xs transition-colors",
+                        gkSort.key === key
+                          ? "border-primary bg-primary/10 text-primary font-semibold"
+                          : "border-border hover:border-muted-foreground"
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-0.5">
+                        {label}
+                        {gkSort.key === key && (gkSort.dir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="space-y-8">
-                {goalkeeperStats.map(gkStat => (
+                {sortedGk.map(gkStat => (
                   <div key={gkStat.playerId} className="border rounded-lg p-4 space-y-4">
                     {/* Goalkeeper Header */}
                     <div className="flex items-start justify-between border-b pb-3">
@@ -347,7 +447,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                     )}
                   </div>
                 ))}
-                {goalkeeperStats.length === 0 && (
+                {sortedGk.length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">
                     No hay estadísticas de arqueros para mostrar.
                   </div>
@@ -387,18 +487,18 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead className="text-center">Partidos</TableHead>
-                            <TableHead className="text-center">Principal/2º</TableHead>
-                            <TableHead className="text-center">3º</TableHead>
-                            <TableHead className="text-center">Goles</TableHead>
-                            <TableHead className="text-center">Faltas</TableHead>
-                            <TableHead className="text-center">Goles/Partido</TableHead>
-                            <TableHead className="text-center">Faltas/Partido</TableHead>
+                            <SortHead sortKey="staffName" sort={refSort} onSort={toggleRef}>Nombre</SortHead>
+                            <SortHead sortKey="totalMatches" sort={refSort} onSort={toggleRef} className="text-center">Partidos</SortHead>
+                            <SortHead sortKey="asPrincipal" sort={refSort} onSort={toggleRef} className="text-center">Principal/2º</SortHead>
+                            <SortHead sortKey="asThird" sort={refSort} onSort={toggleRef} className="text-center">3º</SortHead>
+                            <SortHead sortKey="totalGoals" sort={refSort} onSort={toggleRef} className="text-center">Goles</SortHead>
+                            <SortHead sortKey="totalPenalties" sort={refSort} onSort={toggleRef} className="text-center">Faltas</SortHead>
+                            <SortHead sortKey="avgGoalsPerMatch" sort={refSort} onSort={toggleRef} className="text-center">Goles/Partido</SortHead>
+                            <SortHead sortKey="avgPenaltiesPerMatch" sort={refSort} onSort={toggleRef} className="text-center">Faltas/Partido</SortHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {refereeStats.map((stat) => (
+                          {sortedReferees.map((stat) => (
                             <TableRow key={stat.staffId}>
                               <TableCell className="font-medium">{stat.staffName}</TableCell>
                               <TableCell className="text-center">{stat.totalMatches}</TableCell>
@@ -435,14 +535,14 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead className="text-center">Partidos</TableHead>
-                            <TableHead className="text-center">Principal</TableHead>
-                            <TableHead className="text-center">2º/3º</TableHead>
+                            <SortHead sortKey="staffName" sort={mesaSort} onSort={toggleMesa}>Nombre</SortHead>
+                            <SortHead sortKey="totalMatches" sort={mesaSort} onSort={toggleMesa} className="text-center">Partidos</SortHead>
+                            <SortHead sortKey="asPrincipal" sort={mesaSort} onSort={toggleMesa} className="text-center">Principal</SortHead>
+                            <SortHead sortKey="asSecond" sort={mesaSort} onSort={toggleMesa} className="text-center">2º/3º</SortHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {mesaStats.map((stat) => (
+                          {sortedMesa.map((stat) => (
                             <TableRow key={stat.staffId}>
                               <TableCell className="font-medium">{stat.staffName}</TableCell>
                               <TableCell className="text-center">{stat.totalMatches}</TableCell>
@@ -475,21 +575,21 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Equipo</TableHead>
-                        <TableHead>Categoría</TableHead>
-                        <TableHead className="text-center" title="Promedio de jugadores presentes (sin arqueros)">Prom. Jug.</TableHead>
-                        <TableHead className="text-center">PJ</TableHead>
-                        <TableHead className="text-center">GF</TableHead>
-                        <TableHead className="text-center">GC</TableHead>
-                        <TableHead className="text-center">Dif.</TableHead>
-                        <TableHead className="text-center" title="Penalidades cometidas por el equipo"># Pen. Hechas</TableHead>
-                        <TableHead className="text-center" title="Penalidades recibidas (del oponente, genera PP)"># Pen. Recibidas</TableHead>
-                        <TableHead className="text-center" title="Tiempo en inferioridad numérica (PK)">T. PK</TableHead>
-                        <TableHead className="text-center" title="Tiempo en superioridad numérica (PP)">T. PP</TableHead>
+                        <SortHead sortKey="teamName" sort={teamSort} onSort={toggleTeam}>Equipo</SortHead>
+                        <SortHead sortKey="categoryName" sort={teamSort} onSort={toggleTeam}>Categoría</SortHead>
+                        <SortHead sortKey="avgSkaters" sort={teamSort} onSort={toggleTeam} className="text-center" title="Promedio de jugadores presentes (sin arqueros)">Prom. Jug.</SortHead>
+                        <SortHead sortKey="matchesPlayed" sort={teamSort} onSort={toggleTeam} className="text-center">PJ</SortHead>
+                        <SortHead sortKey="goalsFor" sort={teamSort} onSort={toggleTeam} className="text-center">GF</SortHead>
+                        <SortHead sortKey="goalsAgainst" sort={teamSort} onSort={toggleTeam} className="text-center">GC</SortHead>
+                        <SortHead sortKey="goalDiff" sort={teamSort} onSort={toggleTeam} className="text-center">Dif.</SortHead>
+                        <SortHead sortKey="penaltiesCommitted" sort={teamSort} onSort={toggleTeam} className="text-center" title="Penalidades cometidas por el equipo"># Pen. Hechas</SortHead>
+                        <SortHead sortKey="penaltiesReceived" sort={teamSort} onSort={toggleTeam} className="text-center" title="Penalidades recibidas (del oponente, genera PP)"># Pen. Recibidas</SortHead>
+                        <SortHead sortKey="pkTimeSeconds" sort={teamSort} onSort={toggleTeam} className="text-center" title="Tiempo en inferioridad numérica (PK)">T. PK</SortHead>
+                        <SortHead sortKey="ppTimeSeconds" sort={teamSort} onSort={toggleTeam} className="text-center" title="Tiempo en superioridad numérica (PP)">T. PP</SortHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {teamStats.map(stat => (
+                      {sortedTeams.map(stat => (
                         <TableRow key={stat.teamId}>
                           <TableCell className="font-medium">
                             <div>{stat.teamName}</div>
@@ -521,7 +621,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                           </TableCell>
                         </TableRow>
                       ))}
-                      {teamStats.length === 0 && (
+                      {sortedTeams.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                             No hay partidos jugados para mostrar estadísticas.
