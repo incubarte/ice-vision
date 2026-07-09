@@ -208,12 +208,12 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   return (
     <div className="space-y-6">
       {/* Category Filter - shared across both tabs */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-start gap-2 p-3 text-sm border rounded-lg bg-muted/50 text-muted-foreground flex-1 mr-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-2 p-3 text-sm border rounded-lg bg-muted/50 text-muted-foreground sm:flex-1">
           <Info className="h-5 w-5 mt-0.5 shrink-0"/>
           <p>Sistema de puntos (jugadores): 1 punto por gol, 1 punto por asistencia.</p>
         </div>
-        <div className="w-56">
+        <div className="w-full sm:w-56 shrink-0">
           <Label>Filtrar por Categoría</Label>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger>
@@ -231,7 +231,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
 
       {/* Tabs for Players and Goalkeepers */}
       <Tabs value={activeStatsTab} onValueChange={setActiveStatsTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="players">Jugadores</TabsTrigger>
           <TabsTrigger value="goalkeepers">Arqueros</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
@@ -242,12 +242,13 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
         <TabsContent value="players" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-2xl">
+              <CardTitle className="flex items-center gap-3 text-xl sm:text-2xl">
                 <Trophy className="h-6 w-6 text-amber-400" />
                 Estadísticas de Jugadores
               </CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -299,6 +300,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -307,7 +309,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
         <TabsContent value="goalkeepers" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-2xl">
+              <CardTitle className="flex items-center gap-3 text-xl sm:text-2xl">
                 <Shield className="h-6 w-6 text-blue-400" />
                 Estadísticas de Arqueros
               </CardTitle>
@@ -562,7 +564,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
         <TabsContent value="equipos" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-2xl">
+                <CardTitle className="flex items-center gap-3 text-xl sm:text-2xl">
                   <BarChart3 className="h-6 w-6 text-blue-400" />
                   Estadísticas por Equipo
                 </CardTitle>
@@ -634,7 +636,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
       </Tabs>
       {/* Player Match Breakdown Dialog */}
       <Dialog open={!!selectedPlayerInfo} onOpenChange={(open) => { if (!open) setSelectedPlayerInfo(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Info className="h-5 w-5 text-muted-foreground" />
