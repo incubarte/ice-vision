@@ -10,7 +10,6 @@ import { useGoalkeeperStats } from '@/hooks/use-goalkeeper-stats';
 import { useRefereeStats, useMesaStats } from '@/hooks/use-staff-stats';
 import type { StaffMatchStats } from '@/hooks/use-staff-stats';
 import { useTeamStats } from '@/hooks/use-team-stats';
-import { useAdminMode } from '@/hooks/use-admin-mode';
 import { cn } from '@/lib/utils';
 import { isTournamentHydrated, type Tournament, type TournamentMetadata } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -93,7 +92,6 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const isHydrated = isTournamentHydrated(selectedTournament);
   const hydratedTournament = isHydrated ? selectedTournament : null;
 
-  const { isAdminMode } = useAdminMode();
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [activeStatsTab, setActiveStatsTab] = useState('players');
   const [expandedGoalkeepers, setExpandedGoalkeepers] = useState<Set<string>>(new Set());
@@ -233,11 +231,11 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
 
       {/* Tabs for Players and Goalkeepers */}
       <Tabs value={activeStatsTab} onValueChange={setActiveStatsTab} className="w-full">
-        <TabsList className={cn("grid w-full", isAdminMode ? "grid-cols-4" : "grid-cols-3")}>
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="players">Jugadores</TabsTrigger>
           <TabsTrigger value="goalkeepers">Arqueros</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
-          {isAdminMode && <TabsTrigger value="equipos">Equipos</TabsTrigger>}
+          <TabsTrigger value="equipos">Equipos</TabsTrigger>
         </TabsList>
 
         {/* Players Tab */}
@@ -561,8 +559,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
         </TabsContent>
 
         {/* Equipos Tab (solo admin) */}
-        {isAdminMode && (
-          <TabsContent value="equipos" className="mt-6">
+        <TabsContent value="equipos" className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-3 text-2xl">
@@ -634,7 +631,6 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
               </CardContent>
             </Card>
           </TabsContent>
-        )}
       </Tabs>
       {/* Player Match Breakdown Dialog */}
       <Dialog open={!!selectedPlayerInfo} onOpenChange={(open) => { if (!open) setSelectedPlayerInfo(null); }}>
