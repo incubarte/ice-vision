@@ -9,13 +9,15 @@ import { usePlayerStats } from '@/hooks/use-player-stats';
 import { useGoalkeeperStats } from '@/hooks/use-goalkeeper-stats';
 import { useRefereeStats, useMesaStats } from '@/hooks/use-staff-stats';
 import type { StaffMatchStats } from '@/hooks/use-staff-stats';
+import { useTeamStats } from '@/hooks/use-team-stats';
+import { useAdminMode } from '@/hooks/use-admin-mode';
 import { cn } from '@/lib/utils';
 import { isTournamentHydrated, type Tournament, type TournamentMetadata } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Flag, Users } from 'lucide-react';
+import { Flag, Users, BarChart3 } from 'lucide-react';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -42,6 +44,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const isHydrated = isTournamentHydrated(selectedTournament);
   const hydratedTournament = isHydrated ? selectedTournament : null;
 
+  const { isAdminMode } = useAdminMode();
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [activeStatsTab, setActiveStatsTab] = useState('players');
   const [expandedGoalkeepers, setExpandedGoalkeepers] = useState<Set<string>>(new Set());
@@ -51,6 +54,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const goalkeeperStats = useGoalkeeperStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
   const refereeStats = useRefereeStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
   const mesaStats = useMesaStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
+  const teamStats = useTeamStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
 
   const toggleGoalkeeperExpanded = (playerId: string) => {
     setExpandedGoalkeepers(prev => {
@@ -127,6 +131,13 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
   };
 
+  // Helper to format seconds to MM:SS (usado para tiempos de PK/PP)
+  const formatSeconds = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds % 60);
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Category Filter - shared across both tabs */}
@@ -153,10 +164,11 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
 
       {/* Tabs for Players and Goalkeepers */}
       <Tabs value={activeStatsTab} onValueChange={setActiveStatsTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={cn("grid w-full", isAdminMode ? "grid-cols-4" : "grid-cols-3")}>
           <TabsTrigger value="players">Jugadores</TabsTrigger>
           <TabsTrigger value="goalkeepers">Arqueros</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
+          {isAdminMode && <TabsTrigger value="equipos">Equipos</TabsTrigger>}
         </TabsList>
 
         {/* Players Tab */}
@@ -447,6 +459,82 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
             </>
           )}
         </TabsContent>
+
+        {/* Equipos Tab (solo admin) */}
+        {isAdminMode && (
+          <TabsContent value="equipos" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-2xl">
+                  <BarChart3 className="h-6 w-6 text-blue-400" />
+                  Estadísticas por Equipo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Equipo</TableHead>
+                        <TableHead>Categoría</TableHead>
+                        <TableHead className="text-center" title="Promedio de jugadores presentes (sin arqueros)">Prom. Jug.</TableHead>
+                        <TableHead className="text-center">PJ</TableHead>
+                        <TableHead className="text-center">GF</TableHead>
+                        <TableHead className="text-center">GC</TableHead>
+                        <TableHead className="text-center">Dif.</TableHead>
+                        <TableHead className="text-center" title="Penalidades cometidas por el equipo"># Pen. Hechas</TableHead>
+                        <TableHead className="text-center" title="Penalidades recibidas (del oponente, genera PP)"># Pen. Recibidas</TableHead>
+                        <TableHead className="text-center" title="Tiempo en inferioridad numérica (PK)">T. PK</TableHead>
+                        <TableHead className="text-center" title="Tiempo en superioridad numérica (PP)">T. PP</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teamStats.map(stat => (
+                        <TableRow key={stat.teamId}>
+                          <TableCell className="font-medium">
+                            <div>{stat.teamName}</div>
+                            {stat.teamSubName && (
+                              <div className="text-xs text-muted-foreground">{stat.teamSubName}</div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{stat.categoryName}</TableCell>
+                          <TableCell className="text-center font-mono">
+                            {stat.avgSkaters > 0 ? stat.avgSkaters.toFixed(1) : '—'}
+                          </TableCell>
+                          <TableCell className="text-center font-mono">{stat.matchesPlayed}</TableCell>
+                          <TableCell className="text-center font-mono font-semibold text-green-600 dark:text-green-400">{stat.goalsFor}</TableCell>
+                          <TableCell className="text-center font-mono font-semibold text-red-600 dark:text-red-400">{stat.goalsAgainst}</TableCell>
+                          <TableCell className={cn(
+                            "text-center font-mono font-bold",
+                            stat.goalDiff > 0 ? "text-green-600 dark:text-green-400" :
+                            stat.goalDiff < 0 ? "text-red-600 dark:text-red-400" : ""
+                          )}>
+                            {stat.goalDiff > 0 ? `+${stat.goalDiff}` : stat.goalDiff}
+                          </TableCell>
+                          <TableCell className="text-center font-mono">{stat.penaltiesCommitted}</TableCell>
+                          <TableCell className="text-center font-mono">{stat.penaltiesReceived}</TableCell>
+                          <TableCell className="text-center font-mono text-orange-600 dark:text-orange-400">
+                            {stat.pkTimeSeconds > 0 ? formatSeconds(stat.pkTimeSeconds) : '0:00'}
+                          </TableCell>
+                          <TableCell className="text-center font-mono text-blue-600 dark:text-blue-400">
+                            {stat.ppTimeSeconds > 0 ? formatSeconds(stat.ppTimeSeconds) : '0:00'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {teamStats.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
+                            No hay partidos jugados para mostrar estadísticas.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
       {/* Player Match Breakdown Dialog */}
       <Dialog open={!!selectedPlayerInfo} onOpenChange={(open) => { if (!open) setSelectedPlayerInfo(null); }}>
