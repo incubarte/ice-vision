@@ -15,6 +15,7 @@ import { StandingsTab } from '@/components/tournaments/standings-tab';
 import { PlayerStatsTab } from '@/components/tournaments/player-stats-tab';
 import { TodayMatchesSection } from '@/components/tournaments/today-matches-section';
 import { StaffManagementTab } from '@/components/tournaments/staff-management-tab';
+import { DisciplineTab } from '@/components/tournaments/discipline-tab';
 import { useTournamentLogo } from '@/hooks/use-tournament-logo';
 import Image from 'next/image';
 
@@ -125,6 +126,7 @@ export default function TournamentDetailPage() {
             <span className="hidden sm:inline">Tabla de Posiciones</span>
           </TabsTrigger>
           {state.config.showShotsData && <TabsTrigger value="playerStats" className="shrink-0 text-xs sm:text-sm">Estadísticas</TabsTrigger>}
+          <TabsTrigger value="discipline" className="shrink-0 text-xs sm:text-sm">Disciplina</TabsTrigger>
         </TabsList>
 
         {shouldShowTeams && (
@@ -159,6 +161,11 @@ export default function TournamentDetailPage() {
         {state.config.showShotsData && (
           <TabsContent value="playerStats" className="mt-6">
             <PlayerStatsTab tournamentId={tournamentId} />
+          </TabsContent>
+        )}
+        {tournamentId && (
+          <TabsContent value="discipline" className="mt-6">
+            <DisciplineTab tournamentId={tournamentId} />
           </TabsContent>
         )}
       </Tabs>

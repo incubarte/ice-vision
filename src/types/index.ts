@@ -72,6 +72,33 @@ export interface TeamData {
   category: string;
 }
 
+export type SanctionType = 'calendar_days' | 'matches' | 'pending_review';
+
+export interface DisciplinarySanction {
+  id: string;
+  playerId: string;
+  playerName: string;   // denormalized
+  playerNumber: string; // denormalized
+  teamId: string;
+  categoryId: string;
+  reason?: string;
+  startDate: string;    // YYYY-MM-DD
+  sanctionType: SanctionType;
+  sanctionValue?: number; // calendar days OR number of matches missed
+  notes?: string;
+  createdAt: string;    // ISO
+}
+
+export interface SummarySanctionedPlayer {
+  playerId: string;
+  playerName: string;
+  playerNumber: string;
+  teamId: string;
+  sanctionId: string;
+  matchNumberInSanction: number; // 1-based position within the sanction
+  played: boolean;               // whether the player actually appeared in attendance
+}
+
 export type StaffRole = 'mesa' | 'referee';
 
 export interface StaffMember {
@@ -103,7 +130,8 @@ export interface Tournament extends TournamentMetadata {
   teams: TeamData[];
   categories: CategoryData[];
   matches: MatchData[];
-  staff?: StaffMember[];  // Optional for backwards compatibility
+  staff?: StaffMember[];
+  disciplinarySanctions?: DisciplinarySanction[];
 }
 
 /** Type guard to check if a TournamentMetadata has been fully hydrated into a Tournament */
@@ -344,6 +372,7 @@ export interface GameSummary {
     home: SummaryRosterEntry[];
     away: SummaryRosterEntry[];
   };
+  sanctionedPlayers?: SummarySanctionedPlayer[];
   shootout?: Omit<ShootoutState, 'isActive'> & {
     homeAttempts: SummaryShootoutAttempt[];
     awayAttempts: SummaryShootoutAttempt[];
@@ -811,6 +840,9 @@ export type GameAction =
   | { type: 'ADD_STAFF_TO_TOURNAMENT'; payload: { tournamentId: string; staff: Omit<StaffMember, 'id'> & { id?: string } } }
   | { type: 'UPDATE_STAFF_IN_TOURNAMENT'; payload: { tournamentId: string; staffId: string; updates: Partial<Omit<StaffMember, 'id'>> } }
   | { type: 'REMOVE_STAFF_FROM_TOURNAMENT'; payload: { tournamentId: string; staffId: string } }
+  | { type: 'ADD_SANCTION_TO_TOURNAMENT'; payload: { tournamentId: string; sanction: Omit<DisciplinarySanction, 'id' | 'createdAt'> } }
+  | { type: 'UPDATE_SANCTION_IN_TOURNAMENT'; payload: { tournamentId: string; sanctionId: string; updates: Partial<Omit<DisciplinarySanction, 'id' | 'createdAt'>> } }
+  | { type: 'REMOVE_SANCTION_FROM_TOURNAMENT'; payload: { tournamentId: string; sanctionId: string } }
   | { type: 'SET_MATCH_STAFF'; payload: { assignment: MatchStaffAssignment } }
   | { type: 'SET_PLAYER_SHOTS'; payload: { team: Team; playerId: string; periodText: string; shotCount: number } }
   | { type: 'SET_ACTIVE_GOALKEEPER'; payload: { team: Team; playerNumber: string | null } }

@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, User, Plus, ChevronUp } from 'lucide-react';
+import { Shield, User, Plus, ChevronUp, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { isSanctionActive } from '@/lib/discipline-helpers';
 
 interface PlayersControlCardProps {
   team: Team;
@@ -44,6 +45,21 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
 
   // Get active goalkeeper
   const activeGoalkeeperNumber = team === 'home' ? state.live.homeActiveGoalkeeperNumber : state.live.awayActiveGoalkeeperNumber;
+
+  // Sanctioned player IDs for this team today
+  const sanctionedPlayerIds = useMemo(() => {
+    const tournament = state.config.activeTournament;
+    const sanctions = tournament?.disciplinarySanctions;
+    if (!sanctions?.length || !teamData?.id) return new Set<string>();
+    const matchDate = tournament!.matches?.find(m => m.id === state.live.matchId)?.date?.split('T')[0]
+      ?? new Date().toISOString().split('T')[0];
+    const allMatches = tournament!.matches ?? [];
+    return new Set(
+      sanctions
+        .filter(s => s.teamId === teamData.id && isSanctionActive(s, allMatches, matchDate))
+        .map(s => s.playerId)
+    );
+  }, [state.config.activeTournament, state.live.matchId, teamData]);
 
   // Local editable numbers (keyed by player name since names are unique)
   const [editingNumbers, setEditingNumbers] = useState<Record<string, string>>({});
@@ -311,6 +327,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
             const displayNumber = isEditing ? editingNumbers[player.name] : player.number;
             const hasNoNumber = !player.number;
             const isDuplicate = displayNumber.trim() && duplicateNumbers.has(displayNumber.trim());
+            const isSanctioned = sanctionedPlayerIds.has(player.id);
 
             return (
               <div
@@ -318,8 +335,9 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
                 onClick={() => handleAttendanceToggle(player, isAttended)}
                 className={cn(
                   "flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
-                  isAttended ? "bg-primary/5 border-primary/20 hover:bg-primary/10" : "bg-muted/30 border-muted hover:bg-muted/50",
-                  !isAttended && "opacity-60"
+                  isSanctioned ? "border-destructive/50 bg-destructive/5 hover:bg-destructive/10" :
+                    isAttended ? "bg-primary/5 border-primary/20 hover:bg-primary/10" : "bg-muted/30 border-muted hover:bg-muted/50",
+                  !isAttended && !isSanctioned && "opacity-60"
                 )}
               >
                 {/* Player icon */}
@@ -364,10 +382,15 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
 
                 {/* Player name */}
                 <span className={cn(
-                  "flex-1 font-medium",
-                  !isAttended && "text-muted-foreground"
+                  "flex-1 font-medium flex items-center gap-1.5",
+                  isSanctioned ? "text-destructive" : !isAttended && "text-muted-foreground"
                 )}>
                   {player.name}
+                  {isSanctioned && (
+                    <span title="Jugador con sanción disciplinaria vigente">
+                      <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
+                    </span>
+                  )}
                 </span>
 
                 {/* Active goalkeeper toggle (only for goalkeepers) */}

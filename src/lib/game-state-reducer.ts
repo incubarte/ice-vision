@@ -2280,6 +2280,65 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       }
       break;
     }
+    case 'ADD_SANCTION_TO_TOURNAMENT': {
+      const { tournamentId, sanction } = action.payload;
+      if (state.config.activeTournament?.id === tournamentId) {
+        const newSanction = { ...sanction, id: safeUUID(), createdAt: new Date().toISOString() };
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              disciplinarySanctions: [
+                ...(state.config.activeTournament.disciplinarySanctions || []),
+                newSanction,
+              ],
+            },
+          },
+        };
+        toastMessage = { title: "Sanción registrada" };
+      }
+      break;
+    }
+    case 'UPDATE_SANCTION_IN_TOURNAMENT': {
+      const { tournamentId, sanctionId, updates } = action.payload;
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              disciplinarySanctions: (state.config.activeTournament.disciplinarySanctions || []).map(s =>
+                s.id === sanctionId ? { ...s, ...updates } : s
+              ),
+            },
+          },
+        };
+        toastMessage = { title: "Sanción actualizada" };
+      }
+      break;
+    }
+    case 'REMOVE_SANCTION_FROM_TOURNAMENT': {
+      const { tournamentId, sanctionId } = action.payload;
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              disciplinarySanctions: (state.config.activeTournament.disciplinarySanctions || []).filter(s =>
+                s.id !== sanctionId
+              ),
+            },
+          },
+        };
+        toastMessage = { title: "Sanción eliminada" };
+      }
+      break;
+    }
     case 'SET_MATCH_STAFF': {
       const { assignment } = action.payload;
       newState = {

@@ -1,4 +1,5 @@
-import type { GameState, GameSummary, SummaryPlayerStats, GoalLog, ShotLog, Team, PlayerData, PenaltyLog, VoiceGameEvent, SummaryRosterEntry, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodStats, SummaryPeriodSummary, SummaryGoalkeeperChange, SummaryShootoutAttempt, GoalkeeperChangeLog } from "@/types";
+import type { GameState, GameSummary, SummaryPlayerStats, GoalLog, ShotLog, Team, PlayerData, PenaltyLog, VoiceGameEvent, SummaryRosterEntry, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodStats, SummaryPeriodSummary, SummaryGoalkeeperChange, SummaryShootoutAttempt, GoalkeeperChangeLog, SummarySanctionedPlayer } from "@/types";
+import { isSanctionActive, getSanctionMatchNumber } from "@/lib/discipline-helpers";
 
 // Helper: look up a player by number in a roster, return their id
 function findPlayerIdByNumber(number: string, roster: PlayerData[]): string | undefined {
@@ -361,6 +362,40 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
                 mesa: mesaStaffInfo,
                 referees: refereesStaffInfo
             };
+        }
+    }
+
+    // Include sanctioned players
+    const tournament = state.config.activeTournament;
+    const sanctions = tournament?.disciplinarySanctions;
+    if (sanctions && sanctions.length > 0 && matchContext) {
+        const matchDate = tournament!.matches.find(m => m.id === live.matchId)?.date?.split('T')[0]
+            ?? new Date().toISOString().split('T')[0];
+        const allMatches = tournament!.matches;
+        const sanctionedPlayers: SummarySanctionedPlayer[] = [];
+
+        const addSanctionedFromSide = (teamId: string, roster: SummaryRosterEntry[]) => {
+            sanctions
+                .filter(s => s.teamId === teamId && isSanctionActive(s, allMatches, matchDate))
+                .forEach(s => {
+                    const entry = roster.find(p => p.id === s.playerId);
+                    sanctionedPlayers.push({
+                        playerId: s.playerId,
+                        playerName: entry?.name ?? s.playerName,
+                        playerNumber: entry?.number ?? s.playerNumber,
+                        teamId,
+                        sanctionId: s.id,
+                        matchNumberInSanction: getSanctionMatchNumber(s, allMatches, matchDate),
+                        played: entry?.isPresent ?? false,
+                    });
+                });
+        };
+
+        addSanctionedFromSide(matchContext.homeTeamId, homeRoster);
+        addSanctionedFromSide(matchContext.awayTeamId, awayRoster);
+
+        if (sanctionedPlayers.length > 0) {
+            finalSummary.sanctionedPlayers = sanctionedPlayers;
         }
     }
 
