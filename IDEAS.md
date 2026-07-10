@@ -59,11 +59,11 @@ No hay forma de registrar sanciones que apliquen a partidos futuros (expulsiones
 
 ---
 
-## 8. PWA / modo offline instalable
-En recintos de hockey el WiFi suele ser malo o inexistente.
-- Service worker para que el control del partido funcione sin conexión
-- Sincronización automática cuando vuelve la señal
-- Instalable como app desde el navegador (Android/iOS)
+## 8. PWA / instalable como app
+La app ya funciona offline (localStorage es la fuente de verdad, Supabase es sync secundario). Lo único que faltaría de PWA es la **instalabilidad**: que el operador pueda agregar la app a la pantalla de inicio del teléfono/tablet sin pasar por el browser.
+- Beneficio concreto: acceso más rápido y UX más "nativa" para el operador en el recinto
+- No aporta offline (ya resuelto) ni sync (ya resuelto)
+- Esfuerzo bajo con `next-pwa`, prioridad baja
 
 ---
 
