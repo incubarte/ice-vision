@@ -95,19 +95,6 @@ export default function TournamentDetailPage() {
     );
   }
 
-  // Calculate grid columns based on enabled tabs
-  const getGridColsClass = () => {
-    let cols = 2; // Fixture + Standings always present
-    if (shouldShowTeams) cols += 2; // Teams + Staff (Staff Metrics integrated into Estadísticas)
-    if (state.config.showShotsData) cols++;
-
-    // Responsive classes
-    if (cols === 2) return "grid-cols-2";
-    if (cols === 3) return "grid-cols-2 sm:grid-cols-3";
-    if (cols === 4) return "grid-cols-2 sm:grid-cols-4";
-    if (cols === 5) return "grid-cols-2 sm:grid-cols-3 md:grid-cols-5";
-    return "grid-cols-2 sm:grid-cols-3 md:grid-cols-5"; // fallback
-  };
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
@@ -129,12 +116,15 @@ export default function TournamentDetailPage() {
       {tournamentId && <TodayMatchesSection tournamentId={tournamentId} />}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${getGridColsClass()} gap-1`}>
-          {shouldShowTeams && <TabsTrigger value="teamsAndCategories" className="text-xs sm:text-sm">Equipos</TabsTrigger>}
-          {shouldShowTeams && <TabsTrigger value="staff" className="text-xs sm:text-sm">Staff</TabsTrigger>}
-          <TabsTrigger value="fixture" className="text-xs sm:text-sm">Fixture</TabsTrigger>
-          <TabsTrigger value="standings" className="text-xs sm:text-sm">Tabla de Posiciones</TabsTrigger>
-          {state.config.showShotsData && <TabsTrigger value="playerStats" className="text-xs sm:text-sm">Estadísticas</TabsTrigger>}
+        <TabsList className="flex w-full overflow-x-auto justify-start h-auto p-1 gap-1">
+          {shouldShowTeams && <TabsTrigger value="teamsAndCategories" className="shrink-0 text-xs sm:text-sm">Equipos</TabsTrigger>}
+          {shouldShowTeams && <TabsTrigger value="staff" className="shrink-0 text-xs sm:text-sm">Staff</TabsTrigger>}
+          <TabsTrigger value="fixture" className="shrink-0 text-xs sm:text-sm">Fixture</TabsTrigger>
+          <TabsTrigger value="standings" className="shrink-0 text-xs sm:text-sm">
+            <span className="sm:hidden">Posiciones</span>
+            <span className="hidden sm:inline">Tabla de Posiciones</span>
+          </TabsTrigger>
+          {state.config.showShotsData && <TabsTrigger value="playerStats" className="shrink-0 text-xs sm:text-sm">Estadísticas</TabsTrigger>}
         </TabsList>
 
         {shouldShowTeams && (

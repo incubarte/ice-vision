@@ -231,11 +231,11 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
 
       {/* Tabs for Players and Goalkeepers */}
       <Tabs value={activeStatsTab} onValueChange={setActiveStatsTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="players">Jugadores</TabsTrigger>
-          <TabsTrigger value="goalkeepers">Arqueros</TabsTrigger>
-          <TabsTrigger value="staff">Staff</TabsTrigger>
-          <TabsTrigger value="equipos">Equipos</TabsTrigger>
+        <TabsList className="flex w-full overflow-x-auto justify-start h-auto p-1 gap-1">
+          <TabsTrigger value="players" className="shrink-0">Jugadores</TabsTrigger>
+          <TabsTrigger value="goalkeepers" className="shrink-0">Arqueros</TabsTrigger>
+          <TabsTrigger value="staff" className="shrink-0">Staff</TabsTrigger>
+          <TabsTrigger value="equipos" className="shrink-0">Equipos</TabsTrigger>
         </TabsList>
 
         {/* Players Tab */}
