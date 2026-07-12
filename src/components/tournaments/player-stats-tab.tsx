@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Info, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePlayerStats } from '@/hooks/use-player-stats';
 import { useGoalkeeperStats } from '@/hooks/use-goalkeeper-stats';
-import { useRefereeStats, useMesaStats } from '@/hooks/use-staff-stats';
+import { useRefereeStats, useMesaStats, useRefereeMatchBreakdown } from '@/hooks/use-staff-stats';
 import type { StaffMatchStats } from '@/hooks/use-staff-stats';
+import { useAdminMode } from '@/hooks/use-admin-mode';
 import { useTeamStats } from '@/hooks/use-team-stats';
 import { cn } from '@/lib/utils';
 import { isTournamentHydrated, type Tournament, type TournamentMetadata } from '@/types';
@@ -92,8 +93,10 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const isHydrated = isTournamentHydrated(selectedTournament);
   const hydratedTournament = isHydrated ? selectedTournament : null;
 
+  const { isAdminMode } = useAdminMode();
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [activeStatsTab, setActiveStatsTab] = useState('players');
+  const [refBreakdownFilter, setRefBreakdownFilter] = useState<string>(ALL_CATEGORIES);
   const [expandedGoalkeepers, setExpandedGoalkeepers] = useState<Set<string>>(new Set());
   const [selectedPlayerInfo, setSelectedPlayerInfo] = useState<{ playerId: string; playerName: string } | null>(null);
 
@@ -109,6 +112,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const refereeStats = useRefereeStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
   const mesaStats = useMesaStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
   const teamStats = useTeamStats(hydratedTournament, categoryFilter === ALL_CATEGORIES ? null : categoryFilter);
+  const refMatchBreakdown = useRefereeMatchBreakdown(hydratedTournament, categoryFilter === ALL_CATEGORIES ? undefined : categoryFilter);
 
   // Sorted data
   const sortedPlayers = useMemo(() => sortData(playerStats, playerSort.key, playerSort.dir), [playerStats, playerSort]);
@@ -116,6 +120,24 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const sortedReferees = useMemo(() => sortData(refereeStats, refSort.key, refSort.dir), [refereeStats, refSort]);
   const sortedMesa = useMemo(() => sortData(mesaStats, mesaSort.key, mesaSort.dir), [mesaStats, mesaSort]);
   const sortedTeams = useMemo(() => sortData(teamStats, teamSort.key, teamSort.dir), [teamStats, teamSort]);
+
+  // Referee breakdown filter + totals
+  const filteredRefBreakdown = useMemo(() =>
+    refBreakdownFilter === ALL_CATEGORIES
+      ? refMatchBreakdown
+      : refMatchBreakdown.filter(r => r.refereeId === refBreakdownFilter),
+    [refMatchBreakdown, refBreakdownFilter]
+  );
+  const refBreakdownTotals = useMemo(() => ({
+    penaltiesHome: filteredRefBreakdown.reduce((s, r) => s + r.penaltiesHome, 0),
+    penaltiesAway: filteredRefBreakdown.reduce((s, r) => s + r.penaltiesAway, 0),
+    uniqueMatches: new Set(filteredRefBreakdown.map(r => r.matchId)).size,
+  }), [filteredRefBreakdown]);
+  const refereeOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    refMatchBreakdown.forEach(r => seen.set(r.refereeId, r.refereeName));
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [refMatchBreakdown]);
 
   const togglePlayer = makeToggle(setPlayerSort);
   const toggleGk = makeToggle(setGkSort);
@@ -556,6 +578,76 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                   )}
                 </CardContent>
               </Card>
+              {/* Referee match breakdown — admin only */}
+              {isAdminMode && refMatchBreakdown.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
+                      <Flag className="h-5 w-5 text-amber-500" />
+                      Detalle de Faltas por Árbitro
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Referee filter */}
+                    <div className="w-full sm:w-64">
+                      <Label>Filtrar por árbitro</Label>
+                      <Select value={refBreakdownFilter} onValueChange={setRefBreakdownFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos los árbitros" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={ALL_CATEGORIES}>Todos los árbitros</SelectItem>
+                          {refereeOptions.map(r => (
+                            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Árbitro</TableHead>
+                            <TableHead className="text-center">Rol</TableHead>
+                            <TableHead>Categoría</TableHead>
+                            <TableHead>Equipo A (local)</TableHead>
+                            <TableHead>Equipo B (visitante)</TableHead>
+                            <TableHead className="text-center">Pen. A</TableHead>
+                            <TableHead className="text-center">Pen. B</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredRefBreakdown.map((row, i) => (
+                            <TableRow key={`${row.refereeId}-${row.matchId}-${i}`}>
+                              <TableCell className="font-medium">{row.refereeName}</TableCell>
+                              <TableCell className="text-center text-xs text-muted-foreground">
+                                {row.refereeOrder === 1 ? '1°' : row.refereeOrder === 2 ? '2°' : '3°'}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{row.categoryName}</TableCell>
+                              <TableCell className="text-sm">{row.homeTeamName}</TableCell>
+                              <TableCell className="text-sm">{row.awayTeamName}</TableCell>
+                              <TableCell className="text-center font-mono font-semibold">{row.penaltiesHome}</TableCell>
+                              <TableCell className="text-center font-mono font-semibold">{row.penaltiesAway}</TableCell>
+                            </TableRow>
+                          ))}
+                          {/* Totals row */}
+                          <TableRow className="border-t-2 font-bold bg-muted/50">
+                            <TableCell colSpan={5} className="text-sm">
+                              Total — {refBreakdownTotals.uniqueMatches} partido{refBreakdownTotals.uniqueMatches !== 1 ? 's' : ''}
+                              {refBreakdownFilter === ALL_CATEGORIES && (
+                                <span className="text-xs font-normal text-muted-foreground ml-2">(sin filtro, un partido puede sumar 2 veces)</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center font-mono">{refBreakdownTotals.penaltiesHome}</TableCell>
+                            <TableCell className="text-center font-mono">{refBreakdownTotals.penaltiesAway}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </TabsContent>

@@ -1,6 +1,19 @@
 import { useMemo, useState, useEffect } from 'react';
 import type { Tournament, StaffMember, GameSummary } from '@/types';
 
+export interface RefereeMatchRow {
+  refereeId: string;
+  refereeName: string;
+  refereeOrder: number; // 1 = principal, 2 = segundo
+  matchId: string;
+  matchDate: string;
+  categoryName: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  penaltiesHome: number;
+  penaltiesAway: number;
+}
+
 export interface StaffMatchStats {
   staffId: string;
   staffName: string;
@@ -221,5 +234,59 @@ export function useMesaStats(tournament: Tournament | null | undefined, category
     return Array.from(mesaStatsMap.values())
       .filter(stats => stats.totalMatches > 0)
       .sort((a, b) => b.totalMatches - a.totalMatches);
+  }, [tournament, categoryFilter, summaries]);
+}
+
+export function useRefereeMatchBreakdown(
+  tournament: Tournament | null | undefined,
+  categoryFilter?: string
+): RefereeMatchRow[] {
+  const { summaries } = useTournamentSummaries(tournament?.id);
+
+  return useMemo(() => {
+    if (!tournament?.matches) return [];
+
+    const rows: RefereeMatchRow[] = [];
+
+    tournament.matches.forEach(match => {
+      if (categoryFilter && match.categoryId !== categoryFilter) return;
+
+      const summary = match.summary || summaries[match.id];
+      if (!summary?.staff?.referees?.length || !summary.statsByPeriod) return;
+
+      const category = tournament.categories?.find(c => c.id === match.categoryId);
+      const homeTeam = tournament.teams?.find(t => t.id === match.homeTeamId);
+      const awayTeam = tournament.teams?.find(t => t.id === match.awayTeamId);
+
+      const penaltiesHome = summary.statsByPeriod.reduce(
+        (acc, p) => acc + (p.stats.penalties?.home?.length ?? 0), 0
+      );
+      const penaltiesAway = summary.statsByPeriod.reduce(
+        (acc, p) => acc + (p.stats.penalties?.away?.length ?? 0), 0
+      );
+
+      summary.staff.referees.forEach(ref => {
+        rows.push({
+          refereeId: ref.id,
+          refereeName: `${ref.firstName} ${ref.lastName}`,
+          refereeOrder: ref.order,
+          matchId: match.id,
+          matchDate: match.date,
+          categoryName: category?.name ?? match.categoryId,
+          homeTeamName: homeTeam?.name ?? match.homeTeamId ?? '?',
+          awayTeamName: awayTeam?.name ?? match.awayTeamId ?? '?',
+          penaltiesHome,
+          penaltiesAway,
+        });
+      });
+    });
+
+    rows.sort((a, b) => {
+      const nameComp = a.refereeName.localeCompare(b.refereeName);
+      if (nameComp !== 0) return nameComp;
+      return a.matchDate.localeCompare(b.matchDate);
+    });
+
+    return rows;
   }, [tournament, categoryFilter, summaries]);
 }
