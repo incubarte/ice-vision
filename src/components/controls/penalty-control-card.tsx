@@ -8,7 +8,7 @@ import type { Penalty, Team, PenaltyTypeDefinition } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Popover,
   PopoverContent,
@@ -22,7 +22,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Trash2, UserPlus, Hourglass, ChevronsUpDown, Check, Info, Goal, X, Plus, Minus, AlertTriangle } from 'lucide-react';
+import { Trash2, UserPlus, Hourglass, ChevronsUpDown, Check, Info, Goal, X, Plus, Minus, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -375,19 +375,46 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
   
   const [isDeleteSelectionMode, setIsDeleteSelectionMode] = useState(false);
   const [selectedPenaltyIds, setSelectedPenaltyIds] = useState<string[]>([]);
+  const [selectedExpulsionIds, setSelectedExpulsionIds] = useState<string[]>([]);
   const [isMassDeleteConfirmOpen, setIsMassDeleteConfirmOpen] = useState(false);
   
   const pendingPPGoal = state.live.pendingPowerPlayGoal;
+
+  // Expulsion state (only useState here — derived useMemos go after attendancePlayers below)
+  const [isExpulsionDialogOpen, setIsExpulsionDialogOpen] = useState(false);
+  const [expulsionPlayerNumber, setExpulsionPlayerNumber] = useState('');
+  const [isExpulsionPlayerPopoverOpen, setIsExpulsionPlayerPopoverOpen] = useState(false);
+  const [expulsionPlayerSearchTerm, setExpulsionPlayerSearchTerm] = useState('');
+
+  // Detect players with both reducing and non-reducing penalties → need to call a sub
+  const mixedPenaltyWarnings = useMemo(() => {
+    const byPlayer: Record<string, { reducing: string[]; nonReducing: string[] }> = {};
+    const log = state.live.penaltiesLog?.[team] || [];
+    for (const p of state.live.penalties[team]) {
+      const isReducing = p.reducesPlayerCount && !p._doesNotReducePlayerCountOverride;
+      const penaltyName = log.find(l => l.id === p.id)?.penaltyName || 'falta';
+      if (!byPlayer[p.playerNumber]) byPlayer[p.playerNumber] = { reducing: [], nonReducing: [] };
+      if (isReducing) byPlayer[p.playerNumber].reducing.push(penaltyName);
+      else byPlayer[p.playerNumber].nonReducing.push(penaltyName);
+    }
+    return Object.entries(byPlayer)
+      .filter(([, pens]) => pens.reducing.length > 0 && pens.nonReducing.length > 0)
+      .map(([playerNumber, pens]) => ({ playerNumber, reducing: pens.reducing, nonReducing: pens.nonReducing }));
+  }, [state.live.penalties, state.live.penaltiesLog, team]);
 
   // Set default penalty type when component loads or penalty types change
   useEffect(() => {
     setPenaltyTypeId(state.config.defaultPenaltyTypeId);
   }, [state.config.defaultPenaltyTypeId, state.config.penaltyTypes]);
   
-  // Clear selection if penalty list changes
+  // Clear selection if penalty/expulsion list changes
   useEffect(() => {
     setSelectedPenaltyIds([]);
   }, [state.live.penalties]);
+
+  useEffect(() => {
+    setSelectedExpulsionIds([]);
+  }, [state.live.matchExpulsions]);
 
 
   if (isLoading || !state.live || !state.config) {
@@ -450,6 +477,36 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
     );
   }, [attendancePlayers, teamHasPlayers, playerSearchTerm, state.config.showAliasInPenaltyPlayerSelector]);
 
+  // Expulsion derived state (after attendancePlayers/teamHasPlayers are defined)
+  const expulsionPlayer = useMemo(() => {
+    if (!expulsionPlayerNumber) return null;
+    const roster = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
+    return roster.find(p => p.number === expulsionPlayerNumber.toUpperCase()) || null;
+  }, [expulsionPlayerNumber, state.live.matchContext, team]);
+
+  const expulsionFilteredPlayers = useMemo(() => {
+    if (!teamHasPlayers) return [];
+    const searchLower = expulsionPlayerSearchTerm.toLowerCase();
+    return attendancePlayers
+      .filter(p => p.number && p.number.trim() !== '')
+      .filter(p => !searchLower || p.number.toLowerCase().includes(searchLower) || p.name.toLowerCase().includes(searchLower))
+      .sort((a, b) => { const nA = parseInt(a.number, 10); const nB = parseInt(b.number, 10); return isNaN(nA) || isNaN(nB) ? a.number.localeCompare(b.number) : nA - nB; });
+  }, [attendancePlayers, teamHasPlayers, expulsionPlayerSearchTerm]);
+
+  const teamExpulsions = useMemo(
+    () => (state.live.matchExpulsions || []).filter(e => e.team === team),
+    [state.live.matchExpulsions, team]
+  );
+
+  const handleConfirmExpulsion = () => {
+    const num = expulsionPlayerNumber.trim().toUpperCase();
+    if (!num) { toast({ title: "Error", description: "Seleccioná un jugador.", variant: "destructive" }); return; }
+    dispatch({ type: 'MATCH_EXPULSION', payload: { team, playerNumber: num, playerName: expulsionPlayer?.name } });
+    setIsExpulsionDialogOpen(false);
+    setExpulsionPlayerNumber('');
+    setExpulsionPlayerSearchTerm('');
+  };
+
   const handleAddPenalty = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedPlayerNumberForPenalty = playerNumberForPenalty.trim();
@@ -461,6 +518,13 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
     if (!/^\d+$/.test(trimmedPlayerNumberForPenalty) && !/^\d+[A-Za-z]*$/.test(trimmedPlayerNumberForPenalty)) {
        toast({ title: "Error", description: "El número de jugador para la penalidad debe ser numérico o un número seguido de letras (ej. 1, 23, 15A).", variant: "destructive" });
        return;
+    }
+
+    // Expulsion selected → open confirmation dialog with player pre-filled
+    if (penaltyTypeId === '__expulsion__') {
+      setExpulsionPlayerNumber(trimmedPlayerNumberForPenalty);
+      setIsExpulsionDialogOpen(true);
+      return;
     }
 
     const penaltyDef = state.config.penaltyTypes.find(p => p.id === penaltyTypeId);
@@ -579,7 +643,8 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
   
   const handleToggleSelectionMode = () => {
     setIsDeleteSelectionMode(!isDeleteSelectionMode);
-    setSelectedPenaltyIds([]); // Clear selection when toggling mode
+    setSelectedPenaltyIds([]);
+    setSelectedExpulsionIds([]);
   };
   
   const handleTogglePenaltySelection = (penaltyId: string) => {
@@ -591,21 +656,26 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
   };
 
   const handleConfirmMassDelete = () => {
-    if (selectedPenaltyIds.length === 0) return;
-    
+    if (selectedPenaltyIds.length === 0 && selectedExpulsionIds.length === 0) return;
+
     selectedPenaltyIds.forEach(penaltyId => {
       dispatch({ type: 'REMOVE_PENALTY', payload: { team, penaltyId } });
     });
+    selectedExpulsionIds.forEach(expulsionId => {
+      dispatch({ type: 'REMOVE_MATCH_EXPULSION', payload: { team, expulsionId } });
+    });
 
+    const total = selectedPenaltyIds.length + selectedExpulsionIds.length;
     toast({
-      title: "Penalidades Eliminadas",
-      description: `${selectedPenaltyIds.length} penalidad(es) eliminada(s).`,
+      title: "Eliminado",
+      description: `${total} elemento(s) eliminado(s).`,
       variant: "destructive"
     });
 
     setIsMassDeleteConfirmOpen(false);
     setIsDeleteSelectionMode(false);
     setSelectedPenaltyIds([]);
+    setSelectedExpulsionIds([]);
   };
   
   const handleConfirmPowerPlayGoal = () => {
@@ -742,7 +812,7 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={handleToggleSelectionMode}
-                disabled={penalties.length === 0}
+                disabled={penalties.length === 0 && teamExpulsions.length === 0}
                 aria-label="Seleccionar penalidades para eliminar"
               >
                 <Trash2 className="h-5 w-5" />
@@ -780,6 +850,17 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
                   {(state.config.penaltyTypes || []).length === 0 && (
                     <SelectItem value="no-types" disabled>No hay tipos definidos</SelectItem>
                   )}
+                  {(state.config.enableMatchExpulsion ?? true) && (
+                    <>
+                      <SelectSeparator />
+                      <SelectItem value="__expulsion__" className="text-destructive focus:text-destructive font-semibold">
+                        <span className="flex items-center gap-2">
+                          <ShieldAlert className="h-3.5 w-3.5" />
+                          Expulsado del partido
+                        </span>
+                      </SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -798,10 +879,23 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
           />
       )}
 
+      {mixedPenaltyWarnings.map(w => (
+        <div key={w.playerNumber} className="mb-3 flex items-start gap-2 text-sm text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-md">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-400" />
+          <p>
+            <strong>#{w.playerNumber}</strong> tiene{' '}
+            <span className="text-destructive font-semibold">{w.reducing.join(', ')}</span>
+            {' '}(reduce jugador) y{' '}
+            <span className="text-blue-400 font-semibold">{w.nonReducing.join(', ')}</span>
+            {' '}(no reduce). Llamar a otro jugador al banco para que esté listo al finalizar <strong>{w.reducing[0]}</strong>.
+          </p>
+        </div>
+      ))}
+
       <div className="space-y-2">
         <Label>
           {isDeleteSelectionMode
-            ? `Selecciona penalidades para eliminar (${selectedPenaltyIds.length} seleccionada/s)`
+            ? `Seleccioná para eliminar (${selectedPenaltyIds.length + selectedExpulsionIds.length} seleccionado/s)`
             : `Penalidades Activas (${penalties.length})`}
         </Label>
         {penalties.length === 0 ? (
@@ -842,11 +936,47 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
           </Button>
           <Button
             variant="destructive"
-            disabled={selectedPenaltyIds.length === 0}
+            disabled={selectedPenaltyIds.length === 0 && selectedExpulsionIds.length === 0}
             onClick={() => setIsMassDeleteConfirmOpen(true)}
           >
-            <Trash2 className="mr-2 h-4 w-4" /> Eliminar Seleccionadas ({selectedPenaltyIds.length})
+            <Trash2 className="mr-2 h-4 w-4" /> Eliminar ({selectedPenaltyIds.length + selectedExpulsionIds.length})
           </Button>
+        </div>
+      )}
+
+      {(state.config.enableMatchExpulsion ?? true) && teamExpulsions.length > 0 && (
+        <div className="mt-4 border-t border-border pt-3 space-y-1.5">
+          <Label className="text-destructive flex items-center gap-1.5 text-xs">
+            <ShieldAlert className="h-3.5 w-3.5" /> Expulsados del partido
+          </Label>
+          {teamExpulsions.map(e => {
+            const isSelected = selectedExpulsionIds.includes(e.id);
+            return (
+              <div
+                key={e.id}
+                className={cn(
+                  "flex items-center gap-2 text-sm rounded-md px-3 py-1.5 border transition-colors",
+                  isDeleteSelectionMode ? "cursor-pointer" : "",
+                  isSelected
+                    ? "bg-destructive/30 border-destructive"
+                    : "bg-destructive/10 border-destructive/30"
+                )}
+                onClick={isDeleteSelectionMode ? () => setSelectedExpulsionIds(prev => isSelected ? prev.filter(id => id !== e.id) : [...prev, e.id]) : undefined}
+              >
+                {isDeleteSelectionMode && (
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => setSelectedExpulsionIds(prev => isSelected ? prev.filter(id => id !== e.id) : [...prev, e.id])}
+                    className="shrink-0"
+                  />
+                )}
+                <ShieldAlert className="h-3.5 w-3.5 text-destructive shrink-0" />
+                <span className="font-semibold text-destructive">#{e.playerNumber}</span>
+                {e.playerName && <span className="text-destructive/80">{e.playerName}</span>}
+                <span className="text-muted-foreground text-xs ml-auto">{e.periodText}</span>
+              </div>
+            );
+          })}
         </div>
       )}
       </CardContent>
@@ -863,9 +993,9 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
         <AlertDialog open={isMassDeleteConfirmOpen} onOpenChange={setIsMassDeleteConfirmOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmar Eliminación Múltiple</AlertDialogTitle>
+                    <AlertDialogTitle>Confirmar Eliminación</AlertDialogTitle>
                     <AlertDialogDescription>
-                        ¿Estás seguro de que quieres eliminar las {selectedPenaltyIds.length} penalidades seleccionadas? Esta acción no se puede deshacer.
+                        ¿Eliminar {selectedPenaltyIds.length + selectedExpulsionIds.length} elemento(s) seleccionado(s)? Esta acción no se puede deshacer.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -877,6 +1007,31 @@ export function PenaltyControlCard({ team, teamName }: PenaltyControlCardProps) 
             </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* Expulsion confirmation dialog */}
+      <AlertDialog open={isExpulsionDialogOpen} onOpenChange={(o) => { if (!o) { setIsExpulsionDialogOpen(false); setExpulsionPlayerNumber(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldAlert className="h-5 w-5" /> Expulsión de Partido — {teamName}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Confirmar expulsión de{' '}
+              <strong>#{expulsionPlayerNumber}{expulsionPlayer?.name ? ` ${expulsionPlayer.name}` : ''}</strong>{' '}
+              del partido?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={handleConfirmExpulsion}
+            >
+              <ShieldAlert className="mr-1.5 h-4 w-4" /> Confirmar Expulsión
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

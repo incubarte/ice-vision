@@ -5,7 +5,7 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Edit3, Check, XCircle, ChevronLeft, ChevronRight, PlusCircle, MinusCircle } from "lucide-react";
+import { X, Edit3, Check, XCircle, ChevronLeft, ChevronRight, PlusCircle, MinusCircle, ShieldAlert } from "lucide-react";
 import type { MatchData, Tournament, GameSummary, SummaryPlayerStats, PlayerData, Team, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodSummary, AttendedPlayerInfo } from "@/types";
 import { useGameState, getCategoryNameById } from "@/contexts/game-state-context";
 import { GoalsSection } from "../summary/goals-section";
@@ -480,6 +480,31 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={aggregatedPenalties.home} players={homePlayers} />
                       <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={aggregatedPenalties.away} players={awayPlayers} />
                     </div>
+                    {localSummary.expulsions && localSummary.expulsions.length > 0 && (
+                      <>
+                        <Separator />
+                        <div>
+                          <h3 className="font-semibold text-destructive flex items-center gap-1.5 mb-3">
+                            <ShieldAlert className="h-4 w-4" /> Expulsiones del Partido
+                          </h3>
+                          <div className="space-y-2">
+                            {localSummary.expulsions.map(e => {
+                              const teamName = e.team === 'home' ? homeTeam?.name : awayTeam?.name;
+                              return (
+                                <div key={e.id} className="flex items-center gap-3 text-sm bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
+                                  <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
+                                  <span className="font-semibold text-destructive">#{e.playerNumber}</span>
+                                  {e.playerName && <span className="text-foreground">{e.playerName}</span>}
+                                  <span className="text-muted-foreground">·</span>
+                                  <span className="text-muted-foreground">{teamName}</span>
+                                  <span className="text-muted-foreground ml-auto text-xs">{e.periodText}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                     {state.config.showShotsData && (
                       <>
                         <Separator />
@@ -542,6 +567,14 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                        <GoalsSection teamName={homeTeam?.name || ''} goals={aggregatedGoals.home} editable={false} players={homePlayers} />
                        <Separator />
                        <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={aggregatedPenalties.home} players={homePlayers} />
+                       {localSummary.expulsions?.filter(e => e.team === 'home').map(e => (
+                         <div key={e.id} className="flex items-center gap-2 text-sm bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
+                           <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
+                           <span className="font-semibold text-destructive">#{e.playerNumber}</span>
+                           {e.playerName && <span>{e.playerName}</span>}
+                           <span className="text-muted-foreground ml-auto text-xs">{e.periodText}</span>
+                         </div>
+                       ))}
                        {state.config.showShotsData && (
                          <>
                            <Separator />
@@ -574,6 +607,14 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                        <GoalsSection teamName={awayTeam?.name || ''} goals={aggregatedGoals.away} editable={false} players={awayPlayers} />
                        <Separator />
                        <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={aggregatedPenalties.away} players={awayPlayers} />
+                       {localSummary.expulsions?.filter(e => e.team === 'away').map(e => (
+                         <div key={e.id} className="flex items-center gap-2 text-sm bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
+                           <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
+                           <span className="font-semibold text-destructive">#{e.playerNumber}</span>
+                           {e.playerName && <span>{e.playerName}</span>}
+                           <span className="text-muted-foreground ml-auto text-xs">{e.periodText}</span>
+                         </div>
+                       ))}
                        {state.config.showShotsData && (
                          <>
                            <Separator />

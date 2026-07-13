@@ -3,13 +3,13 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Goal, Siren, Coffee, Flag, Play, Pause } from "lucide-react";
-import type { GameSummary, GoalLog, PenaltyLog, SummaryGoalEntry, SummaryPenaltyEntry, Team, TeamData } from "@/types";
+import { Clock, Goal, Siren, Coffee, Flag, Play, Pause, ShieldAlert } from "lucide-react";
+import type { GameSummary, GoalLog, PenaltyLog, SummaryGoalEntry, SummaryPenaltyEntry, Team, TeamData, MatchExpulsion } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface TimelineEvent {
   id: string;
-  type: 'goal' | 'penalty' | 'timeout' | 'break' | 'period-start';
+  type: 'goal' | 'penalty' | 'timeout' | 'break' | 'period-start' | 'expulsion';
   time: number; // Game time in centiseconds (already inverted from countdown)
   team?: Team;
   label: string;
@@ -219,6 +219,24 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
           });
         });
       });
+
+      // Add expulsions for this period
+      if (summary.expulsions) {
+        summary.expulsions
+          .filter(e => e.periodText === periodSummary.period)
+          .forEach(exp => {
+            const invertedTime = cumulativeTime + (periodDuration - exp.gameTime);
+            timelineEvents.push({
+              id: exp.id,
+              type: 'expulsion',
+              time: Math.max(0, invertedTime),
+              team: exp.team,
+              label: `#${exp.playerNumber}${exp.playerName ? ` ${exp.playerName}` : ''}`,
+              details: 'Expulsado del partido',
+              periodText: exp.periodText,
+            });
+          });
+      }
 
       cumulativeTime += periodDuration;
     });
@@ -836,6 +854,7 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
                 const position = getEventPosition(event.time);
                 const isGoal = event.type === 'goal';
                 const isPenalty = event.type === 'penalty';
+                const isExpulsion = event.type === 'expulsion';
                 const isHome = event.team === 'home';
 
                 // Calculate dynamic spacing based on max penalty lanes
@@ -869,7 +888,8 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
                       <div className={cn(
                         "w-4 h-4 rounded-full border-2 bg-background absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
                         isGoal && "border-primary",
-                        isPenalty && "border-destructive"
+                        isPenalty && "border-destructive",
+                        isExpulsion && "border-destructive bg-destructive/20"
                       )} />
 
                       {/* Event card */}
@@ -877,7 +897,8 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
                         className={cn(
                           "absolute left-1/2 -translate-x-1/2 w-36 p-2.5 rounded-lg border-2 bg-card shadow-md",
                           isGoal && "border-primary/50",
-                          isPenalty && "border-destructive/50"
+                          isPenalty && "border-destructive/50",
+                          isExpulsion && "border-destructive/70 bg-destructive/10"
                         )}
                         style={{
                           [isHome ? 'bottom' : 'top']: `${cardOffset}px`
@@ -891,10 +912,13 @@ export const TimelineSection = ({ summary, homeTeam, awayTeam }: TimelineSection
                             className="absolute top-1.5 left-1.5 w-5 h-5 object-contain"
                           />
                         )}
+                        {isExpulsion && (
+                          <ShieldAlert className="h-4 w-4 text-destructive mx-auto mb-1" />
+                        )}
                         <div className={cn(
                           "text-sm font-bold text-center mb-1",
                           isGoal && "text-primary",
-                          isPenalty && "text-destructive"
+                          (isPenalty || isExpulsion) && "text-destructive"
                         )}>
                           {event.label}
                         </div>

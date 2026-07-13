@@ -12,6 +12,7 @@ import { WarmupDisplay } from './warmup-display';
 import { WarmupDisplayStatic } from './warmup-display-static';
 import { EndOfGameDisplay } from './end-of-game-display';
 import { GoalCelebrationOverlay } from './goal-celebration-overlay';
+import { ExpulsionOverlay } from './expulsion-overlay';
 import { PlayerPhotoDisplay } from './player-photo-display';
 import { ReplayOverlay } from './replay-overlay';
 import { OlympiaTransition } from './olympia-transition';
@@ -158,6 +159,16 @@ export function FullScoreboard({ className }: { className?: string }) {
     }
     return () => clearTimeout(timer);
   }, [live?.goalCelebration, dispatch]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+    if (live?.expulsionDisplay) {
+      timer = setTimeout(() => {
+        dispatch({ type: 'HIDE_EXPULSION_DISPLAY' });
+      }, 6000);
+    }
+    return () => clearTimeout(timer);
+  }, [live?.expulsionDisplay, dispatch]);
 
   useGoalConfetti(live?.goalCelebration ?? null);
 
@@ -375,7 +386,7 @@ export function FullScoreboard({ className }: { className?: string }) {
     return null;
   }
 
-  const { penalties, homeTeamName, awayTeamName, shootout, matchId, clock, goalCelebration, replayLoadRequest, replayOverlay } = live;
+  const { penalties, homeTeamName, awayTeamName, shootout, matchId, clock, goalCelebration, expulsionDisplay, replayLoadRequest, replayOverlay } = live;
 
   const homeAttempts = shootout?.homeAttempts || [];
   const awayAttempts = shootout?.awayAttempts || [];
@@ -593,7 +604,20 @@ export function FullScoreboard({ className }: { className?: string }) {
                 )}
               </AnimatePresence>
 
-
+              <AnimatePresence>
+                {expulsionDisplay && !goalCelebration && (
+                  <motion.div
+                    key={expulsionDisplay.id}
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -50 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                    className="absolute inset-0 z-10"
+                  >
+                    <ExpulsionOverlay expulsionDisplay={expulsionDisplay} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Player Photo Display - shown on the left side during goal celebration */}
               {goalCelebration && config.showPlayerPhotosInGoalCelebration === true && (
@@ -601,7 +625,7 @@ export function FullScoreboard({ className }: { className?: string }) {
               )}
 
               <AnimatePresence>
-                {!goalCelebration && (
+                {!goalCelebration && !expulsionDisplay && (
                   <motion.div
                     key="main-content"
                     initial={{ opacity: 0 }}

@@ -128,6 +128,8 @@ export const INITIAL_LIVE_DATA: LiveState = {
   pendingPowerPlayGoal: null,
   overlayMessage: null,
   goalCelebration: null,
+  matchExpulsions: [],
+  expulsionDisplay: null,
   replayLoadRequest: null,
   replayOverlay: null,
   matchId: null,
@@ -447,6 +449,51 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       break;
     case 'HIDE_GOAL_CELEBRATION':
       newState = { ...state, live: { ...state.live, goalCelebration: null } };
+      break;
+    case 'MATCH_EXPULSION': {
+      const { team, playerNumber, playerName } = action.payload;
+      const { live, config } = state;
+      const newExpulsion = {
+        id: safeUUID(),
+        team,
+        playerNumber: playerNumber.toUpperCase(),
+        playerName,
+        gameTime: live.clock.currentTime,
+        periodText: getActualPeriodText(live.clock.currentPeriod, live.clock.periodDisplayOverride, config.numberOfRegularPeriods, live.shootout),
+        timestamp: Date.now(),
+      };
+      const isFinishingSoon = live.clock.isClockRunning && live.clock.currentTime < 500;
+      const anyPenaltyEndingSoon = [...live.penalties.home, ...live.penalties.away].some(
+        p => p.expirationTime && (p.expirationTime - live.clock._liveAbsoluteElapsedTimeCs) < 1500
+      );
+      const expulsionDisplay = (!isFinishingSoon && !anyPenaltyEndingSoon)
+        ? { id: safeUUID(), expulsion: newExpulsion }
+        : null;
+      newState = {
+        ...state,
+        live: {
+          ...live,
+          matchExpulsions: [...(live.matchExpulsions || []), newExpulsion],
+          expulsionDisplay,
+        },
+      };
+      toastMessage = { title: "Expulsión registrada", description: `#${playerNumber.toUpperCase()}${playerName ? ` ${playerName}` : ''} expulsado del partido.` };
+      break;
+    }
+    case 'REMOVE_MATCH_EXPULSION': {
+      const { expulsionId } = action.payload;
+      newState = {
+        ...state,
+        live: {
+          ...state.live,
+          matchExpulsions: (state.live.matchExpulsions || []).filter(e => e.id !== expulsionId),
+          expulsionDisplay: state.live.expulsionDisplay?.expulsion.id === expulsionId ? null : state.live.expulsionDisplay,
+        },
+      };
+      break;
+    }
+    case 'HIDE_EXPULSION_DISPLAY':
+      newState = { ...state, live: { ...state.live, expulsionDisplay: null } };
       break;
     case 'INITIALIZE_STATE': {
       const serverState = action.payload;
@@ -1003,9 +1050,21 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         startTime = undefined;
         expirationTime = undefined;
       } else {
-        newStatus = 'running';
-        startTime = _liveAbsoluteElapsedTimeCs;
-        expirationTime = _liveAbsoluteElapsedTimeCs + penaltyDef.duration * CENTISECONDS_PER_SECOND;
+        // Non-reducing penalty: if the player already has any active/pending penalty,
+        // queue it (pending_concurrent) so it never runs ahead of a reducing one.
+        const playerUpperCase = playerNumber.toUpperCase();
+        const playerAlreadyHasPenalty = live.penalties[team].some(
+          p => p.playerNumber === playerUpperCase
+        );
+        if (playerAlreadyHasPenalty) {
+          newStatus = 'pending_concurrent';
+          startTime = undefined;
+          expirationTime = undefined;
+        } else {
+          newStatus = 'running';
+          startTime = _liveAbsoluteElapsedTimeCs;
+          expirationTime = _liveAbsoluteElapsedTimeCs + penaltyDef.duration * CENTISECONDS_PER_SECOND;
+        }
       }
 
       const newPenalty: Penalty = {
@@ -1235,17 +1294,26 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         for (const p of pendingConcurrent) {
           const doesNotReducePlayer = !p.reducesPlayerCount || p._doesNotReducePlayerCountOverride;
 
-          // Condiciones para activar:
-          // 1. El jugador no debe estar sirviendo otra penalidad
-          // 2. Si la penalidad reduce jugador, debe haber slots disponibles
-          // 3. Si no reduce jugador, no necesita slot (siempre puede activarse si el jugador no está sirviendo)
-          const canActivate = !playersServing.has(p.playerNumber) && (doesNotReducePlayer || availableSlots > 0);
+          let canActivate: boolean;
+          if (doesNotReducePlayer) {
+            // Non-reducing: doesn't need a slot, but must wait if the same player has a
+            // reducing penalty still pending (reduces always run before non-reduces).
+            const playerHasPendingReducing = pendingConcurrent.some(
+              other => other.id !== p.id &&
+                       other.playerNumber === p.playerNumber &&
+                       other.reducesPlayerCount &&
+                       !other._doesNotReducePlayerCountOverride
+            );
+            canActivate = !playersServing.has(p.playerNumber) && !playerHasPendingReducing;
+          } else {
+            // Reducing: needs a slot AND player must be free
+            canActivate = !playersServing.has(p.playerNumber) && availableSlots > 0;
+          }
 
           if (canActivate) {
             significantChangeOccurred = true;
             stillRunning.push({ ...p, _status: 'running', startTime: liveAbsoluteElapsedTimeCs, expirationTime: liveAbsoluteElapsedTimeCs + (p.initialDuration * CENTISECONDS_PER_SECOND) });
             playersServing.add(p.playerNumber);
-            // Solo decrementar slots si la penalidad reduce jugador
             if (!doesNotReducePlayer) {
               availableSlots--;
             }

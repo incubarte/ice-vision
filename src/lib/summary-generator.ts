@@ -1,4 +1,4 @@
-import type { GameState, GameSummary, SummaryPlayerStats, GoalLog, ShotLog, Team, PlayerData, PenaltyLog, VoiceGameEvent, SummaryRosterEntry, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodStats, SummaryPeriodSummary, SummaryGoalkeeperChange, SummaryShootoutAttempt, GoalkeeperChangeLog, SummarySanctionedPlayer } from "@/types";
+import type { GameState, GameSummary, SummaryPlayerStats, GoalLog, ShotLog, Team, PlayerData, PenaltyLog, VoiceGameEvent, SummaryRosterEntry, SummaryGoalEntry, SummaryPenaltyEntry, SummaryPeriodStats, SummaryPeriodSummary, SummaryGoalkeeperChange, SummaryShootoutAttempt, GoalkeeperChangeLog, SummarySanctionedPlayer, MatchExpulsion } from "@/types";
 import { isSanctionActive, getSanctionMatchNumber } from "@/lib/discipline-helpers";
 
 // Helper: look up a player by number in a roster, return their id
@@ -397,6 +397,11 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
         if (sanctionedPlayers.length > 0) {
             finalSummary.sanctionedPlayers = sanctionedPlayers;
         }
+    }
+
+    // Expulsions
+    if (live.matchExpulsions && live.matchExpulsions.length > 0) {
+        finalSummary.expulsions = live.matchExpulsions;
     }
 
     return finalSummary;

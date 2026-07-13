@@ -25,6 +25,16 @@ export interface Penalty {
   _doesNotReducePlayerCountOverride?: boolean;
 }
 
+export interface MatchExpulsion {
+  id: string;
+  team: Team;
+  playerNumber: string;
+  playerName?: string;
+  gameTime: number;
+  periodText: string;
+  timestamp: number;
+}
+
 export type Team = 'home' | 'away';
 export type PlayerType = 'player' | 'goalkeeper';
 
@@ -166,6 +176,7 @@ export interface FormatAndTimingsProfileData {
   defaultPenaltyTypeId: string | null;
   enableMaxPenaltiesLimit: boolean;
   maxPenaltiesPerPlayer: number;
+  enableMatchExpulsion: boolean;
   gameTimeMode: 'running' | 'stopped';
   autoActivatePuckPenalties: boolean;
   enableStoppedTimeAlert: boolean;
@@ -373,6 +384,7 @@ export interface GameSummary {
     away: SummaryRosterEntry[];
   };
   sanctionedPlayers?: SummarySanctionedPlayer[];
+  expulsions?: MatchExpulsion[];
   shootout?: Omit<ShootoutState, 'isActive'> & {
     homeAttempts: SummaryShootoutAttempt[];
     awayAttempts: SummaryShootoutAttempt[];
@@ -698,6 +710,11 @@ export interface LiveState {
     id: string;
     goal: GoalLog;
   } | null;
+  matchExpulsions: MatchExpulsion[];
+  expulsionDisplay: {
+    id: string;
+    expulsion: MatchExpulsion;
+  } | null;
   matchId: string | null;
   matchContext: MatchContext | null;  // Snapshot of tournament data at game setup
   playedPeriods: string[];
@@ -755,6 +772,9 @@ export type GameAction =
   | { type: 'HIDE_REPLAY_OVERLAY' }
   | { type: 'SHOW_GOAL_CELEBRATION'; payload: { goal: GoalLog } }
   | { type: 'HIDE_GOAL_CELEBRATION' }
+  | { type: 'MATCH_EXPULSION'; payload: { team: Team; playerNumber: string; playerName?: string } }
+  | { type: 'REMOVE_MATCH_EXPULSION'; payload: { team: Team; expulsionId: string } }
+  | { type: 'HIDE_EXPULSION_DISPLAY' }
   | { type: 'TOGGLE_CLOCK' }
   | { type: 'SET_TIME'; payload: { minutes: number; seconds: number } }
   | { type: 'ADJUST_TIME'; payload: number }

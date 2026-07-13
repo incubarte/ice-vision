@@ -215,6 +215,21 @@ export const PenaltyTypesCard = forwardRef<PenaltyTypesCardRef, PenaltyTypesCard
         <Separator />
 
         <div>
+          <Label>Expulsión de Partido</Label>
+          <div className="space-y-4 mt-2">
+            <div className="flex items-center justify-between p-3 border rounded-md bg-muted/20">
+              <div>
+                <Label htmlFor="enableMatchExpulsion" className="font-normal">Habilitar expulsión de partido</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Aparece al final de la lista en el panel de control y muestra un cartel en el tablero.</p>
+              </div>
+              <Switch id="enableMatchExpulsion" checked={state.config.enableMatchExpulsion ?? true} onCheckedChange={(c) => dispatchUpdate({ enableMatchExpulsion: c })} />
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
           <Label>Límites de Penalidades por Jugador</Label>
           <div className="space-y-4 mt-2">
             <div className="flex items-center justify-between p-3 border rounded-md bg-muted/20">

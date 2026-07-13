@@ -94,6 +94,7 @@ export const createDefaultFormatAndTimingsProfile = (id?: string, name?: string)
   ...defaultSettings.formatAndTimings,
   gameTimeMode: 'stopped',
   autoActivatePuckPenalties: true,
+  enableMatchExpulsion: true,
   enableStoppedTimeAlert: false,
   stoppedTimeAlertGoalDiff: 1,
   stoppedTimeAlertTimeRemaining: 2,

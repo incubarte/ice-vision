@@ -77,9 +77,14 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
 
   const cardClasses = cn(
     "bg-muted/50 border-primary/30 transition-opacity",
-    (isWaitingSlot || isPendingPuck) && "opacity-50",
+    doesNotReducePlayer && "opacity-60 border-blue-500/30",
+    (isWaitingSlot || isPendingPuck) && "opacity-40",
     isPendingPuck && "border-yellow-500/40"
   );
+
+  const cardStyle = doesNotReducePlayer
+    ? { backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(59,130,246,0.07) 8px, rgba(59,130,246,0.07) 16px)' }
+    : undefined;
 
   const renderPlayerAlias = () => {
     if (!config.showAliasInScoreboardPenalties || !matchedPlayer || !matchedPlayer.name || penalty.isBenchPenalty) return null;
@@ -142,7 +147,7 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
 
 
   return (
-    <Card className={cardClasses}>
+    <Card className={cardClasses} style={cardStyle}>
       <CardContent className="p-2 md:p-3 lg:p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3">
