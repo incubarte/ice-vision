@@ -1,17 +1,17 @@
 
-
 "use client";
 
 import type { Penalty, ClockState } from '@/types';
 import { useGameState } from '@/contexts/game-state-context';
 import { PenaltyCard } from './penalty-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface PenaltiesDisplayProps {
   teamDisplayType: "Local" | "Visitante";
   teamName: string;
   penalties: Penalty[];
-  mode?: 'desktop' | 'mobile';
+  mode?: 'desktop' | 'mobile' | 'scoreboard';
   clock?: ClockState;
 }
 
@@ -20,65 +20,63 @@ export function PenaltiesDisplay({ teamDisplayType, teamName, penalties, mode = 
   const isMobile = mode === 'mobile';
 
   if (!state.config) {
-    return null; // or a loading component
+    return null;
   }
-  
-  // Ordenar penalidades: primero las que reducen jugador, luego las que no
-  // Dentro de cada grupo, mantener orden cronológico (las más recientes al final)
+
+  // Ordenar: primero las que reducen jugador, luego las que no; dentro de cada grupo, orden cronológico
   const penaltiesToDisplay = penalties
     .map((penalty, index) => ({ penalty, originalIndex: index }))
     .sort((a, b) => {
       const aReduces = a.penalty.reducesPlayerCount && !a.penalty._doesNotReducePlayerCountOverride;
       const bReduces = b.penalty.reducesPlayerCount && !b.penalty._doesNotReducePlayerCountOverride;
-
-      // Si a reduce y b no, a va primero (retorna -1)
-      // Si b reduce y a no, b va primero (retorna 1)
       if (aReduces && !bReduces) return -1;
       if (!aReduces && bReduces) return 1;
-
-      // Si ambos tienen el mismo estado, mantener orden original (cronológico)
       return a.originalIndex - b.originalIndex;
     })
     .map(item => item.penalty);
 
-  const titleStyle = isMobile ? { fontSize: '1.125rem' } : { fontSize: `${state.config.scoreboardLayout.penaltiesTitleSize}rem` };
-  const noPenaltiesStyle = isMobile ? { fontSize: '0.875rem' } : { fontSize: `${state.config.scoreboardLayout.penaltyPlayerNumberSize * 0.5}rem` };
-  const morePenaltiesStyle = isMobile ? {} : { fontSize: `${state.config.scoreboardLayout.penaltyPlayerNumberSize * 0.4}rem` };
-
   const penaltiesToShow = isMobile ? penaltiesToDisplay : penaltiesToDisplay.slice(0, 3);
 
-  return (
+  if (isMobile) {
+    return (
       <Card className="bg-card shadow-lg flex-1">
         <CardHeader className="flex flex-row justify-between items-center p-3 md:p-6">
-          <CardTitle 
-            className="text-primary-foreground"
-            style={titleStyle}
-          >
-            {isMobile ? `Penalidades ${teamName}` : 'Penalidades'}
+          <CardTitle className="text-primary-foreground" style={{ fontSize: '1.125rem' }}>
+            {`Penalidades ${teamName}`}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 p-3 pt-0 md:p-6 md:pt-0 md:space-y-3 lg:space-y-4">
           {penaltiesToDisplay.length === 0 ? (
-            <p 
-              className="text-muted-foreground"
-              style={noPenaltiesStyle}
-            >
-              Ninguna
-            </p>
+            <p className="text-muted-foreground" style={{ fontSize: '0.875rem' }}>Ninguna</p>
           ) : (
             penaltiesToShow.map(penalty => (
               <PenaltyCard key={penalty.id} penalty={penalty} teamName={teamName} mode={mode} clock={clock} />
             ))
           )}
-          {!isMobile && penaltiesToDisplay.length > 3 && (
-            <p 
-              className="text-muted-foreground text-center pt-2"
-              style={morePenaltiesStyle}
-            >
-              +{penaltiesToDisplay.length - 3} más...
-            </p>
-          )}
         </CardContent>
       </Card>
+    );
+  }
+
+  if (mode === 'scoreboard') {
+    const align = teamDisplayType === 'Visitante' ? 'right' : 'left';
+    if (penaltiesToDisplay.length === 0) return null;
+    return (
+      <div className={cn("flex flex-col gap-4", align === 'right' && "items-end")}>
+        <span className="text-foreground/30 uppercase tracking-widest text-xs font-medium">Penalidades</span>
+        {penaltiesToDisplay.slice(0, 3).map(penalty => (
+          <PenaltyCard key={penalty.id} penalty={penalty} teamName={teamName} mode="scoreboard" align={align} clock={clock} />
+        ))}
+      </div>
+    );
+  }
+
+  // Desktop: limpio, sin Card wrapper, sin título, sin estado vacío
+  return (
+    <div className="flex-1 flex flex-col gap-1.5 pt-1">
+      {penaltiesToShow.map(penalty => (
+        <PenaltyCard key={penalty.id} penalty={penalty} teamName={teamName} mode={mode} clock={clock} />
+      ))}
+    </div>
   );
 }

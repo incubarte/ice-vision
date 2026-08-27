@@ -7,9 +7,10 @@ import { Trophy } from 'lucide-react';
 
 interface ClockDisplayProps {
   className?: string;
+  sizeRem?: number; // Override clockSize from config
 }
 
-export function ClockDisplay({ className }: ClockDisplayProps) {
+export function ClockDisplay({ className, sizeRem }: ClockDisplayProps) {
   const { state } = useGameState();
 
   const handleToggleFullscreen = (e: React.MouseEvent) => {
@@ -62,46 +63,34 @@ export function ClockDisplay({ className }: ClockDisplayProps) {
   return (
     <div className={cn("text-center cursor-pointer", className)} onClick={handleToggleFullscreen} data-fullscreen-trigger="true">
       <div
+        className="font-semibold text-primary-foreground uppercase tracking-wider opacity-100"
+        style={{ fontSize: `${scoreboardLayout.periodSize}rem`, lineHeight: 1.2 }}
+      >
+        {getStatusText()}
+      </div>
+
+      <div
         className={cn(
           "font-bold font-headline tabular-nums tracking-tighter transition-opacity duration-300 flex items-center justify-center opacity-100",
           isWinnerState ? "text-accent" : (isMainClockLastMinute ? "text-orange-500" : "text-accent"),
           clock.isFlashingZero && "animate-flashing-clock"
         )}
-        style={{ fontSize: `${scoreboardLayout.clockSize}rem`, lineHeight: 1, opacity: 1 }}
-        >
-        {isWinnerState ? (
-            <Trophy className="w-[0.75em] h-[0.75em]" />
-        ) : (
-            showClock && (
-              timeHasTenths ? (
-                <>
-                  {mainTime}
-                  <span style={{ fontSize: '0.75em', alignSelf: 'flex-end' }}>.{tenths}</span>
-                </>
-              ) : (
-                formattedTime
-              )
-            )
-        )}
-      </div>
-      
-      <div
-        className="mt-1 font-semibold text-primary-foreground uppercase tracking-wider relative opacity-100"
-        style={{ fontSize: `${scoreboardLayout.periodSize}rem`, lineHeight: 1.1, opacity: 1 }}
+        style={{ fontSize: `${sizeRem ?? scoreboardLayout.clockSize}rem`, lineHeight: 1, opacity: 1 }}
       >
-        <div className="inline-block relative">
-          <span>
-            {getStatusText()}
-          </span>
-          {!clock.isClockRunning && clock.currentTime > 0 && clock.periodDisplayOverride !== "End of Game" && clock.periodDisplayOverride !== 'AwaitingDecision' && !clock.isFlashingZero && (
-            <span
-              className="absolute left-full top-1/2 transform -translate-y-1/2 ml-3 font-normal text-muted-foreground normal-case tracking-normal px-2 py-1 bg-background/50 rounded-md whitespace-nowrap"
-              style={{ fontSize: '0.4em', lineHeight: 'normal' }}
-            >
-              Paused
-            </span>
-          )}
-        </div>
+        {isWinnerState ? (
+          <Trophy className="w-[0.75em] h-[0.75em]" />
+        ) : (
+          showClock && (
+            timeHasTenths ? (
+              <>
+                {mainTime}
+                <span style={{ fontSize: '0.75em', alignSelf: 'flex-end' }}>.{tenths}</span>
+              </>
+            ) : (
+              formattedTime
+            )
+          )
+        )}
       </div>
       {clock.preTimeoutState && clock.periodDisplayOverride !== "End of Game" && (
         <div className="text-xs mt-1 normal-case tracking-normal text-white"

@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
 import type { GameAction } from '@/types';
 import { CompactHeaderScoreboard, useTeamLogos } from './compact-header-scoreboard';
+import { ClockDisplay } from './clock-display';
 import { PenaltiesDisplay } from './penalties-display';
 import { ShootoutDisplay, MAX_DISPLAY_SLOTS } from './shootout-display';
 import { StandingsDisplay } from './standings-display';
@@ -386,7 +387,7 @@ export function FullScoreboard({ className }: { className?: string }) {
     return null;
   }
 
-  const { penalties, homeTeamName, awayTeamName, shootout, matchId, clock, goalCelebration, expulsionDisplay, replayLoadRequest, replayOverlay } = live;
+  const { penalties, score, homeTeamName, awayTeamName, shootout, matchId, clock, goalCelebration, expulsionDisplay, replayLoadRequest, replayOverlay } = live;
 
   const homeAttempts = shootout?.homeAttempts || [];
   const awayAttempts = shootout?.awayAttempts || [];
@@ -679,9 +680,43 @@ export function FullScoreboard({ className }: { className?: string }) {
                         />
                       </WarmupDisplay>
                     ) : clock.periodDisplayOverride !== 'Shootout' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-10 xl:gap-12 h-full">
-                        <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} />
-                        <PenaltiesDisplay teamDisplayType="Visitante" teamName={awayTeamName} penalties={penalties.away} />
+                      <div className="relative h-full">
+                        {/* Clock — fixed so it centers on the full screen (parent has transform, so fixed = relative to h-screen container) */}
+                        <div className="fixed inset-0 flex items-center justify-center z-10 pointer-events-none">
+                          <ClockDisplay sizeRem={scoreboardLayout.clockSize * 1.2} />
+                        </div>
+                        {/* Score SVGs — fixed, full screen height, pinned to their column edges */}
+                        <svg
+                          className="fixed top-0 left-4 w-[38%] pointer-events-none select-none z-0"
+                          style={{ height: '100vh' }}
+                          viewBox="0 0 100 100"
+                          preserveAspectRatio="none"
+                          aria-hidden="true"
+                        >
+                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)">
+                            {score.home}
+                          </text>
+                        </svg>
+                        <svg
+                          className="fixed top-0 right-4 w-[38%] pointer-events-none select-none z-0"
+                          style={{ height: '100vh' }}
+                          viewBox="0 0 100 100"
+                          preserveAspectRatio="none"
+                          aria-hidden="true"
+                        >
+                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)">
+                            {score.away}
+                          </text>
+                        </svg>
+                        {/* Penalties */}
+                        <div className="relative z-20 flex justify-between items-end h-full px-4 pb-8">
+                          <div className="w-[38%]">
+                            <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} mode="scoreboard" />
+                          </div>
+                          <div className="w-[38%]">
+                            <PenaltiesDisplay teamDisplayType="Visitante" teamName={awayTeamName} penalties={penalties.away} mode="scoreboard" />
+                          </div>
+                        </div>
                       </div>
                     ) : clock.periodDisplayOverride === 'Shootout' && shootout?.isActive ? (
                       <div className="flex flex-col items-center gap-4">
@@ -709,14 +744,14 @@ export function FullScoreboard({ className }: { className?: string }) {
             </div>
           </div>
 
-          {/* Tournament Logo Watermark - Only show when NOT in warmup */}
-          {config.selectedTournamentId && !isOlympiaTransitioning && !isWarmup && (
-            <div className="absolute bottom-4 right-4 z-5 opacity-40 pointer-events-none">
-              <TournamentLogo
-                tournamentId={config.selectedTournamentId}
-                size={380}
-                showFallback={false}
-              />
+{/* Category badge - bottom right, above tournament logo area */}
+          {matchContext?.categoryName && !isOlympiaTransitioning && !isWarmup && (
+            <div
+              className="absolute bottom-4 right-4 z-10 flex items-baseline gap-1 px-3 py-1.5 bg-black/60 text-primary-foreground rounded-md backdrop-blur-sm pointer-events-none"
+              style={{ fontSize: `${scoreboardLayout?.categorySize ?? 1}rem` }}
+            >
+              <span className="opacity-60 font-medium">Cat.</span>
+              <span className="font-bold">{matchContext.categoryName}</span>
             </div>
           )}
         </div>

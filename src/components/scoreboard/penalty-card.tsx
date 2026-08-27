@@ -2,18 +2,10 @@
 "use client";
 
 import type { Penalty, ClockState } from '@/types';
-import { useGameState, formatTime, getPeriodText } from '@/contexts/game-state-context';
-import { Card, CardContent } from '@/components/ui/card';
+import { useGameState, formatTime } from '@/contexts/game-state-context';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import React from 'react'; 
-import { Separator } from '../ui/separator';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import React from 'react';
 
 const CagedUserIcon = ({ size, className, isBlue }: { size: number; className?: string; isBlue?: boolean }) => {
   const strokeColor = isBlue ? "rgb(59, 130, 246)" : "hsl(var(--destructive))";
@@ -45,13 +37,14 @@ interface PenaltyWithVisualTimer extends Penalty {
 interface PenaltyCardProps {
   penalty: PenaltyWithVisualTimer;
   teamName: string;
-  mode?: 'desktop' | 'mobile';
+  mode?: 'desktop' | 'mobile' | 'scoreboard';
   clock?: ClockState;
+  align?: 'left' | 'right';
 }
 
-export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobileClock }: PenaltyCardProps) {
+export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobileClock, align = 'left' }: PenaltyCardProps) {
   const { state } = useGameState();
-  
+
   if (!state.config || !state.live) {
     return null;
   }
@@ -59,11 +52,8 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
   const { config, live } = state;
   const clock = mobileClock || live.clock;
   const isMobile = mode === 'mobile';
-  
-  const currentTeamSubName = live.homeTeamName === teamName ? live.homeTeamSubName : live.awayTeamSubName;
 
   const matchedPlayer = React.useMemo(() => {
-    // Determine which team this penalty belongs to based on team name
     const team = live.homeTeamName === teamName ? 'home' : 'away';
     const roster = live.matchContext ? (team === 'home' ? live.matchContext.homeRoster : live.matchContext.awayRoster) : [];
     return roster.find(p => p.number === penalty.playerNumber || (penalty.playerNumber === "S/N" && !p.number)) || null;
@@ -71,60 +61,16 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
 
   const isWaitingSlot = penalty._status === 'pending_concurrent';
   const isPendingPuck = penalty._status === 'pending_puck';
-
-  // Una penalidad NO reduce jugador si: reducesPlayerCount es false O _doesNotReducePlayerCountOverride es true
   const doesNotReducePlayer = !penalty.reducesPlayerCount || penalty._doesNotReducePlayerCountOverride;
 
-  const cardClasses = cn(
-    "bg-muted/50 border-primary/30 transition-opacity",
-    doesNotReducePlayer && "opacity-60 border-blue-500/30",
-    (isWaitingSlot || isPendingPuck) && "opacity-40",
-    isPendingPuck && "border-yellow-500/40"
-  );
-
-  const cardStyle = doesNotReducePlayer
-    ? { backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(59,130,246,0.07) 8px, rgba(59,130,246,0.07) 16px)' }
-    : undefined;
-
-  const renderPlayerAlias = () => {
-    if (!config.showAliasInScoreboardPenalties || !matchedPlayer || !matchedPlayer.name || penalty.isBenchPenalty) return null;
-    
-    const name = matchedPlayer.name;
-    let displayName = name;
-    if (name.length > 10) {
-      displayName = name.substring(0, 8) + "..";
-    }
-    
-    return (
-      <>
-        {'\u00A0\u00A0\u00A0'} 
-        <span 
-          className="text-muted-foreground font-normal" 
-          title={name} 
-          style={{ fontSize: '0.6em', lineHeight: 1 }}
-        >
-          {displayName}
-        </span>
-      </>
-    );
+  const styles = {
+    playerIconSize: isMobile ? 2 : config.scoreboardLayout.penaltyPlayerIconSize,
+    playerNumberSize: isMobile ? '1.5rem' : `${config.scoreboardLayout.penaltyPlayerNumberSize}rem`,
+    timeSize: isMobile ? '1.5rem' : `${config.scoreboardLayout.penaltyTimeSize}rem`,
+    clockIconSize: isMobile ? '1.25rem' : `${config.scoreboardLayout.penaltyTimeSize * 0.6}rem`,
   };
-  
-  const getDisplayNumber = () => {
-      if (penalty.isBenchPenalty) {
-        return `Banco (#${penalty.playerNumber || 'S/N'})`;
-      }
-      return `#${penalty.playerNumber || 'S/N'}`;
-    };
 
-  const getStatusTextForScoreboard = () => {
-    if (isPendingPuck) return "Esperando Puck";
-    if (isWaitingSlot) return "Esperando";
-    return null;
-  }
-  const statusText = getStatusTextForScoreboard();
-  
   let remainingTimeCs: number;
-
   if (isMobile) {
     remainingTimeCs = penalty._visualRemainingTimeCs ?? (penalty.initialDuration * 100);
   } else if (penalty._status === 'running' && penalty.expirationTime !== undefined) {
@@ -133,67 +79,118 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
     remainingTimeCs = penalty.initialDuration * 100;
   }
 
-  const styles = {
-    playerIconSize: isMobile ? 2 : config.scoreboardLayout.penaltyPlayerIconSize,
-    playerNumberSize: isMobile ? '1.5rem' : `${config.scoreboardLayout.penaltyPlayerNumberSize}rem`,
-    timeSize: isMobile ? '1.5rem' : `${config.scoreboardLayout.penaltyTimeSize}rem`,
-    clockIconSize: isMobile ? '1.25rem' : `${config.scoreboardLayout.penaltyTimeSize * 0.5}rem`,
-    totalDurationSize: isMobile ? '0.75rem' : `${config.scoreboardLayout.penaltyTimeSize * 0.4}rem`,
-    statusSize: isMobile ? '0.75rem' : `${config.scoreboardLayout.penaltyTimeSize * 0.4}rem`,
+  const getDisplayNumber = () => {
+    if (penalty.isBenchPenalty) return `Banco (#${penalty.playerNumber || 'S/N'})`;
+    return `#${penalty.playerNumber || 'S/N'}`;
   };
 
-  const penaltyLogDetails = (live.penaltiesLog?.home || []).find(p => p.id === penalty.id) || (live.penaltiesLog?.away || []).find(p => p.id === penalty.id);
-  const penaltyNameForTooltip = penaltyLogDetails?.penaltyName || "Tipo desconocido";
+  const renderPlayerAlias = () => {
+    if (!config.showAliasInScoreboardPenalties || !matchedPlayer || !matchedPlayer.name || penalty.isBenchPenalty) return null;
+    const name = matchedPlayer.name;
+    const displayName = name.length > 10 ? name.substring(0, 8) + ".." : name;
+    return (
+      <span
+        className="text-muted-foreground font-normal ml-2"
+        title={name}
+        style={{ fontSize: '0.6em', lineHeight: 1 }}
+      >
+        {displayName}
+      </span>
+    );
+  };
 
+  const getStatusText = () => {
+    if (isPendingPuck) return "· Esperando Puck";
+    if (isWaitingSlot) return "· Esp.";
+    return null;
+  };
+  const statusText = getStatusText();
+
+  if (mode === 'scoreboard') {
+    const playerNumber = penalty.isBenchPenalty
+      ? `Banco (#${penalty.playerNumber || 'S/N'})`
+      : `#${penalty.playerNumber || 'S/N'}`;
+    const playerName = !penalty.isBenchPenalty && matchedPlayer?.name ? matchedPlayer.name : null;
+
+    return (
+      <div
+        className={cn(
+          "flex flex-col",
+          align === 'right' && "items-end",
+          (isWaitingSlot || isPendingPuck) && "opacity-40"
+        )}
+      >
+        <span
+          className="text-foreground/50 font-medium leading-none mb-0.5"
+          style={{ fontSize: `${config.scoreboardLayout.penaltyPlayerNumberSize * 0.85}rem` }}
+        >
+          {playerNumber}
+          {playerName && (
+            <span
+              className="text-foreground/35 font-normal ml-1"
+              style={{ fontSize: '0.65em' }}
+            >
+              {playerName}
+            </span>
+          )}
+        </span>
+        <span
+          className={cn(
+            "font-bold font-headline tabular-nums leading-none",
+            isPendingPuck ? "text-yellow-400/70" : "text-foreground/70"
+          )}
+          style={{ fontSize: `${config.scoreboardLayout.penaltyTimeSize * 1.8}rem` }}
+        >
+          {formatTime(remainingTimeCs, { showTenths: false, rounding: 'up' })}
+        </span>
+      </div>
+    );
+  }
+
+  const accentColor = doesNotReducePlayer ? 'rgb(59,130,246)' : 'hsl(var(--destructive))';
+  const bgStyle = doesNotReducePlayer
+    ? 'rgba(59,130,246,0.06)'
+    : 'rgba(255,255,255,0.03)';
 
   return (
-    <Card className={cardClasses} style={cardStyle}>
-      <CardContent className="p-2 md:p-3 lg:p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-3">
-            <CagedUserIcon size={styles.playerIconSize} className="text-primary-foreground" isBlue={doesNotReducePlayer} />
-            <span
-              className="font-semibold"
-              style={{ fontSize: styles.playerNumberSize, lineHeight: 1 }}
-            >
-              {getDisplayNumber()}
-              {renderPlayerAlias()}
-            </span>
-          </div>
-          <div 
-            className="flex items-center gap-1 md:gap-2 text-accent font-mono"
-            style={{ fontSize: styles.timeSize, lineHeight: 1 }}
-          >
-            <Clock 
-              className="text-accent"
-              style={{
-                height: styles.clockIconSize,
-                width: styles.clockIconSize,
-              }}
-            />
-            {formatTime(remainingTimeCs, { showTenths: false, rounding: 'up' })}
-          </div>
-        </div>
-        <div className="flex justify-between items-center">
-          <div
-            className="text-muted-foreground mt-1"
-            style={{ fontSize: styles.totalDurationSize }}
-          >
-            ({formatTime(penalty.initialDuration * 100, { showTenths: false })})
-             {doesNotReducePlayer && <span className="text-blue-400 font-semibold"> (No reduce)</span>}
-          </div>
-          {statusText && (
-            <div className={cn(
-                "mt-1 italic",
-                 isPendingPuck ? "text-yellow-600 dark:text-yellow-400" : "text-muted-foreground/80"
-              )}
-              style={{ fontSize: styles.statusSize }}
-            >
-              {statusText}
-            </div>
+    <div
+      className={cn(
+        "flex items-center gap-2 pr-3 py-1 rounded-sm overflow-hidden",
+        (isWaitingSlot || isPendingPuck) && "opacity-40",
+        doesNotReducePlayer && "opacity-70"
+      )}
+      style={{
+        borderLeft: `3px solid ${accentColor}`,
+        background: bgStyle,
+        paddingLeft: '0.5rem',
+      }}
+    >
+      <CagedUserIcon size={styles.playerIconSize} isBlue={doesNotReducePlayer} className="shrink-0" />
+      <span
+        className="font-bold leading-none"
+        style={{ fontSize: styles.playerNumberSize }}
+      >
+        {getDisplayNumber()}
+        {renderPlayerAlias()}
+      </span>
+      {statusText && (
+        <span
+          className={cn(
+            "italic shrink-0",
+            isPendingPuck ? "text-yellow-400" : "text-muted-foreground/70"
           )}
-        </div>
-      </CardContent>
-    </Card>
+          style={{ fontSize: `${config.scoreboardLayout.penaltyTimeSize * 0.35}rem` }}
+        >
+          {statusText}
+        </span>
+      )}
+      <div
+        className="ml-auto flex items-center gap-1 font-mono text-accent shrink-0"
+        style={{ fontSize: styles.timeSize, lineHeight: 1 }}
+      >
+        <Clock style={{ height: styles.clockIconSize, width: styles.clockIconSize }} />
+        {formatTime(remainingTimeCs, { showTenths: false, rounding: 'up' })}
+      </div>
+    </div>
   );
 }
