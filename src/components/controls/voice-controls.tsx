@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Mic, MicOff, ChevronDown, Settings, Check, Trash2, Target, Info, X } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useGoals } from '@/hooks/use-goals';
-import { useGameState, getActualPeriodText, type Team } from '@/contexts/game-state-context';
+import { useGameState, getActualPeriodText, formatTime, type Team } from '@/contexts/game-state-context';
 import { usePenalties } from '@/hooks/use-penalties';
 import { useToast } from '@/hooks/use-toast';
 import { safeUUID } from '@/lib/utils';
@@ -28,6 +28,7 @@ interface Message {
   penaltyConfirmed?: boolean; // true if confirmed, false if deleted, undefined if pending
   shotId?: string; // ID of the shot in shotsLog, for deletion
   shotCancelled?: boolean; // true if shot was voided
+  matchTime?: { periodText: string; clockTimeCs: number }; // match clock at time of event
 }
 
 interface Player {
@@ -88,6 +89,7 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
   const [isHomeAbsentOpen, setIsHomeAbsentOpen] = useState(false);
   const [isAwayAbsentOpen, setIsAwayAbsentOpen] = useState(false);
   const [shotDeleteConfirmId, setShotDeleteConfirmId] = useState<string | null>(null);
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -417,6 +419,11 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       }
     }
 
+    const matchTime = state.live ? {
+      periodText: getActualPeriodText(state.live.clock.currentPeriod, state.live.clock.periodDisplayOverride, state.config?.numberOfRegularPeriods ?? 3, state.live.shootout),
+      clockTimeCs: state.live.clock.currentTime,
+    } : undefined;
+
     const message: Message = {
       id: Date.now().toString(),
       type,
@@ -425,6 +432,7 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       parsed,
       event,
       shotId,
+      matchTime: event ? matchTime : undefined,
     };
     setMessages(prev => [...prev, message]);
   };
@@ -454,6 +462,11 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
     const player = teamData?.players.find(p => p.number === playerNumber);
     const playerName = player?.name || `Jugador #${playerNumber}`;
 
+    const matchTime = state.live ? {
+      periodText: getActualPeriodText(state.live.clock.currentPeriod, state.live.clock.periodDisplayOverride, state.config?.numberOfRegularPeriods ?? 3, state.live.shootout),
+      clockTimeCs: state.live.clock.currentTime,
+    } : undefined;
+
     // Add message to log (same format as voice events)
     const shotMessage: Message = {
       id: `shot-${Date.now()}-${Math.random()}`,
@@ -461,6 +474,7 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       text: `Tiro registrado: ${teamName} - Jugador #${playerNumber}`,
       timestamp: new Date(),
       shotId,
+      matchTime,
       event: {
         action: 'shot',
         data: {
@@ -649,23 +663,24 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
     <div className="space-y-4">
       {/* Info Banner */}
       <Card className="bg-primary/5 border-primary/20">
-        <div className="p-4">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm">Registrar Eventos</h3>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li className="flex items-start gap-2">
-                  <Target className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span><strong>Tiros:</strong> Click en el jugador en los listados laterales</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Mic className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span><strong>Goles y Tiros:</strong> Usa el control de voz (botón rojo o tecla Ctrl)</span>
-                </li>
-              </ul>
-            </div>
+        <div className="px-4 py-2.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Info className="h-4 w-4 text-primary flex-shrink-0" />
+            <span className="font-semibold text-sm">Registrar Eventos</span>
+            <span className="hidden sm:inline text-xs text-muted-foreground">
+              — Click en jugador para tiros
+              {isMicEnabled && ' · Ctrl o botón rojo para voz'}
+            </span>
           </div>
+          <Button
+            variant={isMicEnabled ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 px-2.5 gap-1.5 shrink-0"
+            onClick={() => setIsMicEnabled(v => !v)}
+          >
+            {isMicEnabled ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+            <span className="text-xs">{isMicEnabled ? 'Voz ON' : 'Voz OFF'}</span>
+          </Button>
         </div>
       </Card>
 
@@ -755,8 +770,8 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
 
       {/* Center: Controls and Messages */}
       <div className="flex flex-col gap-4">
-        {/* Controls Card - Collapsible */}
-        <Collapsible open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+        {/* Controls Card - only when mic enabled */}
+        {isMicEnabled && <Collapsible open={isConfigOpen} onOpenChange={setIsConfigOpen}>
           <Card className="p-3">
             <CollapsibleTrigger asChild>
               <button className="w-full flex items-center justify-between text-sm font-medium hover:bg-muted/50 rounded px-2 py-1 transition-colors">
@@ -829,10 +844,10 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
               </div>
             </CollapsibleContent>
           </Card>
-        </Collapsible>
+        </Collapsible>}
 
-        {/* Record Button */}
-        <div className="flex flex-col items-center gap-3">
+        {/* Record Button - only when mic enabled */}
+        {isMicEnabled && <div className="flex flex-col items-center gap-3">
           <button
             onClick={toggleRecording}
             disabled={isProcessing}
@@ -915,12 +930,12 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
               </div>
             </Card>
           )}
-        </div>
+        </div>}
 
-        {/* Messages Log - Split into two columns */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Left Column: All Events */}
-          <Card className="p-3 h-[300px] flex flex-col">
+        {/* Messages Log */}
+        <div className={isMicEnabled ? "grid grid-cols-2 gap-3" : "flex flex-col gap-3"}>
+          {/* Left Column: All Events - only when mic enabled */}
+          {isMicEnabled && <Card className="p-3 h-[400px] flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-sm">Log Completo</h3>
               <Button variant="ghost" size="sm" onClick={clearMessages}>
@@ -1002,10 +1017,10 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
                 })
               )}
             </div>
-          </Card>
+          </Card>}
 
           {/* Right Column: Valid Events Only */}
-          <Card className="p-3 h-[300px] flex flex-col">
+          <Card className={`p-3 flex flex-col ${isMicEnabled ? 'h-[400px]' : 'h-[500px]'}`}>
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-sm">Eventos Registrados</h3>
               <span className="text-[10px] text-muted-foreground">
@@ -1105,6 +1120,13 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
                               <span className="text-muted-foreground"> (Menor - 2 min)</span>
                             )}
                           </div>
+
+                          {/* Match time */}
+                          {msg.matchTime && (
+                            <div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
+                              {msg.matchTime.periodText} · {formatTime(msg.matchTime.clockTimeCs, { showTenths: false, rounding: 'up' })}
+                            </div>
+                          )}
 
                           {/* Show action buttons only for unconfirmed goals */}
                           {isGoal && msg.goalConfirmed === undefined && (
