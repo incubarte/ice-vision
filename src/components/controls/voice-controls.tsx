@@ -1029,8 +1029,10 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
               <span className="text-[10px] text-muted-foreground">
                 {messages.filter(msg => {
                   if (!msg.event || !msg.event.data?.team) return false;
+                  if (msg.shotCancelled) return false;
+                  if (msg.goalConfirmed === false) return false;
+                  if (msg.penaltyConfirmed === false) return false;
                   const action = msg.event.action;
-                  // Goals use 'scorer', shots and penalties use 'playerNumber'
                   const hasPlayer = (action === 'goal' && msg.event.data?.scorer) ||
                                    (action === 'shot' && msg.event.data?.playerNumber) ||
                                    (action === 'penalty' && msg.event.data?.playerNumber);
