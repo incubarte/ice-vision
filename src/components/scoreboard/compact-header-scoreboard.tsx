@@ -124,7 +124,7 @@ export function CompactHeaderScoreboard() {
   const awayLogoDataUrl = matchContext?.awayTeamLogoDataUrl || null;
 
   const scoreSize = scoreboardLayout.scoreSize;
-  const logoSize = `${scoreSize * 1.2}rem`;
+  const logoSize = `${scoreboardLayout.teamLogoSize ?? scoreSize * 1.2}rem`;
   const iconSize = scoreboardLayout.playersOnIceIconSize;
 
   const PlayersRow = ({ count, align = 'left' }: { count: number; align?: 'left' | 'right' }) => (

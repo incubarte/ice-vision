@@ -76,6 +76,11 @@ export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
   mainContentGap: 3,
   scoreLabelGap: -2,
   goalCelebrationPhotoSize: 40,
+  teamLogoSize: 12,
+  penaltyGap: 1,
+  penaltyBottomMargin: 2,
+  penaltyTextColor: '0 0% 100%',
+  scoreNumberStrokeWidth: 0,
 };
 
 export const IN_CODE_INITIAL_REPLAYS_SETTINGS: ReplaySettings = {

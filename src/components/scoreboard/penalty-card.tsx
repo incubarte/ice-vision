@@ -107,10 +107,28 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
   const statusText = getStatusText();
 
   if (mode === 'scoreboard') {
-    const playerNumber = penalty.isBenchPenalty
+    const layout = config.scoreboardLayout;
+    const textColorHsl = layout.penaltyTextColor ?? '0 0% 100%';
+    const textColor = `hsl(${textColorHsl})`;
+    const numberStr = penalty.isBenchPenalty
       ? `Banco (#${penalty.playerNumber || 'S/N'})`
       : `#${penalty.playerNumber || 'S/N'}`;
     const playerName = !penalty.isBenchPenalty && matchedPlayer?.name ? matchedPlayer.name : null;
+
+    // Symmetric: right side shows "Name #Number" (name first, number against edge)
+    const playerLine = align === 'right' && playerName ? (
+      <>
+        <span style={{ fontSize: '0.65em', opacity: 0.5, marginRight: '0.3em' }}>{playerName}</span>
+        <span>{numberStr}</span>
+      </>
+    ) : (
+      <>
+        <span>{numberStr}</span>
+        {playerName && (
+          <span style={{ fontSize: '0.65em', opacity: 0.5, marginLeft: '0.3em' }}>{playerName}</span>
+        )}
+      </>
+    );
 
     return (
       <div
@@ -121,25 +139,18 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
         )}
       >
         <span
-          className="text-foreground/50 font-medium leading-none mb-0.5"
-          style={{ fontSize: `${config.scoreboardLayout.penaltyPlayerNumberSize * 0.85}rem` }}
+          className="font-medium leading-none mb-0.5"
+          style={{ fontSize: `${layout.penaltyPlayerNumberSize * 0.85}rem`, color: textColor, opacity: 0.6 }}
         >
-          {playerNumber}
-          {playerName && (
-            <span
-              className="text-foreground/35 font-normal ml-1"
-              style={{ fontSize: '0.65em' }}
-            >
-              {playerName}
-            </span>
-          )}
+          {playerLine}
         </span>
         <span
-          className={cn(
-            "font-bold font-headline tabular-nums leading-none",
-            isPendingPuck ? "text-yellow-400/70" : "text-foreground/70"
-          )}
-          style={{ fontSize: `${config.scoreboardLayout.penaltyTimeSize * 1.8}rem` }}
+          className="font-bold font-headline tabular-nums leading-none"
+          style={{
+            fontSize: `${layout.penaltyTimeSize * 1.8}rem`,
+            color: isPendingPuck ? 'rgb(250 204 21)' : textColor,
+            opacity: isPendingPuck ? 1 : 0.75,
+          }}
         >
           {formatTime(remainingTimeCs, { showTenths: false, rounding: 'up' })}
         </span>

@@ -693,7 +693,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                           preserveAspectRatio="none"
                           aria-hidden="true"
                         >
-                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)">
+                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.2)" strokeWidth={scoreboardLayout.scoreNumberStrokeWidth ?? 0} paintOrder="stroke">
                             {score.home}
                           </text>
                         </svg>
@@ -704,12 +704,12 @@ export function FullScoreboard({ className }: { className?: string }) {
                           preserveAspectRatio="none"
                           aria-hidden="true"
                         >
-                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)">
+                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.2)" strokeWidth={scoreboardLayout.scoreNumberStrokeWidth ?? 0} paintOrder="stroke">
                             {score.away}
                           </text>
                         </svg>
                         {/* Penalties */}
-                        <div className="relative z-20 flex justify-between items-end h-full px-4 pb-8">
+                        <div className="relative z-20 flex justify-between items-end h-full px-4" style={{ paddingBottom: `${scoreboardLayout.penaltyBottomMargin ?? 2}rem` }}>
                           <div className="w-[38%]">
                             <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} mode="scoreboard" />
                           </div>

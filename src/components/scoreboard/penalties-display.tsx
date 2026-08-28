@@ -61,8 +61,9 @@ export function PenaltiesDisplay({ teamDisplayType, teamName, penalties, mode = 
   if (mode === 'scoreboard') {
     const align = teamDisplayType === 'Visitante' ? 'right' : 'left';
     if (penaltiesToDisplay.length === 0) return null;
+    const gap = state.config.scoreboardLayout.penaltyGap ?? 1;
     return (
-      <div className={cn("flex flex-col gap-4", align === 'right' && "items-end")}>
+      <div className={cn("flex flex-col", align === 'right' && "items-end")} style={{ gap: `${gap}rem` }}>
         <span className="text-foreground/30 uppercase tracking-widest text-xs font-medium">Penalidades</span>
         {penaltiesToDisplay.slice(0, 3).map(penalty => (
           <PenaltyCard key={penalty.id} penalty={penalty} teamName={teamName} mode="scoreboard" align={align} clock={clock} />

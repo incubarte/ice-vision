@@ -167,38 +167,73 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
   const standingsFontSize = scoreboardLayout.standingsTableFontSize ?? INITIAL_LAYOUT_SETTINGS.standingsTableFontSize;
   const standingsRowHeight = scoreboardLayout.standingsTableRowHeight ?? INITIAL_LAYOUT_SETTINGS.standingsTableRowHeight;
 
+  const penaltyTextColor = scoreboardLayout.penaltyTextColor ?? INITIAL_LAYOUT_SETTINGS.penaltyTextColor;
+  const teamLogoSize = scoreboardLayout.teamLogoSize ?? INITIAL_LAYOUT_SETTINGS.teamLogoSize;
+  const penaltyGap = scoreboardLayout.penaltyGap ?? INITIAL_LAYOUT_SETTINGS.penaltyGap;
+  const penaltyBottomMargin = scoreboardLayout.penaltyBottomMargin ?? INITIAL_LAYOUT_SETTINGS.penaltyBottomMargin;
+  const scoreNumberStrokeWidth = scoreboardLayout.scoreNumberStrokeWidth ?? INITIAL_LAYOUT_SETTINGS.scoreNumberStrokeWidth;
+
   return (
     <ControlCardWrapper title="Diseño del Scoreboard (Vista Previa en Vivo)">
       <div className="space-y-6">
+
+        {/* Posición */}
         <div>
-          <h4 className="text-base font-semibold mb-3">Posición y Espaciado (en rem)</h4>
+          <h4 className="text-base font-semibold mb-3">Posición y Espaciado</h4>
           <div className="space-y-4">
             <SliderControl label="Posición Vertical" value={scoreboardLayout.scoreboardVerticalPosition} onValueChange={(v) => handleValueChange('scoreboardVerticalPosition', v)} min={-4} max={20} step={0.5} />
             <SliderControl label="Posición Horizontal" value={scoreboardLayout.scoreboardHorizontalPosition} onValueChange={(v) => handleValueChange('scoreboardHorizontalPosition', v)} min={-20} max={20} step={0.5} />
             <SliderControl label="Espacio Principal" value={scoreboardLayout.mainContentGap} onValueChange={(v) => handleValueChange('mainContentGap', v)} min={0} max={10} step={0.25} />
           </div>
         </div>
+
+        {/* Datos de equipo */}
         <div className="border-t pt-6">
-          <h4 className="text-base font-semibold mb-3">Tamaños de Texto e Iconos (en rem)</h4>
+          <h4 className="text-base font-semibold mb-3">Datos de Equipo</h4>
           <div className="space-y-4">
-            <SliderControl label="Reloj Principal" value={scoreboardLayout.clockSize} onValueChange={(v) => handleValueChange('clockSize', v)} min={6} max={20} step={0.5} />
-            <SliderControl label="Nombre Equipo" value={scoreboardLayout.teamNameSize} onValueChange={(v) => handleValueChange('teamNameSize', v)} min={1.5} max={6} step={0.1} />
-            <SliderControl label="Ancho Nombre Equipo" value={scoreboardLayout.teamNameWidth} onValueChange={(v) => handleValueChange('teamNameWidth', v)} min={8} max={30} step={0.5} />
-            <SliderControl label="Puntuación (Goles)" value={scoreboardLayout.scoreSize} onValueChange={(v) => handleValueChange('scoreSize', v)} min={4} max={12} step={0.25} />
-            <SliderControl label="Espacio Goles/Label" value={scoreboardLayout.scoreLabelGap} onValueChange={(v) => handleValueChange('scoreLabelGap', v)} min={-2} max={8} step={0.05} />
-            <SliderControl label="Período" value={scoreboardLayout.periodSize} onValueChange={(v) => handleValueChange('periodSize', v)} min={2} max={8} step={0.1} />
+            <SliderControl label="Logo (tamaño)" value={teamLogoSize} onValueChange={(v) => handleValueChange('teamLogoSize', v)} min={4} max={24} step={0.5} />
+            <SliderControl label="Nombre (tamaño)" value={scoreboardLayout.teamNameSize} onValueChange={(v) => handleValueChange('teamNameSize', v)} min={1.5} max={10} step={0.1} />
+            <SliderControl label="Nombre (ancho máx.)" value={scoreboardLayout.teamNameWidth} onValueChange={(v) => handleValueChange('teamNameWidth', v)} min={8} max={60} step={0.5} />
             <SliderControl label="Iconos Jugadores" value={scoreboardLayout.playersOnIceIconSize} onValueChange={(v) => handleValueChange('playersOnIceIconSize', v)} min={1} max={4} step={0.1} />
-            <SliderControl label="Categoría Partido" value={scoreboardLayout.categorySize} onValueChange={(v) => handleValueChange('categorySize', v)} min={0.75} max={3} step={0.05} />
             <SliderControl label="Label Local/Visitante" value={scoreboardLayout.teamLabelSize} onValueChange={(v) => handleValueChange('teamLabelSize', v)} min={0.75} max={3} step={0.05} />
-            <SliderControl label="Título Penalidades" value={scoreboardLayout.penaltiesTitleSize} onValueChange={(v) => handleValueChange('penaltiesTitleSize', v)} min={1} max={4} step={0.1} />
-            <SliderControl label="Nº Jugador Penalidad" value={scoreboardLayout.penaltyPlayerNumberSize} onValueChange={(v) => handleValueChange('penaltyPlayerNumberSize', v)} min={1.5} max={7} step={0.1} />
-            <SliderControl label="Tiempo Penalidad" value={scoreboardLayout.penaltyTimeSize} onValueChange={(v) => handleValueChange('penaltyTimeSize', v)} min={1.5} max={7} step={0.1} />
-            <SliderControl label="Icono Jugador Penalidad" value={scoreboardLayout.penaltyPlayerIconSize} onValueChange={(v) => handleValueChange('penaltyPlayerIconSize', v)} min={1} max={5} step={0.1} />
-            <SliderControl label="Fuente Tabla Posiciones" value={standingsFontSize} onValueChange={(v) => handleValueChange('standingsTableFontSize', v)} min={0.5} max={3} step={0.05} />
-            <SliderControl label="Alto Fila (Tabla)" value={standingsRowHeight} onValueChange={(v) => handleValueChange('standingsTableRowHeight', v)} min={2} max={6} step={0.25} />
-            <SliderControl label="Foto Jugador (Gol)" value={scoreboardLayout.goalCelebrationPhotoSize ?? 40} onValueChange={(v) => handleValueChange('goalCelebrationPhotoSize', v)} min={20} max={80} step={2} />
+            <SliderControl label="Categoría Partido" value={scoreboardLayout.categorySize} onValueChange={(v) => handleValueChange('categorySize', v)} min={0.75} max={3} step={0.05} />
           </div>
         </div>
+
+        {/* Reloj principal */}
+        <div className="border-t pt-6">
+          <h4 className="text-base font-semibold mb-3">Reloj Principal</h4>
+          <div className="space-y-4">
+            <SliderControl label="Reloj (tamaño)" value={scoreboardLayout.clockSize} onValueChange={(v) => handleValueChange('clockSize', v)} min={6} max={32} step={0.5} />
+            <SliderControl label="Período" value={scoreboardLayout.periodSize} onValueChange={(v) => handleValueChange('periodSize', v)} min={2} max={8} step={0.1} />
+            <SliderControl label="Goles — Borde (grosor)" value={scoreNumberStrokeWidth} onValueChange={(v) => handleValueChange('scoreNumberStrokeWidth', v)} min={0} max={2} step={0.05} unit="u" />
+            <SliderControl label="Puntuación (logo)" value={scoreboardLayout.scoreSize} onValueChange={(v) => handleValueChange('scoreSize', v)} min={4} max={12} step={0.25} />
+          </div>
+        </div>
+
+        {/* Penalidades */}
+        <div className="border-t pt-6">
+          <h4 className="text-base font-semibold mb-3">Penalidades</h4>
+          <div className="space-y-4">
+            <SliderControl label="Nº Jugador (tamaño)" value={scoreboardLayout.penaltyPlayerNumberSize} onValueChange={(v) => handleValueChange('penaltyPlayerNumberSize', v)} min={1.5} max={14} step={0.1} />
+            <SliderControl label="Tiempo (tamaño)" value={scoreboardLayout.penaltyTimeSize} onValueChange={(v) => handleValueChange('penaltyTimeSize', v)} min={1.5} max={14} step={0.1} />
+            <SliderControl label="Espacio entre penalidades" value={penaltyGap} onValueChange={(v) => handleValueChange('penaltyGap', v)} min={0} max={6} step={0.25} />
+            <SliderControl label="Margen inferior" value={penaltyBottomMargin} onValueChange={(v) => handleValueChange('penaltyBottomMargin', v)} min={0} max={12} step={0.25} />
+            <SliderControl label="Icono Jugador" value={scoreboardLayout.penaltyPlayerIconSize} onValueChange={(v) => handleValueChange('penaltyPlayerIconSize', v)} min={1} max={5} step={0.1} />
+            <ColorControl label="Color texto penalidades" value={penaltyTextColor} onValueChange={(v) => handleValueChange('penaltyTextColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.penaltyTextColor} />
+          </div>
+        </div>
+
+        {/* Tabla de posiciones */}
+        <div className="border-t pt-6">
+          <h4 className="text-base font-semibold mb-3">Tabla de Posiciones</h4>
+          <div className="space-y-4">
+            <SliderControl label="Fuente" value={standingsFontSize} onValueChange={(v) => handleValueChange('standingsTableFontSize', v)} min={0.5} max={3} step={0.05} />
+            <SliderControl label="Alto Fila" value={standingsRowHeight} onValueChange={(v) => handleValueChange('standingsTableRowHeight', v)} min={2} max={6} step={0.25} />
+          </div>
+        </div>
+
+        {/* Colores */}
         <div className="border-t pt-6">
           <h4 className="text-base font-semibold mb-3">Colores y Opacidad</h4>
           <div className="space-y-3">
@@ -206,8 +241,10 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
             <ColorControl label="Color Primario" value={scoreboardLayout.primaryColor} onValueChange={(v) => handleValueChange('primaryColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.primaryColor} />
             <ColorControl label="Color de Acento" value={scoreboardLayout.accentColor} onValueChange={(v) => handleValueChange('accentColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.accentColor} />
             <SliderControl label="Opacidad Logo de Fondo" value={scoreboardLayout.teamLogoOpacity} onValueChange={(v) => handleValueChange('teamLogoOpacity', v)} min={0} max={100} step={1} unit="%" />
+            <SliderControl label="Foto Jugador (Gol)" value={scoreboardLayout.goalCelebrationPhotoSize ?? 40} onValueChange={(v) => handleValueChange('goalCelebrationPhotoSize', v)} min={20} max={80} step={2} />
           </div>
         </div>
+
       </div>
     </ControlCardWrapper>
   );

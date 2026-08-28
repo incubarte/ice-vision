@@ -210,6 +210,11 @@ export interface ScoreboardLayoutSettings {
   mainContentGap: number;
   scoreLabelGap: number;
   goalCelebrationPhotoSize: number;
+  teamLogoSize: number;
+  penaltyGap: number;
+  penaltyBottomMargin: number;
+  penaltyTextColor: string;
+  scoreNumberStrokeWidth: number;
 }
 
 export interface ScoreboardLayoutProfile extends ScoreboardLayoutSettings {
