@@ -89,7 +89,7 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
   const [isHomeAbsentOpen, setIsHomeAbsentOpen] = useState(false);
   const [isAwayAbsentOpen, setIsAwayAbsentOpen] = useState(false);
   const [shotDeleteConfirmId, setShotDeleteConfirmId] = useState<string | null>(null);
-  const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [isMicEnabled, setIsMicEnabled] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
