@@ -144,32 +144,33 @@ export function CompactHeaderScoreboard() {
     </div>
   );
 
-  const TeamStack = ({ name, logoUrl, playersCount, align = 'left' }: {
+  const TeamStack = ({ name, logoUrl, playersCount, align = 'left', shotsCount }: {
     name: string;
     logoUrl: string | null;
     playersCount: number;
     align?: 'left' | 'right';
+    shotsCount?: number;
   }) => (
     <div className="flex flex-col items-center gap-0.5 shrink-0" style={{ width: `${scoreboardLayout.teamNameWidth}rem` }}>
-      {logoUrl ? (
-        <div className="relative" style={{ width: logoSize, height: logoSize }}>
-          <Image src={logoUrl} alt={name} fill style={{ objectFit: 'contain' }} sizes="10vw" priority />
-        </div>
-      ) : (
-        <div style={{ width: logoSize, height: logoSize }} />
-      )}
+      <div className="flex items-center gap-2">
+        {logoUrl ? (
+          <div className="relative shrink-0" style={{ width: logoSize, height: logoSize }}>
+            <Image src={logoUrl} alt={name} fill style={{ objectFit: 'contain' }} sizes="10vw" priority />
+          </div>
+        ) : (
+          <div className="shrink-0" style={{ width: logoSize, height: logoSize }} />
+        )}
+        {showShots && shotsCount !== undefined && (
+          <span
+            className="font-bold tabular-nums text-white/70 leading-none shrink-0"
+            style={{ fontSize: `${shotsFontSize}rem` }}
+          >
+            T {shotsCount}
+          </span>
+        )}
+      </div>
       <ScrollingTeamName name={name} sizeRem={scoreboardLayout.teamNameSize} />
       <PlayersRow count={playersCount} align={align} />
-    </div>
-  );
-
-  const ShotsBadge = ({ count }: { count: number }) => (
-    <div
-      className="flex flex-col items-center justify-center border border-white/20 rounded px-2 py-0.5 shrink-0"
-      style={{ fontSize: `${shotsFontSize}rem`, lineHeight: 1.1 }}
-    >
-      <span className="font-bold tabular-nums text-white/80 leading-none">{count}</span>
-      <span className="font-medium text-white/40 uppercase tracking-widest" style={{ fontSize: '0.45em' }}>T</span>
     </div>
   );
 
@@ -178,14 +179,14 @@ export function CompactHeaderScoreboard() {
       <div className="flex justify-between items-center">
 
         {/* HOME */}
-        <div className="w-[38%] flex justify-center items-center gap-3">
+        <div className="w-[38%] flex justify-center">
           <TeamStack
             name={homeTeamName}
             logoUrl={homeLogoDataUrl}
             playersCount={playersOnIceForHome}
             align="left"
+            shotsCount={homeShotsCount}
           />
-          {showShots && <ShotsBadge count={homeShotsCount} />}
         </div>
 
         {/* CENTER: Tournament logo */}
@@ -200,13 +201,13 @@ export function CompactHeaderScoreboard() {
         </div>
 
         {/* AWAY */}
-        <div className="w-[38%] flex justify-center items-center gap-3">
-          {showShots && <ShotsBadge count={awayShotsCount} />}
+        <div className="w-[38%] flex justify-center">
           <TeamStack
             name={awayTeamName}
             logoUrl={awayLogoDataUrl}
             playersCount={playersOnIceForAway}
             align="right"
+            shotsCount={awayShotsCount}
           />
         </div>
 

@@ -200,7 +200,7 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
               </div>
             </div>
             {showShotsInHeader && (
-              <SliderControl label="Tiros (tamaño)" value={shotsInHeaderSize!} onValueChange={(v) => handleValueChange('shotsInHeaderSize', v)} min={0.8} max={4} step={0.1} />
+              <SliderControl label="Tiros (tamaño)" value={shotsInHeaderSize!} onValueChange={(v) => handleValueChange('shotsInHeaderSize', v)} min={3} max={5} step={0.1} />
             )}
           </div>
         </div>

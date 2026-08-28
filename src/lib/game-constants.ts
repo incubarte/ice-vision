@@ -82,7 +82,7 @@ export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
   penaltyTextColor: '0 0% 100%',
   scoreNumberStrokeWidth: 0,
   showShotsInHeader: false,
-  shotsInHeaderSize: 1.5,
+  shotsInHeaderSize: 3.5,
 };
 
 export const IN_CODE_INITIAL_REPLAYS_SETTINGS: ReplaySettings = {
