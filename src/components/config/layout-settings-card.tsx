@@ -148,7 +148,7 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
   const { state, dispatch } = useGameState();
   const { scoreboardLayout, selectedScoreboardLayoutProfileId } = state.config;
 
-  const handleValueChange = (key: keyof ScoreboardLayoutSettings, value: number | string) => {
+  const handleValueChange = (key: keyof ScoreboardLayoutSettings, value: number | string | boolean) => {
     dispatch({ type: 'UPDATE_LAYOUT_SETTINGS', payload: { [key]: value } });
   };
 
@@ -164,6 +164,8 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
     }
   }));
 
+  const showShotsInHeader = scoreboardLayout.showShotsInHeader ?? INITIAL_LAYOUT_SETTINGS.showShotsInHeader;
+  const shotsInHeaderSize = scoreboardLayout.shotsInHeaderSize ?? INITIAL_LAYOUT_SETTINGS.shotsInHeaderSize;
   const standingsFontSize = scoreboardLayout.standingsTableFontSize ?? INITIAL_LAYOUT_SETTINGS.standingsTableFontSize;
   const standingsRowHeight = scoreboardLayout.standingsTableRowHeight ?? INITIAL_LAYOUT_SETTINGS.standingsTableRowHeight;
 
@@ -186,6 +188,20 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
             <SliderControl label="Nombre (tamaño)" value={scoreboardLayout.teamNameSize} onValueChange={(v) => handleValueChange('teamNameSize', v)} min={1.5} max={10} step={0.1} />
             <SliderControl label="Nombre (ancho máx.)" value={scoreboardLayout.teamNameWidth} onValueChange={(v) => handleValueChange('teamNameWidth', v)} min={8} max={60} step={0.5} />
             <SliderControl label="Iconos Jugadores" value={scoreboardLayout.playersOnIceIconSize} onValueChange={(v) => handleValueChange('playersOnIceIconSize', v)} min={1} max={4} step={0.1} />
+            <div className="grid grid-cols-3 items-center gap-x-4">
+              <Label className="text-sm whitespace-nowrap">Mostrar tiros</Label>
+              <div className="col-span-2">
+                <button
+                  onClick={() => handleValueChange('showShotsInHeader', !showShotsInHeader)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${showShotsInHeader ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                >
+                  {showShotsInHeader ? 'Visible' : 'Oculto'}
+                </button>
+              </div>
+            </div>
+            {showShotsInHeader && (
+              <SliderControl label="Tiros (tamaño)" value={shotsInHeaderSize!} onValueChange={(v) => handleValueChange('shotsInHeaderSize', v)} min={0.8} max={4} step={0.1} />
+            )}
           </div>
         </div>
 

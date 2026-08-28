@@ -215,6 +215,8 @@ export interface ScoreboardLayoutSettings {
   penaltyBottomMargin: number;
   penaltyTextColor: string;
   scoreNumberStrokeWidth: number;
+  showShotsInHeader?: boolean;
+  shotsInHeaderSize?: number;
 }
 
 export interface ScoreboardLayoutProfile extends ScoreboardLayoutSettings {

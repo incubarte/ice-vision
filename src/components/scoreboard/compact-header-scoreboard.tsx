@@ -108,7 +108,7 @@ export function CompactHeaderScoreboard() {
 
   const { config, live } = state;
   const { scoreboardLayout, playersPerTeamOnIce } = config;
-  const { penalties, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName, matchContext } = live;
+  const { penalties, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName, matchContext, shotsLog } = live;
 
   const activeHomePenaltiesCount = penalties.home.filter(
     p => p._status === 'running' && p.reducesPlayerCount && !p._doesNotReducePlayerCountOverride
@@ -126,6 +126,10 @@ export function CompactHeaderScoreboard() {
   const scoreSize = scoreboardLayout.scoreSize;
   const logoSize = `${scoreboardLayout.teamLogoSize ?? scoreSize * 1.2}rem`;
   const iconSize = scoreboardLayout.playersOnIceIconSize;
+  const showShots = scoreboardLayout.showShotsInHeader ?? false;
+  const shotsFontSize = scoreboardLayout.shotsInHeaderSize ?? 1.5;
+  const homeShotsCount = shotsLog.home.length;
+  const awayShotsCount = shotsLog.away.length;
 
   const PlayersRow = ({ count, align = 'left' }: { count: number; align?: 'left' | 'right' }) => (
     <div className={cn("flex gap-0.5 mt-0.5", align === 'right' && "justify-end")}>
@@ -159,18 +163,29 @@ export function CompactHeaderScoreboard() {
     </div>
   );
 
+  const ShotsBadge = ({ count }: { count: number }) => (
+    <div
+      className="flex flex-col items-center justify-center border border-white/20 rounded px-2 py-0.5 shrink-0"
+      style={{ fontSize: `${shotsFontSize}rem`, lineHeight: 1.1 }}
+    >
+      <span className="font-bold tabular-nums text-white/80 leading-none">{count}</span>
+      <span className="font-medium text-white/40 uppercase tracking-widest" style={{ fontSize: '0.45em' }}>T</span>
+    </div>
+  );
+
   return (
     <div className="relative py-3 md:py-4 px-4">
       <div className="flex justify-between items-center">
 
         {/* HOME */}
-        <div className="w-[38%] flex justify-center">
+        <div className="w-[38%] flex justify-center items-center gap-3">
           <TeamStack
             name={homeTeamName}
             logoUrl={homeLogoDataUrl}
             playersCount={playersOnIceForHome}
             align="left"
           />
+          {showShots && <ShotsBadge count={homeShotsCount} />}
         </div>
 
         {/* CENTER: Tournament logo */}
@@ -185,7 +200,8 @@ export function CompactHeaderScoreboard() {
         </div>
 
         {/* AWAY */}
-        <div className="w-[38%] flex justify-center">
+        <div className="w-[38%] flex justify-center items-center gap-3">
+          {showShots && <ShotsBadge count={awayShotsCount} />}
           <TeamStack
             name={awayTeamName}
             logoUrl={awayLogoDataUrl}
