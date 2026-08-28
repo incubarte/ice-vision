@@ -788,7 +788,8 @@ export type GameAction =
   | { type: 'ADD_GOAL'; payload: Omit<GoalLog, 'id' | 'periodText'> & { periodText?: string } }
   | { type: 'EDIT_GOAL'; payload: { goalId: string; updates: Partial<GoalLog> } }
   | { type: 'DELETE_GOAL'; payload: { goalId: string } }
-  | { type: 'ADD_PLAYER_SHOT'; payload: { team: Team; playerNumber: string } }
+  | { type: 'ADD_PLAYER_SHOT'; payload: { team: Team; playerNumber: string; id?: string } }
+  | { type: 'DELETE_PLAYER_SHOT'; payload: { team: Team; shotId: string } }
   | { type: 'REMOVE_SHOT'; payload: { team: Team; shotIndex: number } }
   | { type: 'PLAYER_SUBSTITUTION'; payload: { team: Team; playerId: string; playerNumber: string; playerName?: string; action: 'enter' | 'exit' } }
   | { type: 'FINISH_GAME_WITH_OT_GOAL'; payload: Omit<GoalLog, 'id'> }

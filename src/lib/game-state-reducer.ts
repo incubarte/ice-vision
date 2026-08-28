@@ -882,7 +882,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       }
 
       const newShotLog: ShotLog = {
-        id: safeUUID(),
+        id: action.payload.id ?? safeUUID(),
         team,
         timestamp: Date.now(),
         gameTime: state.live.clock.currentTime,
@@ -911,6 +911,23 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           score: newScore,
           shotsLog: newShotsLog,
           matchContext: state.live.matchContext,
+        }
+      };
+      break;
+    }
+    case 'DELETE_PLAYER_SHOT': {
+      const { team: shotTeam, shotId } = action.payload;
+      const newShotsLog = { ...state.live.shotsLog };
+      newShotsLog[shotTeam] = newShotsLog[shotTeam].filter(s => s.id !== shotId);
+      newState = {
+        ...state, live: {
+          ...state.live,
+          score: {
+            ...state.live.score,
+            homeShots: newShotsLog.home.length,
+            awayShots: newShotsLog.away.length,
+          },
+          shotsLog: newShotsLog,
         }
       };
       break;

@@ -4,12 +4,13 @@ import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 're
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Mic, MicOff, ChevronDown, Settings, Check, Trash2, Target, Info } from 'lucide-react';
+import { Mic, MicOff, ChevronDown, Settings, Check, Trash2, Target, Info, X } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useGoals } from '@/hooks/use-goals';
 import { useGameState, getActualPeriodText, type Team } from '@/contexts/game-state-context';
 import { usePenalties } from '@/hooks/use-penalties';
 import { useToast } from '@/hooks/use-toast';
+import { safeUUID } from '@/lib/utils';
 
 interface Message {
   id: string;
@@ -25,6 +26,8 @@ interface Message {
   event?: any;
   goalConfirmed?: boolean; // true if confirmed, false if deleted, undefined if pending
   penaltyConfirmed?: boolean; // true if confirmed, false if deleted, undefined if pending
+  shotId?: string; // ID of the shot in shotsLog, for deletion
+  shotCancelled?: boolean; // true if shot was voided
 }
 
 interface Player {
@@ -84,6 +87,7 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isHomeAbsentOpen, setIsHomeAbsentOpen] = useState(false);
   const [isAwayAbsentOpen, setIsAwayAbsentOpen] = useState(false);
+  const [shotDeleteConfirmId, setShotDeleteConfirmId] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -395,17 +399,9 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
   };
 
   const addMessage = (type: 'user' | 'system', text: string, parsed?: Message['parsed'], event?: any) => {
-    const message: Message = {
-      id: Date.now().toString(),
-      type,
-      text,
-      timestamp: new Date(),
-      parsed,
-      event
-    };
-    setMessages(prev => [...prev, message]);
+    let shotId: string | undefined;
 
-    // Auto-register shots immediately
+    // Pre-generate shot ID so we can track it for deletion
     if (event && event.action === 'shot' && event.data?.team && event.data?.playerNumber) {
       const shotTeam = event.data.team;
       const shotNumber = event.data.playerNumber;
@@ -413,12 +409,24 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       if (!shotRoster.some(p => p.number === shotNumber)) {
         console.warn(`[Voice] Player #${shotNumber} not found in ${shotTeam} roster. Ignoring shot.`);
       } else {
+        shotId = safeUUID();
         dispatch({
           type: 'ADD_PLAYER_SHOT',
-          payload: { team: shotTeam, playerNumber: shotNumber }
+          payload: { team: shotTeam, playerNumber: shotNumber, id: shotId }
         });
       }
     }
+
+    const message: Message = {
+      id: Date.now().toString(),
+      type,
+      text,
+      timestamp: new Date(),
+      parsed,
+      event,
+      shotId,
+    };
+    setMessages(prev => [...prev, message]);
   };
 
   const clearMessages = () => {
@@ -434,8 +442,9 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
     const clickRoster = state.live.matchContext ? (team === 'home' ? state.live.matchContext.homeRoster : state.live.matchContext.awayRoster) : [];
     if (!clickRoster.some(p => p.number === playerNumber)) return;
 
-    // Register a shot for this player
-    dispatch({ type: 'ADD_PLAYER_SHOT', payload: { team, playerNumber } });
+    // Pre-generate shot ID so we can track it for deletion
+    const shotId = safeUUID();
+    dispatch({ type: 'ADD_PLAYER_SHOT', payload: { team, playerNumber, id: shotId } });
 
     // Get team name
     const teamName = team === 'home' ? (homeTeam?.name || 'Local') : (awayTeam?.name || 'Visitante');
@@ -451,6 +460,7 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       type: 'system',
       text: `Tiro registrado: ${teamName} - Jugador #${playerNumber}`,
       timestamp: new Date(),
+      shotId,
       event: {
         action: 'shot',
         data: {
@@ -469,6 +479,15 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       description: `Tiro para el jugador #${playerNumber}`,
       duration: 1500,
     });
+  };
+
+  const deleteShot = (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message || !message.shotId || !message.event) return;
+    const team: Team = message.event.data.team;
+    dispatch({ type: 'DELETE_PLAYER_SHOT', payload: { team, shotId: message.shotId } });
+    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, shotCancelled: true } : m));
+    setShotDeleteConfirmId(null);
   };
 
   const confirmGoal = (messageId: string) => {
@@ -662,22 +681,30 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
               {/* Present Players */}
               {homeTeam.players
                 .filter(p => p.isPresent)
-                .map((player) => (
-                  <div
-                    key={player.id}
-                    onClick={() => handlePlayerClick('home', player.number)}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-primary/20 cursor-pointer transition-colors group"
-                    title={`Click para registrar tiro de ${player.name}`}
-                  >
-                    <Target className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
-                    <span className="font-bold text-sm w-8">
-                      {player.number || '-'}
-                    </span>
-                    <span className="text-xs truncate">
-                      {player.name}
-                    </span>
-                  </div>
-                ))}
+                .map((player) => {
+                  const shotCount = state.live?.shotsLog?.home?.filter(s => s.playerNumber === player.number).length ?? 0;
+                  return (
+                    <div
+                      key={player.id}
+                      onClick={() => handlePlayerClick('home', player.number)}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-primary/20 cursor-pointer transition-colors group"
+                      title={`Click para registrar tiro de ${player.name}`}
+                    >
+                      <Target className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+                      <span className="font-bold text-sm w-8">
+                        {player.number || '-'}
+                      </span>
+                      <span className="text-xs truncate flex-1">
+                        {player.name}
+                      </span>
+                      {shotCount > 0 && (
+                        <span className="text-[10px] font-bold text-blue-500 tabular-nums shrink-0">
+                          {shotCount}T
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
 
               {/* Absent Players - Collapsible - Always show if there are absent players */}
               {(() => {
@@ -1035,6 +1062,11 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
                     return null;
                   }
 
+                  // Don't show shots that were cancelled
+                  if (isShot && msg.shotCancelled === true) {
+                    return null;
+                  }
+
                   return (
                     <div
                       key={msg.id}
@@ -1136,8 +1168,40 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
                             </div>
                           )}
 
-                          {/* Shots are auto-registered, show confirmation message */}
-                          {isShot && (
+                          {/* Shots: show delete button with confirmation */}
+                          {isShot && msg.shotId && (
+                            shotDeleteConfirmId === msg.id ? (
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] text-muted-foreground">¿Anular tiro?</span>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-5 px-2 text-[10px]"
+                                  onClick={() => deleteShot(msg.id)}
+                                >
+                                  Sí
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 px-2 text-[10px]"
+                                  onClick={() => setShotDeleteConfirmId(null)}
+                                >
+                                  No
+                                </Button>
+                              </div>
+                            ) : (
+                              <button
+                                className="mt-1 flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:text-destructive transition-colors"
+                                onClick={() => setShotDeleteConfirmId(msg.id)}
+                                title="Anular tiro"
+                              >
+                                ✅ Tiro registrado
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                            )
+                          )}
+                          {isShot && !msg.shotId && (
                             <div className="mt-1 text-[10px] text-blue-600 dark:text-blue-400 font-medium">
                               ✅ Tiro registrado
                             </div>
@@ -1167,22 +1231,30 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
               {/* Present Players */}
               {awayTeam.players
                 .filter(p => p.isPresent)
-                .map((player) => (
-                  <div
-                    key={player.id}
-                    onClick={() => handlePlayerClick('away', player.number)}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-primary/20 cursor-pointer transition-colors group"
-                    title={`Click para registrar tiro de ${player.name}`}
-                  >
-                    <Target className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
-                    <span className="font-bold text-sm w-8">
-                      {player.number || '-'}
-                    </span>
-                    <span className="text-xs truncate">
-                      {player.name}
-                    </span>
-                  </div>
-                ))}
+                .map((player) => {
+                  const shotCount = state.live?.shotsLog?.away?.filter(s => s.playerNumber === player.number).length ?? 0;
+                  return (
+                    <div
+                      key={player.id}
+                      onClick={() => handlePlayerClick('away', player.number)}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-primary/20 cursor-pointer transition-colors group"
+                      title={`Click para registrar tiro de ${player.name}`}
+                    >
+                      <Target className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+                      <span className="font-bold text-sm w-8">
+                        {player.number || '-'}
+                      </span>
+                      <span className="text-xs truncate flex-1">
+                        {player.name}
+                      </span>
+                      {shotCount > 0 && (
+                        <span className="text-[10px] font-bold text-blue-500 tabular-nums shrink-0">
+                          {shotCount}T
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
 
               {/* Absent Players - Collapsible - Always show if there are absent players */}
               {(() => {
