@@ -177,37 +177,28 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
     <ControlCardWrapper title="Diseño del Scoreboard (Vista Previa en Vivo)">
       <div className="space-y-6">
 
-        {/* Posición */}
-        <div>
-          <h4 className="text-base font-semibold mb-3">Posición y Espaciado</h4>
-          <div className="space-y-4">
-            <SliderControl label="Posición Vertical" value={scoreboardLayout.scoreboardVerticalPosition} onValueChange={(v) => handleValueChange('scoreboardVerticalPosition', v)} min={-4} max={20} step={0.5} />
-            <SliderControl label="Posición Horizontal" value={scoreboardLayout.scoreboardHorizontalPosition} onValueChange={(v) => handleValueChange('scoreboardHorizontalPosition', v)} min={-20} max={20} step={0.5} />
-            <SliderControl label="Espacio Principal" value={scoreboardLayout.mainContentGap} onValueChange={(v) => handleValueChange('mainContentGap', v)} min={0} max={10} step={0.25} />
-          </div>
-        </div>
-
         {/* Datos de equipo */}
-        <div className="border-t pt-6">
+        <div>
           <h4 className="text-base font-semibold mb-3">Datos de Equipo</h4>
           <div className="space-y-4">
+            <SliderControl label="Posición vertical" value={scoreboardLayout.scoreboardVerticalPosition} onValueChange={(v) => handleValueChange('scoreboardVerticalPosition', v)} min={-4} max={20} step={0.5} />
             <SliderControl label="Logo (tamaño)" value={teamLogoSize} onValueChange={(v) => handleValueChange('teamLogoSize', v)} min={4} max={24} step={0.5} />
             <SliderControl label="Nombre (tamaño)" value={scoreboardLayout.teamNameSize} onValueChange={(v) => handleValueChange('teamNameSize', v)} min={1.5} max={10} step={0.1} />
             <SliderControl label="Nombre (ancho máx.)" value={scoreboardLayout.teamNameWidth} onValueChange={(v) => handleValueChange('teamNameWidth', v)} min={8} max={60} step={0.5} />
             <SliderControl label="Iconos Jugadores" value={scoreboardLayout.playersOnIceIconSize} onValueChange={(v) => handleValueChange('playersOnIceIconSize', v)} min={1} max={4} step={0.1} />
-            <SliderControl label="Label Local/Visitante" value={scoreboardLayout.teamLabelSize} onValueChange={(v) => handleValueChange('teamLabelSize', v)} min={0.75} max={3} step={0.05} />
-            <SliderControl label="Categoría Partido" value={scoreboardLayout.categorySize} onValueChange={(v) => handleValueChange('categorySize', v)} min={0.75} max={3} step={0.05} />
           </div>
         </div>
 
-        {/* Reloj principal */}
+        {/* General */}
         <div className="border-t pt-6">
-          <h4 className="text-base font-semibold mb-3">Reloj Principal</h4>
+          <h4 className="text-base font-semibold mb-3">General</h4>
           <div className="space-y-4">
+            <SliderControl label="Pantalla — Desplazar horizontal" value={scoreboardLayout.scoreboardHorizontalPosition} onValueChange={(v) => handleValueChange('scoreboardHorizontalPosition', v)} min={-20} max={20} step={0.5} />
+            <SliderControl label="Categoría Partido" value={scoreboardLayout.categorySize} onValueChange={(v) => handleValueChange('categorySize', v)} min={0.75} max={3} step={0.05} />
             <SliderControl label="Reloj (tamaño)" value={scoreboardLayout.clockSize} onValueChange={(v) => handleValueChange('clockSize', v)} min={6} max={32} step={0.5} />
             <SliderControl label="Período" value={scoreboardLayout.periodSize} onValueChange={(v) => handleValueChange('periodSize', v)} min={2} max={8} step={0.1} />
+            <SliderControl label="Logo del Torneo (tamaño)" value={scoreboardLayout.scoreSize} onValueChange={(v) => handleValueChange('scoreSize', v)} min={4} max={12} step={0.25} />
             <SliderControl label="Goles — Borde (grosor)" value={scoreNumberStrokeWidth} onValueChange={(v) => handleValueChange('scoreNumberStrokeWidth', v)} min={0} max={2} step={0.05} unit="u" />
-            <SliderControl label="Puntuación (logo)" value={scoreboardLayout.scoreSize} onValueChange={(v) => handleValueChange('scoreSize', v)} min={4} max={12} step={0.25} />
           </div>
         </div>
 

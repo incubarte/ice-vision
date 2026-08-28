@@ -140,9 +140,8 @@ export function CompactHeaderScoreboard() {
     </div>
   );
 
-  const TeamStack = ({ name, subName, logoUrl, playersCount, align = 'left' }: {
+  const TeamStack = ({ name, logoUrl, playersCount, align = 'left' }: {
     name: string;
-    subName?: string | null;
     logoUrl: string | null;
     playersCount: number;
     align?: 'left' | 'right';
@@ -156,11 +155,6 @@ export function CompactHeaderScoreboard() {
         <div style={{ width: logoSize, height: logoSize }} />
       )}
       <ScrollingTeamName name={name} sizeRem={scoreboardLayout.teamNameSize} />
-      {subName && (
-        <p className="text-muted-foreground truncate w-full text-center" style={{ fontSize: `${scoreboardLayout.teamLabelSize}rem` }}>
-          {subName}
-        </p>
-      )}
       <PlayersRow count={playersCount} align={align} />
     </div>
   );
@@ -173,7 +167,6 @@ export function CompactHeaderScoreboard() {
         <div className="w-[38%] flex justify-center">
           <TeamStack
             name={homeTeamName}
-            subName={homeTeamSubName}
             logoUrl={homeLogoDataUrl}
             playersCount={playersOnIceForHome}
             align="left"
@@ -195,7 +188,6 @@ export function CompactHeaderScoreboard() {
         <div className="w-[38%] flex justify-center">
           <TeamStack
             name={awayTeamName}
-            subName={awayTeamSubName}
             logoUrl={awayLogoDataUrl}
             playersCount={playersOnIceForAway}
             align="right"
