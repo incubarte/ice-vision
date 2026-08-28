@@ -687,10 +687,10 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       <div className="grid grid-cols-1 md:grid-cols-[250px_1fr_250px] gap-4">
         {/* Left: Home Team Players */}
         <Card className="p-4 max-h-[500px] overflow-y-auto">
-        <h2 className="font-bold text-lg mb-3 text-center border-b pb-2 flex items-center justify-center gap-2">
+        <h2 className="font-bold text-lg mb-3 text-center border-b pb-2 relative">
           {homeTeam?.name || 'Equipo Local'}
           {(state.live?.shotsLog?.home?.length ?? 0) > 0 && (
-            <span className="text-sm font-normal text-blue-500 tabular-nums">{state.live.shotsLog.home.length}T</span>
+            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-sm font-normal text-blue-500 tabular-nums">{state.live.shotsLog.home.length}T</span>
           )}
         </h2>
         <div className="space-y-1">
@@ -1188,10 +1188,10 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
 
       {/* Right: Away Team Players */}
       <Card className="p-4 max-h-[500px] overflow-y-auto">
-        <h2 className="font-bold text-lg mb-3 text-center border-b pb-2 flex items-center justify-center gap-2">
+        <h2 className="font-bold text-lg mb-3 text-center border-b pb-2 relative">
           {awayTeam?.name || 'Equipo Visitante'}
           {(state.live?.shotsLog?.away?.length ?? 0) > 0 && (
-            <span className="text-sm font-normal text-blue-500 tabular-nums">{state.live.shotsLog.away.length}T</span>
+            <span className="absolute right-0 top-1/2 -translate-y-1/2 text-sm font-normal text-blue-500 tabular-nums">{state.live.shotsLog.away.length}T</span>
           )}
         </h2>
         <div className="space-y-1">
