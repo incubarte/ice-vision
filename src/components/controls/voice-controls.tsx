@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 're
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Mic, MicOff, ChevronDown, Settings, Check, Trash2, Target, Info, X } from 'lucide-react';
+import { Mic, MicOff, ChevronDown, Settings, Check, Trash2, Target, Info } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useGoals } from '@/hooks/use-goals';
 import { useGameState, getActualPeriodText, formatTime, type Team } from '@/contexts/game-state-context';
@@ -1121,117 +1121,58 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
                             )}
                           </div>
 
-                          {/* Match time */}
-                          {msg.matchTime && (
-                            <div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
-                              {msg.matchTime.periodText} · {formatTime(msg.matchTime.clockTimeCs, { showTenths: false, rounding: 'up' })}
-                            </div>
-                          )}
-
-                          {/* Show action buttons only for unconfirmed goals */}
+                          {/* Goal action buttons */}
                           {isGoal && msg.goalConfirmed === undefined && (
                             <div className="flex gap-2 mt-2">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700"
-                                onClick={() => confirmGoal(msg.id)}
-                              >
-                                <Check className="h-3 w-3 mr-1" />
-                                OK
+                              <Button size="sm" variant="default" className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700" onClick={() => confirmGoal(msg.id)}>
+                                <Check className="h-3 w-3 mr-1" />OK
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-6 px-2 text-xs"
-                                onClick={() => deleteGoalFromLog(msg.id)}
-                              >
-                                <Trash2 className="h-3 w-3 mr-1" />
-                                Eliminar
+                              <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => deleteGoalFromLog(msg.id)}>
+                                <Trash2 className="h-3 w-3 mr-1" />Eliminar
                               </Button>
                             </div>
                           )}
-
-                          {/* Show confirmation message for confirmed goals */}
                           {isGoal && msg.goalConfirmed === true && (
-                            <div className="mt-1 text-[10px] text-green-600 dark:text-green-400 font-medium">
-                              ✅ Gol confirmado
-                            </div>
+                            <div className="mt-1 text-[10px] text-green-600 dark:text-green-400 font-medium">✅ Gol confirmado</div>
                           )}
 
-                          {/* Show action buttons only for unconfirmed penalties */}
+                          {/* Penalty action buttons */}
                           {isPenalty && msg.penaltyConfirmed === undefined && (
                             <div className="flex gap-2 mt-2">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="h-6 px-2 text-xs bg-red-600 hover:bg-red-700"
-                                onClick={() => confirmPenalty(msg.id)}
-                              >
-                                <Check className="h-3 w-3 mr-1" />
-                                OK
+                              <Button size="sm" variant="default" className="h-6 px-2 text-xs bg-red-600 hover:bg-red-700" onClick={() => confirmPenalty(msg.id)}>
+                                <Check className="h-3 w-3 mr-1" />OK
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-6 px-2 text-xs"
-                                onClick={() => deletePenaltyFromLog(msg.id)}
-                              >
-                                <Trash2 className="h-3 w-3 mr-1" />
-                                Eliminar
+                              <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => deletePenaltyFromLog(msg.id)}>
+                                <Trash2 className="h-3 w-3 mr-1" />Eliminar
                               </Button>
                             </div>
                           )}
-
-                          {/* Show confirmation message for confirmed penalties */}
                           {isPenalty && msg.penaltyConfirmed === true && (
-                            <div className="mt-1 text-[10px] text-red-600 dark:text-red-400 font-medium">
-                              ✅ Penalidad confirmada
-                            </div>
+                            <div className="mt-1 text-[10px] text-red-600 dark:text-red-400 font-medium">✅ Penalidad confirmada</div>
                           )}
+                        </div>
 
-                          {/* Shots: show delete button with confirmation */}
+                        {/* Right side: match time + shot delete */}
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className="text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">
+                            {msg.matchTime
+                              ? `${msg.matchTime.periodText} · ${formatTime(msg.matchTime.clockTimeCs, { showTenths: false, rounding: 'up' })}`
+                              : msg.timestamp.toLocaleTimeString()}
+                          </span>
                           {isShot && msg.shotId && (
                             shotDeleteConfirmId === msg.id ? (
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] text-muted-foreground">¿Anular tiro?</span>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-5 px-2 text-[10px]"
-                                  onClick={() => deleteShot(msg.id)}
-                                >
-                                  Sí
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 px-2 text-[10px]"
-                                  onClick={() => setShotDeleteConfirmId(null)}
-                                >
-                                  No
-                                </Button>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-muted-foreground">¿Anular?</span>
+                                <Button size="sm" variant="destructive" className="h-5 px-1.5 text-[10px]" onClick={() => deleteShot(msg.id)}>Sí</Button>
+                                <Button size="sm" variant="ghost" className="h-5 px-1.5 text-[10px]" onClick={() => setShotDeleteConfirmId(null)}>No</Button>
                               </div>
                             ) : (
-                              <button
-                                className="mt-1 flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:text-destructive transition-colors"
-                                onClick={() => setShotDeleteConfirmId(msg.id)}
-                                title="Anular tiro"
-                              >
-                                ✅ Tiro registrado
-                                <X className="h-2.5 w-2.5" />
+                              <button className="text-muted-foreground/40 hover:text-destructive transition-colors" onClick={() => setShotDeleteConfirmId(msg.id)} title="Anular tiro">
+                                <Trash2 className="h-3 w-3" />
                               </button>
                             )
                           )}
-                          {isShot && !msg.shotId && (
-                            <div className="mt-1 text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                              ✅ Tiro registrado
-                            </div>
-                          )}
                         </div>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                          {msg.timestamp.toLocaleTimeString()}
-                        </span>
                       </div>
                     </div>
                   );
