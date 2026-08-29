@@ -36,7 +36,10 @@ export default function TournamentDetailPage() {
     if (tournamentId && state.config.selectedTournamentId !== tournamentId) {
       dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: tournamentId } });
     }
-  }, [tournamentId, state.config.selectedTournamentId, dispatch]);
+  // Only re-run when the URL param changes, not when selectedTournamentId is changed externally.
+  // Including selectedTournamentId in deps would cause a loop with use-auto-switch-tournament.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournamentId, dispatch]);
   const initialTab = searchParams.get('tab') || (shouldShowTeams ? 'clubs' : 'fixture');
   const initialFixtureView = searchParams.get('view') === 'list' ? 'list' : 'calendar';
 

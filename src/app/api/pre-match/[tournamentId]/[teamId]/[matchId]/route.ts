@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readPreMatchData, writePreMatchData, deletePreMatchData } from '@/lib/data-access';
+import { createPreMatchStorageProvider } from '@/lib/storage';
 import type { PreMatchData } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,17 @@ export async function GET(
   { params }: { params: Promise<{ tournamentId: string; teamId: string; matchId: string }> }
 ) {
   const { tournamentId, teamId, matchId } = await params;
-  const data = await readPreMatchData(tournamentId, matchId, teamId);
+  let data = await readPreMatchData(tournamentId, matchId, teamId);
+
+  // Fallback: if not found locally, try Supabase (local instance reading cloud-saved data)
+  if (!data && process.env.SUPABASE_URL) {
+    try {
+      data = await readPreMatchData(tournamentId, matchId, teamId, createPreMatchStorageProvider());
+    } catch {
+      // Supabase not reachable — no fallback available
+    }
+  }
+
   if (!data) {
     return NextResponse.json({ exists: false }, { status: 404 });
   }

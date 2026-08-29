@@ -258,9 +258,19 @@ const preMatchKey = (tournamentId: string, matchId: string, teamId: string) =>
 export async function readPreMatchData(
     tournamentId: string,
     matchId: string,
-    teamId: string
+    teamId: string,
+    provider?: StorageProvider
 ): Promise<PreMatchData | null> {
-    return readJsonFile<PreMatchData>(preMatchKey(tournamentId, matchId, teamId));
+    const key = preMatchKey(tournamentId, matchId, teamId);
+    if (provider) {
+        try {
+            const data = await provider.readFile(key);
+            return JSON.parse(data) as PreMatchData;
+        } catch {
+            return null;
+        }
+    }
+    return readJsonFile<PreMatchData>(key);
 }
 
 export async function writePreMatchData(data: PreMatchData, provider?: StorageProvider): Promise<void> {
