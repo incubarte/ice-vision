@@ -4,6 +4,7 @@
 import { useMemo } from 'react';
 import type { Tournament, TeamData, CategoryData, MatchPhase } from '@/types';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
+import { getTeamDisplayName } from '@/lib/utils';
 
 export interface TeamStats {
   id: string;
@@ -44,7 +45,7 @@ function computeStandings(
 
   const stats: TeamStats[] = relevantTeams.map(team => {
     const teamStats: TeamStats = {
-      id: team.id, name: team.name,
+      id: team.id, name: getTeamDisplayName(team.name, team.subName),
       pj: 0, pg: 0, pe: 0, pp: 0, pg_ot: 0, pp_ot: 0, gf: 0, gc: 0, dif: 0, puntos: 0
     };
 
@@ -116,7 +117,7 @@ export function useStandings(tournament: Tournament | null | undefined, category
     const stats: TeamStats[] = teamsInCategory.map(team => {
         const teamStats: TeamStats = {
           id: team.id,
-          name: team.name,
+          name: getTeamDisplayName(team.name, team.subName),
           pj: 0, pg: 0, pe: 0, pp: 0, pg_ot: 0, pp_ot: 0, gf: 0, gc: 0, dif: 0, puntos: 0
         };
 

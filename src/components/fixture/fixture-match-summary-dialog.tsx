@@ -18,7 +18,7 @@ import { useMatchGoalkeeperStats } from "@/hooks/use-match-goalkeeper-stats";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
 import { AddPenaltyForm } from "../shared/add-penalty-form";
-import { safeUUID, cn } from "@/lib/utils";
+import { safeUUID, cn, getTeamDisplayName } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculateScoreFromSummary } from "@/lib/match-helpers";
 import { useAdminMode } from '@/hooks/use-admin-mode';
@@ -93,6 +93,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
   
   const homeTeam = useMemo(() => tournament?.teams.find(t => t.id === match?.homeTeamId), [tournament, match]);
   const awayTeam = useMemo(() => tournament?.teams.find(t => t.id === match?.awayTeamId), [tournament, match]);
+  const homeTeamDisplayName = homeTeam ? getTeamDisplayName(homeTeam.name, homeTeam.subName) : undefined;
+  const awayTeamDisplayName = awayTeam ? getTeamDisplayName(awayTeam.name, awayTeam.subName) : undefined;
   const categoryName = useMemo(() => getCategoryNameById(match?.categoryId || '', tournament?.categories), [match, tournament]);
 
   // Build player lists from summary attendance (includes transient players and updated numbers)
@@ -438,13 +440,13 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
           <DialogTitle className="flex items-center justify-between text-lg pr-8">
             <span>Resumen</span>
             <div className="flex items-center gap-4 text-xl">
-              <span className="font-bold text-primary">{homeTeam?.name} - <span className="text-accent">{finalHomeScore}</span></span>
-              <span className="font-bold text-primary">{awayTeam?.name} - <span className="text-accent">{finalAwayScore}</span></span>
+              <span className="font-bold text-primary">{homeTeamDisplayName} - <span className="text-accent">{finalHomeScore}</span></span>
+              <span className="font-bold text-primary">{awayTeamDisplayName} - <span className="text-accent">{finalAwayScore}</span></span>
             </div>
             <span className="text-sm font-normal text-muted-foreground">Cat: {categoryName}</span>
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {homeTeam?.name || '?'} vs {awayTeam?.name || '?'} - Cat: {categoryName}
+            {homeTeamDisplayName || '?'} vs {awayTeamDisplayName || '?'} - Cat: {categoryName}
           </DialogDescription>
         </DialogHeader>
 
@@ -472,13 +474,13 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                 {/* Desktop: lado a lado */}
                 <div className="hidden md:block space-y-6">
                     <div className="grid grid-cols-2 gap-6">
-                      <GoalsSection teamName={homeTeam?.name || ''} goals={aggregatedGoals.home} editable={false} players={homePlayers} />
-                      <GoalsSection teamName={awayTeam?.name || ''} goals={aggregatedGoals.away} editable={false} players={awayPlayers} />
+                      <GoalsSection teamName={homeTeamDisplayName || ''} goals={aggregatedGoals.home} editable={false} players={homePlayers} />
+                      <GoalsSection teamName={awayTeamDisplayName || ''} goals={aggregatedGoals.away} editable={false} players={awayPlayers} />
                     </div>
                     <Separator />
                     <div className="grid grid-cols-2 gap-6">
-                      <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={aggregatedPenalties.home} players={homePlayers} />
-                      <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={aggregatedPenalties.away} players={awayPlayers} />
+                      <PenaltiesSection team="home" teamName={homeTeamDisplayName || ''} penalties={aggregatedPenalties.home} players={homePlayers} />
+                      <PenaltiesSection team="away" teamName={awayTeamDisplayName || ''} penalties={aggregatedPenalties.away} players={awayPlayers} />
                     </div>
                     {localSummary.expulsions && localSummary.expulsions.length > 0 && (
                       <>
@@ -489,7 +491,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                           </h3>
                           <div className="space-y-2">
                             {localSummary.expulsions.map(e => {
-                              const teamName = e.team === 'home' ? homeTeam?.name : awayTeam?.name;
+                              const teamName = e.team === 'home' ? homeTeamDisplayName : awayTeamDisplayName;
                               return (
                                 <div key={e.id} className="flex items-center gap-3 text-sm bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
                                   <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
@@ -511,7 +513,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                         <div className="grid grid-cols-2 gap-6">
                             <PlayerStatsSection
                               team="home"
-                              teamName={homeTeam?.name || ''}
+                              teamName={homeTeamDisplayName || ''}
                               allPlayers={homePlayers}
                               playerStats={aggregatedStats.home}
                               attendance={localSummary.attendance.home}
@@ -525,7 +527,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                             />
                             <PlayerStatsSection
                               team="away"
-                              teamName={awayTeam?.name || ''}
+                              teamName={awayTeamDisplayName || ''}
                               allPlayers={awayPlayers}
                               playerStats={aggregatedStats.away}
                               attendance={localSummary.attendance.away}
@@ -540,8 +542,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                         </div>
                         <Separator />
                         <div className="grid grid-cols-2 gap-6">
-                          <GoalkeeperStatsSection teamName={homeTeam?.name || 'Local'} goalkeeperStats={goalkeeperStats.home} attendance={localSummary.attendance.home} />
-                          <GoalkeeperStatsSection teamName={awayTeam?.name || 'Visitante'} goalkeeperStats={goalkeeperStats.away} attendance={localSummary.attendance.away} />
+                          <GoalkeeperStatsSection teamName={homeTeamDisplayName || 'Local'} goalkeeperStats={goalkeeperStats.home} attendance={localSummary.attendance.home} />
+                          <GoalkeeperStatsSection teamName={awayTeamDisplayName || 'Visitante'} goalkeeperStats={goalkeeperStats.away} attendance={localSummary.attendance.away} />
                         </div>
                       </>
                     )}
@@ -549,8 +551,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                         <>
                           <Separator />
                           <div className="grid grid-cols-2 gap-6">
-                              <ShootoutSection teamName={homeTeam?.name || ''} attempts={localSummary.shootout.homeAttempts} players={homePlayers} />
-                              <ShootoutSection teamName={awayTeam?.name || ''} attempts={localSummary.shootout.awayAttempts} players={awayPlayers} />
+                              <ShootoutSection teamName={homeTeamDisplayName || ''} attempts={localSummary.shootout.homeAttempts} players={homePlayers} />
+                              <ShootoutSection teamName={awayTeamDisplayName || ''} attempts={localSummary.shootout.awayAttempts} players={awayPlayers} />
                           </div>
                         </>
                     )}
@@ -560,13 +562,13 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                  <div className="md:hidden">
                    <Tabs defaultValue="home" className="w-full">
                      <TabsList className="grid w-full grid-cols-2">
-                       <TabsTrigger value="home">{homeTeam?.name || 'Local'}</TabsTrigger>
-                       <TabsTrigger value="away">{awayTeam?.name || 'Visitante'}</TabsTrigger>
+                       <TabsTrigger value="home">{homeTeamDisplayName || 'Local'}</TabsTrigger>
+                       <TabsTrigger value="away">{awayTeamDisplayName || 'Visitante'}</TabsTrigger>
                      </TabsList>
                      <TabsContent value="home" className="space-y-6 mt-4">
-                       <GoalsSection teamName={homeTeam?.name || ''} goals={aggregatedGoals.home} editable={false} players={homePlayers} />
+                       <GoalsSection teamName={homeTeamDisplayName || ''} goals={aggregatedGoals.home} editable={false} players={homePlayers} />
                        <Separator />
-                       <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={aggregatedPenalties.home} players={homePlayers} />
+                       <PenaltiesSection team="home" teamName={homeTeamDisplayName || ''} penalties={aggregatedPenalties.home} players={homePlayers} />
                        {localSummary.expulsions?.filter(e => e.team === 'home').map(e => (
                          <div key={e.id} className="flex items-center gap-2 text-sm bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
                            <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
@@ -580,7 +582,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                            <Separator />
                            <PlayerStatsSection
                              team="home"
-                             teamName={homeTeam?.name || ''}
+                             teamName={homeTeamDisplayName || ''}
                              allPlayers={homePlayers}
                              playerStats={aggregatedStats.home}
                              attendance={localSummary.attendance.home}
@@ -593,20 +595,20 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                              onSave={handleSaveAttendance}
                            />
                            <Separator />
-                           <GoalkeeperStatsSection teamName={homeTeam?.name || 'Local'} goalkeeperStats={goalkeeperStats.home} attendance={localSummary.attendance.home} />
+                           <GoalkeeperStatsSection teamName={homeTeamDisplayName || 'Local'} goalkeeperStats={goalkeeperStats.home} attendance={localSummary.attendance.home} />
                          </>
                        )}
                        {localSummary.shootout && localSummary.shootout.homeAttempts.length > 0 && (
                          <>
                            <Separator />
-                           <ShootoutSection teamName={homeTeam?.name || ''} attempts={localSummary.shootout.homeAttempts} players={homePlayers} />
+                           <ShootoutSection teamName={homeTeamDisplayName || ''} attempts={localSummary.shootout.homeAttempts} players={homePlayers} />
                          </>
                        )}
                      </TabsContent>
                      <TabsContent value="away" className="space-y-6 mt-4">
-                       <GoalsSection teamName={awayTeam?.name || ''} goals={aggregatedGoals.away} editable={false} players={awayPlayers} />
+                       <GoalsSection teamName={awayTeamDisplayName || ''} goals={aggregatedGoals.away} editable={false} players={awayPlayers} />
                        <Separator />
-                       <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={aggregatedPenalties.away} players={awayPlayers} />
+                       <PenaltiesSection team="away" teamName={awayTeamDisplayName || ''} penalties={aggregatedPenalties.away} players={awayPlayers} />
                        {localSummary.expulsions?.filter(e => e.team === 'away').map(e => (
                          <div key={e.id} className="flex items-center gap-2 text-sm bg-destructive/10 border border-destructive/30 rounded-md px-3 py-2">
                            <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
@@ -620,7 +622,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                            <Separator />
                            <PlayerStatsSection
                              team="away"
-                             teamName={awayTeam?.name || ''}
+                             teamName={awayTeamDisplayName || ''}
                              allPlayers={awayPlayers}
                              playerStats={aggregatedStats.away}
                              attendance={localSummary.attendance.away}
@@ -633,13 +635,13 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                              onSave={handleSaveAttendance}
                            />
                            <Separator />
-                           <GoalkeeperStatsSection teamName={awayTeam?.name || 'Visitante'} goalkeeperStats={goalkeeperStats.away} attendance={localSummary.attendance.away} />
+                           <GoalkeeperStatsSection teamName={awayTeamDisplayName || 'Visitante'} goalkeeperStats={goalkeeperStats.away} attendance={localSummary.attendance.away} />
                          </>
                        )}
                        {localSummary.shootout && localSummary.shootout.awayAttempts.length > 0 && (
                          <>
                            <Separator />
-                           <ShootoutSection teamName={awayTeam?.name || ''} attempts={localSummary.shootout.awayAttempts} players={awayPlayers} />
+                           <ShootoutSection teamName={awayTeamDisplayName || ''} attempts={localSummary.shootout.awayAttempts} players={awayPlayers} />
                          </>
                        )}
                      </TabsContent>
@@ -658,8 +660,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       <div key={`goals-${periodText}`} className="space-y-4">
                         <h3 className="text-xl font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
                         <div className="grid grid-cols-2 gap-6">
-                          <GoalsSection teamName={homeTeam?.name || ''} goals={periodData?.stats.goals.home} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homePlayers} />
-                          <GoalsSection teamName={awayTeam?.name || ''} goals={periodData?.stats.goals.away} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayPlayers} />
+                          <GoalsSection teamName={homeTeamDisplayName || ''} goals={periodData?.stats.goals.home} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homePlayers} />
+                          <GoalsSection teamName={awayTeamDisplayName || ''} goals={periodData?.stats.goals.away} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayPlayers} />
                         </div>
                       </div>
                     );
@@ -669,8 +671,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
               <div className="md:hidden">
                 <Tabs defaultValue="home" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="home">{homeTeam?.name || 'Local'}</TabsTrigger>
-                    <TabsTrigger value="away">{awayTeam?.name || 'Visitante'}</TabsTrigger>
+                    <TabsTrigger value="home">{homeTeamDisplayName || 'Local'}</TabsTrigger>
+                    <TabsTrigger value="away">{awayTeamDisplayName || 'Visitante'}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="home" className="space-y-8 mt-4">
                     {(playedPeriods || []).map(periodText => {
@@ -678,7 +680,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       return (
                         <div key={`goals-home-${periodText}`}>
                           <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                          <GoalsSection teamName={homeTeam?.name || ''} goals={periodData?.stats.goals.home} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homePlayers} />
+                          <GoalsSection teamName={homeTeamDisplayName || ''} goals={periodData?.stats.goals.home} onGoalChange={(action, goal, id) => handleGoalChange(action, 'home', periodText, goal, id)} editable={!isReadOnly} players={homePlayers} />
                         </div>
                       );
                     })}
@@ -689,7 +691,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       return (
                         <div key={`goals-away-${periodText}`}>
                           <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                          <GoalsSection teamName={awayTeam?.name || ''} goals={periodData?.stats.goals.away} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayPlayers} />
+                          <GoalsSection teamName={awayTeamDisplayName || ''} goals={periodData?.stats.goals.away} onGoalChange={(action, goal, id) => handleGoalChange(action, 'away', periodText, goal, id)} editable={!isReadOnly} players={awayPlayers} />
                         </div>
                       );
                     })}
@@ -709,8 +711,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                       <div key={`penalties-${periodText}`} className="space-y-4">
                         <h3 className="text-xl font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
                         <div className="grid grid-cols-2 gap-6">
-                           <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={periodData?.stats.penalties.home} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('home', {id} as SummaryPenaltyEntry, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} players={homePlayers} />
-                           <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={periodData?.stats.penalties.away} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('away', {id} as SummaryPenaltyEntry, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} players={awayPlayers} />
+                           <PenaltiesSection team="home" teamName={homeTeamDisplayName || ''} penalties={periodData?.stats.penalties.home} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('home', {id} as SummaryPenaltyEntry, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} players={homePlayers} />
+                           <PenaltiesSection team="away" teamName={awayTeamDisplayName || ''} penalties={periodData?.stats.penalties.away} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('away', {id} as SummaryPenaltyEntry, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} players={awayPlayers} />
                         </div>
                       </div>
                     );
@@ -720,8 +722,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                  <div className="md:hidden">
                    <Tabs defaultValue="home" className="w-full">
                      <TabsList className="grid w-full grid-cols-2">
-                       <TabsTrigger value="home">{homeTeam?.name || 'Local'}</TabsTrigger>
-                       <TabsTrigger value="away">{awayTeam?.name || 'Visitante'}</TabsTrigger>
+                       <TabsTrigger value="home">{homeTeamDisplayName || 'Local'}</TabsTrigger>
+                       <TabsTrigger value="away">{awayTeamDisplayName || 'Visitante'}</TabsTrigger>
                      </TabsList>
                      <TabsContent value="home" className="space-y-8 mt-4">
                        {(playedPeriods || []).map(periodText => {
@@ -729,7 +731,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                          return (
                            <div key={`penalties-home-${periodText}`}>
                              <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                             <PenaltiesSection team="home" teamName={homeTeam?.name || ''} penalties={periodData?.stats.penalties.home} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('home', {id} as SummaryPenaltyEntry, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} players={homePlayers} />
+                             <PenaltiesSection team="home" teamName={homeTeamDisplayName || ''} penalties={periodData?.stats.penalties.home} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('home', {id} as SummaryPenaltyEntry, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('home', periodText)} players={homePlayers} />
                            </div>
                          );
                        })}
@@ -740,7 +742,7 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                          return (
                            <div key={`penalties-away-${periodText}`}>
                              <h3 className="text-lg font-semibold text-center text-primary-foreground border-b pb-2 mb-4">{periodText}</h3>
-                             <PenaltiesSection team="away" teamName={awayTeam?.name || ''} penalties={periodData?.stats.penalties.away} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('away', {id} as SummaryPenaltyEntry, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} players={awayPlayers} />
+                             <PenaltiesSection team="away" teamName={awayTeamDisplayName || ''} penalties={periodData?.stats.penalties.away} onDelete={isReadOnly ? undefined : (id) => handleDeletePenalty('away', {id} as SummaryPenaltyEntry, periodText)} onAdd={isReadOnly ? undefined : () => handleAddPenaltyClick('away', periodText)} players={awayPlayers} />
                            </div>
                          );
                        })}
@@ -818,8 +820,8 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                                   <span className="font-bold text-sm">{periodText}</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="flex-1"><PlayerStatsSection className={periodCardAccent} team="home" teamName={homeTeam?.name || ''} allPlayers={homePlayers} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} /></div>
-                                  <div className="flex-1"><PlayerStatsSection className={periodCardAccent} team="away" teamName={awayTeam?.name || ''} allPlayers={awayPlayers} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} /></div>
+                                  <div className="flex-1"><PlayerStatsSection className={periodCardAccent} team="home" teamName={homeTeamDisplayName || ''} allPlayers={homePlayers} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} /></div>
+                                  <div className="flex-1"><PlayerStatsSection className={periodCardAccent} team="away" teamName={awayTeamDisplayName || ''} allPlayers={awayPlayers} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} /></div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                   <GoalkeeperStatsSection className={periodCardAccent} goalkeeperStats={periodGKStats.home} attendance={localSummary.attendance.home} showOnlyPresent={true} />
@@ -829,10 +831,10 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
                               {/* Mobile: stacked with period title */}
                               <div className="md:hidden space-y-3">
                                 <h3 className={cn("text-lg font-bold text-center py-1 rounded-lg", periodBg)}>{periodText}</h3>
-                                <PlayerStatsSection className={periodCardAccent} team="home" teamName={homeTeam?.name || ''} allPlayers={homePlayers} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
+                                <PlayerStatsSection className={periodCardAccent} team="home" teamName={homeTeamDisplayName || ''} allPlayers={homePlayers} playerStats={periodData?.stats.playerStats.home} attendance={localSummary.attendance.home} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
                                 <GoalkeeperStatsSection className={periodCardAccent} goalkeeperStats={periodGKStats.home} attendance={localSummary.attendance.home} showOnlyPresent={true} />
                                 <Separator />
-                                <PlayerStatsSection className={periodCardAccent} team="away" teamName={awayTeam?.name || ''} allPlayers={awayPlayers} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
+                                <PlayerStatsSection className={periodCardAccent} team="away" teamName={awayTeamDisplayName || ''} allPlayers={awayPlayers} playerStats={periodData?.stats.playerStats.away} attendance={localSummary.attendance.away} editable={isEditing && !isReadOnly} editedStats={editedShots[periodText]} onStatChange={(playerId, field, value) => handleShotInputChange(periodText, playerId, value)} />
                                 <GoalkeeperStatsSection className={periodCardAccent} goalkeeperStats={periodGKStats.away} attendance={localSummary.attendance.away} showOnlyPresent={true} />
                               </div>
                             </div>
@@ -892,11 +894,11 @@ export function FixtureMatchSummaryDialog({ isOpen, onOpenChange, match, tournam
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Añadir Penalidad Manual</DialogTitle>
-              <DialogDescription>Añadiendo una penalidad para {addPenaltyContext.team === 'home' ? homeTeam?.name : awayTeam?.name} en el período {addPenaltyContext.period}.</DialogDescription>
+              <DialogDescription>Añadiendo una penalidad para {addPenaltyContext.team === 'home' ? homeTeamDisplayName : awayTeamDisplayName} en el período {addPenaltyContext.period}.</DialogDescription>
             </DialogHeader>
             <AddPenaltyForm
-              homeTeamName={homeTeam?.name || 'Local'}
-              awayTeamName={awayTeam?.name || 'Visitante'}
+              homeTeamName={homeTeamDisplayName || 'Local'}
+              awayTeamName={awayTeamDisplayName || 'Visitante'}
               penaltyTypes={state.config.penaltyTypes || []}
               defaultPenaltyTypeId={state.config.defaultPenaltyTypeId || null}
               onPenaltySent={handleAddPenaltySubmit}

@@ -7,7 +7,7 @@ import { createAdminStorageProvider } from '@/lib/storage';
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
     try {
-        const tournamentDetails = await readTournament(tournamentId);
+        const tournamentDetails = await readTournament(tournamentId, { includeSummaries: false });
 
         if (!tournamentDetails) {
             // If tournament directory doesn't exist, we find its metadata and return a valid empty structure.
@@ -27,8 +27,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const fullTournament = {
             ...tournamentMeta,
             ...tournamentDetails,
+            id: tournamentId, // Always use the URL param — prevents id: undefined if meta is missing
         };
-        
+
         return NextResponse.json({ tournament: fullTournament });
     } catch (error) {
         if (error instanceof Error) {

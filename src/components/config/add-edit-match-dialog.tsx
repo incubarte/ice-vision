@@ -15,7 +15,7 @@ import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { format, setHours, setMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, getTeamDisplayName } from '@/lib/utils';
 
 interface AddEditMatchDialogProps {
     isOpen: boolean;
@@ -130,7 +130,7 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                             </SelectTrigger>
                             <SelectContent>
                                 {teamsInCategory.map(team => (
-                                    <SelectItem key={team.id} value={team.id} disabled={team.id === awayTeamId}>{team.name}</SelectItem>
+                                    <SelectItem key={team.id} value={team.id} disabled={team.id === awayTeamId}>{getTeamDisplayName(team.name, team.subName)}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -143,7 +143,7 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                             </SelectTrigger>
                             <SelectContent>
                                 {teamsInCategory.map(team => (
-                                    <SelectItem key={team.id} value={team.id} disabled={team.id === homeTeamId}>{team.name}</SelectItem>
+                                    <SelectItem key={team.id} value={team.id} disabled={team.id === homeTeamId}>{getTeamDisplayName(team.name, team.subName)}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

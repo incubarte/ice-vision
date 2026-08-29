@@ -73,10 +73,17 @@ export interface MatchData {
 }
 
 
+export interface ClubData {
+  id: string;
+  name: string;
+  logoDataUrl?: string | null;
+}
+
 export interface TeamData {
   id: string;
   name: string;
   subName?: string;
+  clubId?: string;
   logoDataUrl?: string | null;
   players: PlayerData[];
   category: string;
@@ -133,10 +140,12 @@ export interface AssignedStaffInfo {
 export interface TournamentMetadata {
   id: string;
   name: string;
+  code?: string; // Short code without spaces, used in pre-match URLs (e.g. "clausura2026")
   status: 'active' | 'inactive' | 'finished';
 }
 
 export interface Tournament extends TournamentMetadata {
+  clubs?: ClubData[];
   teams: TeamData[];
   categories: CategoryData[];
   matches: MatchData[];
@@ -268,6 +277,32 @@ export interface ShotLog {
   gameTime: number;
   periodText: string;
   playerNumber: string;
+}
+
+// --- Pre-match roster confirmation (submitted by team delegate before match) ---
+
+export interface PreMatchPlayerEntry {
+  playerId: string;       // references PlayerData.id from roster
+  name: string;           // read-only copy from roster
+  number: string;         // may differ from roster if delegate changed it
+  type: PlayerType;
+  isPresent: boolean;
+}
+
+export interface PreMatchExtraPlayer {
+  name: string;           // free-text, not in original roster
+  number: string;
+  type: PlayerType;
+}
+
+export interface PreMatchData {
+  tournamentId: string;
+  matchId: string;
+  teamId: string;
+  submittedAt: string;    // ISO timestamp
+  version?: number;       // Incremented on each save
+  players: PreMatchPlayerEntry[];
+  extraPlayers: PreMatchExtraPlayer[];
 }
 
 // Live attendance: only present players stored. id/isPresent kept optional for backward compat with old data.
@@ -842,8 +877,8 @@ export type GameAction =
   | { type: 'ADD_CATEGORIES_TO_TOURNAMENT'; payload: { tournamentId: string, categories: CategoryData[] } }
   | { type: 'SET_SELECTED_MATCH_CATEGORY'; payload: string }
   | { type: 'UPDATE_TUNNEL_STATE'; payload: Partial<TunnelState> }
-  | { type: 'ADD_TOURNAMENT'; payload: { name: string; status: Tournament['status'] } }
-  | { type: 'UPDATE_TOURNAMENT'; payload: { id: string; name: string; status: Tournament['status'] } }
+  | { type: 'ADD_TOURNAMENT'; payload: { name: string; code?: string; status: Tournament['status'] } }
+  | { type: 'UPDATE_TOURNAMENT'; payload: { id: string; name: string; code?: string; status: Tournament['status'] } }
   | { type: 'DELETE_TOURNAMENT'; payload: { id: string } }
   | { type: 'SET_ACTIVE_TOURNAMENT'; payload: { tournamentId: string | null } }
   | { type: 'ADD_MATCH_TO_TOURNAMENT'; payload: { tournamentId: string; match: Omit<MatchData, 'id'> & { id: string } } }
@@ -859,7 +894,10 @@ export type GameAction =
   | { type: 'RESET_GAME_STATE' }
   | { type: 'ADD_TEAM_TO_TOURNAMENT'; payload: { tournamentId: string, team: Omit<TeamData, 'id'> & { id?: string } } }
   | { type: 'DELETE_TEAMS_FROM_TOURNAMENT'; payload: { tournamentId: string, teamIds: string[] } }
-  | { type: 'UPDATE_TEAM_DETAILS'; payload: { teamId: string; name: string; subName?: string; category: string; logoDataUrl?: string | null } }
+  | { type: 'UPDATE_TEAM_DETAILS'; payload: { teamId: string; name: string; subName?: string; clubId?: string; category: string; logoDataUrl?: string | null } }
+  | { type: 'ADD_CLUB_TO_TOURNAMENT'; payload: { tournamentId: string; club: Omit<ClubData, 'id'> } }
+  | { type: 'UPDATE_CLUB_IN_TOURNAMENT'; payload: { tournamentId: string; clubId: string; name: string; logoDataUrl?: string | null } }
+  | { type: 'DELETE_CLUB_FROM_TOURNAMENT'; payload: { tournamentId: string; clubId: string } }
   | { type: 'ADD_PLAYER_TO_TEAM'; payload: { teamId: string; player: Omit<PlayerData, 'id'> & { id?: string } } }
   | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName' | 'celebrationVideoFileName' | 'celebrationMediaType'>> } } // celebrationMediaType: 'photo'|'video'|'none'
   | { type: 'REMOVE_PLAYER_FROM_TEAM'; payload: { teamId: string; playerId: string } }

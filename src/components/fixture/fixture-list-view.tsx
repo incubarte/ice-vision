@@ -6,7 +6,8 @@ import { useGameState, getCategoryNameById } from '@/contexts/game-state-context
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Edit, Trash2, FileText, Search, ListFilter, Calendar as CalendarIcon, X, Check as CheckIcon, Play, Eraser, Share2 } from 'lucide-react';
+import Link from 'next/link';
+import { Edit, Trash2, FileText, Search, ListFilter, Calendar as CalendarIcon, X, Check as CheckIcon, Play, Eraser, Share2, ClipboardList } from 'lucide-react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddEditMatchDialog } from './add-edit-match-dialog';
@@ -18,7 +19,7 @@ import { FixtureMatchSummaryDialog } from './fixture-match-summary-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Checkbox } from '../ui/checkbox';
-import { cn } from '@/lib/utils';
+import { cn, getTeamDisplayName } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 import { deleteMatchWithSummary, cleanMatchSummary } from '@/lib/summary-management';
@@ -38,7 +39,8 @@ function getTeamOrPositionName(teamId: string | undefined, teams: TeamData[] | u
     };
     return positionMap[teamId] || '?';
   }
-  return teams?.find(t => t.id === teamId)?.name || '?';
+  const team = teams?.find(t => t.id === teamId);
+  return team ? getTeamDisplayName(team.name, team.subName) : '?';
 }
 
 // Helper para obtener el matchup readable
@@ -140,6 +142,7 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
   const searchParams = useSearchParams();
   const router = useRouter();
   const { selectedTournamentId, tournaments, activeTournament } = state.config;
+  const tournamentCode = activeTournament?.code ?? null;
 
   const { isReadOnly, adminSecret } = useAdminMode();
 
@@ -556,6 +559,13 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
                     <TableCell className="text-center">{wentToOTOrSO && <CheckIcon className="h-4 w-4 mx-auto text-green-500"/>}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
+                        {tournamentCode && match.homeTeamId && !match.homeTeamId.startsWith('position-') && (
+                          <Link href={`/pre-match/match/${tournamentCode}/${match.id}`} target="_blank">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600" title="Pre-partido">
+                              <ClipboardList className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )}
                         {match.summary && (
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMatchToShowSummary(match)} title="Ver resumen">
                                 <FileText className="h-4 w-4 text-blue-400" />

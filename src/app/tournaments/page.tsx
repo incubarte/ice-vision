@@ -62,6 +62,7 @@ function CreateEditTournamentDialog({
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [status, setStatus] = useState<Tournament['status']>("inactive");
   const [categories, setCategories] = useState<Array<{ id?: string; name: string; classificationRounds: number }>>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -74,6 +75,7 @@ function CreateEditTournamentDialog({
     if (isOpen) {
       if (isEditing && tournamentToEdit) {
         setName(tournamentToEdit.name);
+        setCode(tournamentToEdit.code ?? "");
         setStatus(tournamentToEdit.status);
         setCategories((tournamentToEdit.categories || []).map(c => ({
           id: c.id, // Preserve existing ID
@@ -94,6 +96,7 @@ function CreateEditTournamentDialog({
           .catch(console.error);
       } else {
         setName("");
+        setCode("");
         setStatus("inactive");
         setCategories([]);
         setLogoFile(null);
@@ -161,6 +164,35 @@ function CreateEditTournamentDialog({
       return;
     }
 
+    const trimmedCode = code.trim();
+    if (!trimmedCode) {
+      toast({
+        title: "Código Requerido",
+        description: "El código corto del torneo es obligatorio (ej: clausura2026).",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (/\s/.test(trimmedCode)) {
+      toast({
+        title: "Código Inválido",
+        description: "El código no puede contener espacios.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const isCodeDuplicate = (state.config.tournaments || []).some(
+      (t) => t.id !== tournamentToEdit?.id && t.code?.toLowerCase() === trimmedCode.toLowerCase()
+    );
+    if (isCodeDuplicate) {
+      toast({
+        title: "Código Duplicado",
+        description: `Ya existe un torneo con el código "${trimmedCode}".`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const isDuplicate = (state.config.tournaments || []).some(
       (t) => t.id !== tournamentToEdit?.id && t.name.toLowerCase() === trimmedName.toLowerCase()
     );
@@ -211,7 +243,7 @@ function CreateEditTournamentDialog({
       tournamentId = tournamentToEdit.id;
       dispatch({
         type: "UPDATE_TOURNAMENT",
-        payload: { id: tournamentId, name: trimmedName, status },
+        payload: { id: tournamentId, name: trimmedName, code: trimmedCode, status },
       });
 
       // Update categories separately
@@ -222,7 +254,7 @@ function CreateEditTournamentDialog({
 
       toast({ title: "Torneo Actualizado", description: `"${trimmedName}" ha sido actualizado.` });
     } else {
-      const newTournament = { name: trimmedName, status: status || 'inactive' };
+      const newTournament = { name: trimmedName, code: trimmedCode, status: status || 'inactive' };
       dispatch({ type: "ADD_TOURNAMENT", payload: newTournament });
       // Get the tournament ID from the state after it's added
       const tournaments = state.config.tournaments || [];
@@ -283,6 +315,21 @@ function CreateEditTournamentDialog({
               Nombre
             </Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label htmlFor="code" className="text-right pt-2">
+              Código
+            </Label>
+            <div className="col-span-3 space-y-1">
+              <Input
+                id="code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))}
+                placeholder="ej: clausura2026"
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground">Sin espacios. Se usa en el link de pre-partido: /pre-match/{code || 'codigo'}/NombreClub</p>
+            </div>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="status" className="text-right">
@@ -461,9 +508,29 @@ export default function TournamentsPage() {
   }, [state.config.tournaments, isReadOnly]);
 
 
-  const handleEdit = (tournament: TournamentMetadata) => {
-    setTournamentToEdit(tournament);
-    setIsCreateEditDialogOpen(true);
+  const handleEdit = async (tournament: TournamentMetadata) => {
+    // If it's the active tournament, use the full hydrated data (includes categories)
+    if (state.config.activeTournament?.id === tournament.id) {
+      setTournamentToEdit(state.config.activeTournament);
+      setIsCreateEditDialogOpen(true);
+      return;
+    }
+    // For non-active tournaments, fetch full data from the API
+    setIsLoadingTournament(tournament.id);
+    try {
+      const res = await fetch(`/api/tournaments/${tournament.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTournamentToEdit(data.tournament ?? tournament);
+      } else {
+        setTournamentToEdit(tournament);
+      }
+    } catch {
+      setTournamentToEdit(tournament);
+    } finally {
+      setIsLoadingTournament(null);
+      setIsCreateEditDialogOpen(true);
+    }
   };
 
   const handleDelete = (tournament: TournamentMetadata) => {

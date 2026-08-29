@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { type MatchData, type TeamData, type Tournament, isTournamentHydrated } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn, getTeamDisplayName } from '@/lib/utils';
 import { FixtureMatchSummaryDialog } from './fixture-match-summary-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
@@ -38,7 +38,8 @@ function getTeamOrPositionName(teamId: string | undefined, teams: TeamData[] | u
     };
     return positionMap[teamId] || '?';
   }
-  return teams?.find(t => t.id === teamId)?.name || '?';
+  const team = teams?.find(t => t.id === teamId);
+  return team ? getTeamDisplayName(team.name, team.subName) : '?';
 }
 
 // Helper para obtener el matchup readable

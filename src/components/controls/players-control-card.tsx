@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
-import type { Team, PlayerData } from '@/types';
+import type { Team, PlayerData, PreMatchData, PreMatchExtraPlayer } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, User, Plus, ChevronUp, ShieldAlert } from 'lucide-react';
+import { Shield, User, Plus, ChevronUp, ShieldAlert, ClipboardCheck, Info, X, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { isSanctionActive } from '@/lib/discipline-helpers';
+
+const PRE_MATCH_PASSWORD = 'IceVision';
 
 interface PlayersControlCardProps {
   team: Team;
@@ -60,6 +62,101 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
         .map(s => s.playerId)
     );
   }, [state.config.activeTournament, state.live.matchId, teamData]);
+
+  // Pre-match data integration
+  const tournamentId = matchContext?.tournamentId;
+  const matchId = state.live.matchId ?? undefined;
+  const teamId = teamData?.id;
+
+  const [preMatchData, setPreMatchData] = useState<PreMatchData | null>(null);
+  const [preMatchChecked, setPreMatchChecked] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [pendingExtras, setPendingExtras] = useState<PreMatchExtraPlayer[]>([]);
+  const [extrasApplied, setExtrasApplied] = useState(false);
+
+  const fetchPreMatchData = useCallback(async (showToast = false) => {
+    if (!tournamentId || !matchId || !teamId) return;
+    setIsDownloading(true);
+    try {
+      const res = await fetch(`/api/pre-match/${tournamentId}/${teamId}/${matchId}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.exists) {
+          setPreMatchData(json.data);
+          if (showToast) toast({ title: 'Pre-partido descargado', description: `v${json.data.version ?? 1} — ${json.data.players.filter((p: { isPresent: boolean }) => p.isPresent).length} confirmados` });
+        } else {
+          setPreMatchData(null);
+          if (showToast) toast({ title: 'Sin datos de pre-partido', description: 'No hay planilla cargada en la nube.' });
+        }
+      }
+    } catch {
+      if (showToast) toast({ title: 'Error al descargar', description: 'No se pudo conectar.', variant: 'destructive' });
+    } finally {
+      setPreMatchChecked(true);
+      setIsDownloading(false);
+    }
+  }, [tournamentId, matchId, teamId, toast]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchPreMatchData();
+  }, [fetchPreMatchData]);
+
+  // Auto-fetch when warmup starts
+  const periodOverride = state.live.clock.periodDisplayOverride;
+  const prevPeriodRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (prevPeriodRef.current !== undefined && prevPeriodRef.current !== 'Warm-up' && periodOverride === 'Warm-up') {
+      fetchPreMatchData();
+    }
+    prevPeriodRef.current = periodOverride;
+  }, [periodOverride, fetchPreMatchData]);
+
+  const handleApplyPreMatchData = async () => {
+    if (!preMatchData || !teamData) return;
+
+    // 1. Apply attendance
+    const presentNumbers = preMatchData.players
+      .filter(p => p.isPresent)
+      .map(p => p.number)
+      .filter(Boolean);
+    dispatch({ type: 'SET_TEAM_ATTENDANCE', payload: { team, playerNumbers: presentNumbers } });
+
+    // 2. Apply number corrections (only for players whose number changed)
+    for (const entry of preMatchData.players) {
+      const rosterPlayer = teamData.players.find(p => p.id === entry.playerId);
+      if (rosterPlayer && entry.number && entry.number !== rosterPlayer.number) {
+        dispatch({
+          type: 'UPDATE_ATTENDANCE_PLAYER',
+          payload: { team, playerName: rosterPlayer.name, updates: { number: entry.number } },
+        });
+      }
+    }
+
+    // 3. Store extra players for display (operator adds them manually)
+    if (preMatchData.extraPlayers.length > 0) {
+      setPendingExtras(preMatchData.extraPlayers);
+      setExtrasApplied(true);
+    }
+
+    // 4. Delete the temp file
+    try {
+      await fetch(`/api/pre-match/${tournamentId}/${teamId}/${matchId}`, {
+        method: 'DELETE',
+        headers: { 'x-pre-match-password': PRE_MATCH_PASSWORD },
+      });
+    } catch {
+      // Non-critical
+    }
+
+    setPreMatchData(null);
+    toast({
+      title: 'Pre-partido aplicado',
+      description: preMatchData.extraPlayers.length > 0
+        ? `${preMatchData.extraPlayers.length} jugador(es) adicional(es) no se agregaron automáticamente — revisá el aviso.`
+        : 'Asistencia y números aplicados correctamente.',
+    });
+  };
 
   // Local editable numbers (keyed by player name since names are unique)
   const [editingNumbers, setEditingNumbers] = useState<Record<string, string>>({});
@@ -318,6 +415,76 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Pre-match data banner — always visible once IDs are available */}
+        {(tournamentId && matchId && teamId) && (
+          <div className={`mb-3 flex items-start gap-2 rounded-md border p-3 ${preMatchData ? 'border-blue-500/30 bg-blue-500/5' : 'border-border bg-muted/30'}`}>
+            <ClipboardCheck className={`h-4 w-4 mt-0.5 shrink-0 ${preMatchData ? 'text-blue-500' : 'text-muted-foreground'}`} />
+            <div className="flex-1 min-w-0">
+              {preMatchData ? (
+                <>
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                    Datos de pre-partido disponibles
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {preMatchData.players.filter(p => p.isPresent).length} confirmados
+                    {preMatchData.extraPlayers.length > 0 && ` · ${preMatchData.extraPlayers.length} adicional(es)`}
+                    {` · v${preMatchData.version ?? 1}`}
+                    {preMatchData.submittedAt && ` · ${new Date(preMatchData.submittedAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {preMatchChecked ? 'Sin planilla pre-partido' : 'Buscando planilla...'}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-1.5 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs px-2"
+                onClick={() => fetchPreMatchData(true)}
+                disabled={isDownloading}
+                title="Descargar desde la nube"
+              >
+                {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              </Button>
+              {preMatchData && (
+                <Button size="sm" className="h-7 text-xs" onClick={handleApplyPreMatchData}>
+                  Precargar
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Extra players advisory banner (shown after apply) */}
+        {extrasApplied && pendingExtras.length > 0 && (
+          <div className="mb-3 flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+            <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                Jugadores adicionales reportados
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {pendingExtras.map((e, i) => (
+                  <li key={i} className="text-xs text-muted-foreground">
+                    {e.type === 'goalkeeper' ? '🥅' : '👤'} {e.name} — #{e.number}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground mt-1">Agregálos manualmente si van a jugar.</p>
+            </div>
+            <button
+              onClick={() => setExtrasApplied(false)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Cerrar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         <div ref={scrollContainerRef} className="space-y-2 max-h-[600px] overflow-y-auto">
           {sortedPlayers.map(player => {
             const isAttended = player.isAttended;

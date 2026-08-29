@@ -64,7 +64,7 @@ export function CreateEditTeamDialog({
 }: CreateEditTeamDialogProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
-  const [teamName, setTeamName] = useState("");
+  const [selectedClubId, setSelectedClubId] = useState("");
   const [teamSubName, setTeamSubName] = useState("");
   const [teamCategory, setTeamCategory] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -74,14 +74,17 @@ export function CreateEditTeamDialog({
   const activeTournamentId = tournamentId || globalSelectedTournamentId;
   const selectedTournament = activeTournament;
   const availableCategories = selectedTournament?.categories || [];
+  const availableClubs = selectedTournament?.clubs || [];
   const teams = selectedTournament?.teams || [];
+
+  const selectedClub = availableClubs.find(c => c.id === selectedClubId) ?? null;
 
   const isEditing = !!teamToEdit;
 
   useEffect(() => {
     if (isOpen) {
       if (isEditing && teamToEdit) {
-        setTeamName(teamToEdit.name);
+        setSelectedClubId(teamToEdit.clubId || "");
         setTeamSubName(teamToEdit.subName || "");
         setTeamCategory(teamToEdit.category || (availableCategories.length > 0 ? availableCategories[0].id : ""));
         if (teamToEdit.logoDataUrl && teamToEdit.logoDataUrl.startsWith('data:image')) {
@@ -90,7 +93,7 @@ export function CreateEditTeamDialog({
             setLogoPreview(null);
         }
       } else {
-        setTeamName("");
+        setSelectedClubId(availableClubs.length > 0 ? availableClubs[0].id : "");
         setTeamSubName("");
         setTeamCategory(availableCategories.length > 0 ? availableCategories[0].id : "");
         setLogoPreview(null);
@@ -141,22 +144,24 @@ export function CreateEditTeamDialog({
   };
 
   const handleSubmit = () => {
-    const trimmedTeamName = teamName.trim();
     const trimmedTeamSubName = teamSubName.trim();
-    
+
     if (!activeTournamentId) {
       toast({ title: "Error", description: "No hay un torneo seleccionado.", variant: "destructive" });
       return;
     }
 
-    if (!trimmedTeamName) {
+    if (!selectedClubId || !selectedClub) {
       toast({
-        title: "Nombre Requerido",
-        description: "El nombre del equipo no puede estar vacío.",
+        title: "Club Requerido",
+        description: "Debés seleccionar un club para el equipo.",
         variant: "destructive",
       });
       return;
     }
+
+    const trimmedTeamName = selectedClub.name;
+
     if (!teamCategory && availableCategories.length > 0) {
       toast({
         title: "Categoría Requerida",
@@ -192,38 +197,28 @@ export function CreateEditTeamDialog({
       return;
     }
 
+    // Logo: prefer uploaded, then club's logo, then default by name
     let finalLogoDataUrl: string | null = null;
-
     if (logoPreview && logoPreview.startsWith('data:image')) {
       finalLogoDataUrl = logoPreview;
+    } else if (selectedClub?.logoDataUrl) {
+      finalLogoDataUrl = selectedClub.logoDataUrl;
     } else {
       finalLogoDataUrl = getSpecificDefaultLogoUrl(trimmedTeamName);
-      if (!finalLogoDataUrl && isEditing && teamToEdit?.logoDataUrl && !teamToEdit.logoDataUrl.startsWith('data:image') && logoPreview !== null ) {
-          finalLogoDataUrl = teamToEdit.logoDataUrl;
-      }
     }
 
-
     if (isEditing && teamToEdit) {
-      const teamPayload = {
-        name: trimmedTeamName,
-        subName: trimmedTeamSubName || undefined,
-        category: teamCategory,
-        logoDataUrl: finalLogoDataUrl,
-      };
       dispatch({
         type: "UPDATE_TEAM_DETAILS",
-        payload: { ...teamPayload, teamId: teamToEdit.id },
+        payload: { teamId: teamToEdit.id, name: trimmedTeamName, subName: trimmedTeamSubName || undefined, clubId: selectedClubId, category: teamCategory, logoDataUrl: finalLogoDataUrl },
       });
-      toast({
-        title: "Equipo Actualizado",
-        description: `El equipo "${teamPayload.name}" ha sido actualizado.`,
-      });
+      toast({ title: "Equipo Actualizado", description: `El equipo "${trimmedTeamName}" ha sido actualizado.` });
       onTeamSaved(teamToEdit.id);
     } else {
       const teamPayload: Omit<TeamData, 'id'> = {
         name: trimmedTeamName,
         subName: trimmedTeamSubName || undefined,
+        clubId: selectedClubId,
         category: teamCategory,
         logoDataUrl: finalLogoDataUrl,
         players: [],
@@ -232,23 +227,19 @@ export function CreateEditTeamDialog({
         type: "ADD_TEAM_TO_TOURNAMENT",
         payload: { tournamentId: activeTournamentId, team: teamPayload },
       });
-      toast({
-        title: "Equipo Creado",
-        description: `El equipo "${teamPayload.name}" ha sido creado en el torneo actual.`,
-      });
-      // onTeamSaved(''); 
+      toast({ title: "Equipo Creado", description: `El equipo "${trimmedTeamName}" ha sido creado.` });
     }
     onOpenChange(false);
   };
 
+  const clubName = selectedClub?.name ?? "";
   let currentDisplayLogoSrc: string | null = null;
   if (logoPreview && logoPreview.startsWith('data:image')) {
     currentDisplayLogoSrc = logoPreview;
+  } else if (selectedClub?.logoDataUrl) {
+    currentDisplayLogoSrc = selectedClub.logoDataUrl;
   } else {
-    currentDisplayLogoSrc = getSpecificDefaultLogoUrl(teamName.trim());
-    if (!currentDisplayLogoSrc && isEditing && teamToEdit?.logoDataUrl && !teamToEdit.logoDataUrl.startsWith('data:image') && logoPreview !== null) {
-         currentDisplayLogoSrc = teamToEdit.logoDataUrl;
-    }
+    currentDisplayLogoSrc = getSpecificDefaultLogoUrl(clubName);
   }
 
 
@@ -265,22 +256,25 @@ export function CreateEditTeamDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="teamName" className="text-right">
-              Nombre
+            <Label htmlFor="teamClub" className="text-right">
+              Club
             </Label>
-            <Input
-              id="teamName"
-              value={teamName}
-              onChange={(e) => {
-                const newName = e.target.value;
-                setTeamName(newName);
-                if (!(logoPreview && logoPreview.startsWith('data:image'))) {
-                    setLogoPreview(null);
-                }
-              }}
-              className="col-span-3"
-              placeholder="Nombre del Equipo"
-            />
+            {availableClubs.length > 0 ? (
+              <Select value={selectedClubId} onValueChange={setSelectedClubId}>
+                <SelectTrigger id="teamClub" className="col-span-3">
+                  <SelectValue placeholder="Seleccionar club" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableClubs.map(club => (
+                    <SelectItem key={club.id} value={club.id}>{club.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="col-span-3 text-sm text-muted-foreground">
+                No hay clubes en este torneo. Creá uno primero en la tab "Clubes".
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="teamSubName" className="text-right">
@@ -335,8 +329,8 @@ export function CreateEditTeamDialog({
                     onError={() => {
                     }}
                   />
-                ) : teamName.trim() ? (
-                  <DefaultTeamLogo teamName={teamName} size="lg" />
+                ) : clubName ? (
+                  <DefaultTeamLogo teamName={clubName} size="lg" />
                 ) : (
                   <div className="w-16 h-16 rounded-md border bg-muted flex items-center justify-center">
                     <ImageIcon className="w-8 h-8 text-muted-foreground" />

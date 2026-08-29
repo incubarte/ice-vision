@@ -16,6 +16,7 @@ import { PlayerStatsTab } from '@/components/tournaments/player-stats-tab';
 import { TodayMatchesSection } from '@/components/tournaments/today-matches-section';
 import { StaffManagementTab } from '@/components/tournaments/staff-management-tab';
 import { DisciplineTab } from '@/components/tournaments/discipline-tab';
+import { ClubsManagementTab } from '@/components/clubs/clubs-management-tab';
 import { useTournamentLogo } from '@/hooks/use-tournament-logo';
 import Image from 'next/image';
 
@@ -36,7 +37,7 @@ export default function TournamentDetailPage() {
       dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: tournamentId } });
     }
   }, [tournamentId, state.config.selectedTournamentId, dispatch]);
-  const initialTab = searchParams.get('tab') || (shouldShowTeams ? 'teamsAndCategories' : 'fixture');
+  const initialTab = searchParams.get('tab') || (shouldShowTeams ? 'clubs' : 'fixture');
   const initialFixtureView = searchParams.get('view') === 'list' ? 'list' : 'calendar';
 
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -50,9 +51,9 @@ export default function TournamentDetailPage() {
 
   useEffect(() => {
     const newTab = searchParams.get('tab');
-    const validTabs = ['teamsAndCategories', 'staff', 'fixture', 'standings', 'playerStats'];
+    const validTabs = ['clubs', 'teamsAndCategories', 'staff', 'fixture', 'standings', 'playerStats'];
     if (newTab && validTabs.includes(newTab)) {
-      if (!shouldShowTeams && (newTab === 'teamsAndCategories' || newTab === 'staff')) {
+      if (!shouldShowTeams && (newTab === 'clubs' || newTab === 'teamsAndCategories' || newTab === 'staff')) {
         setActiveTab('fixture');
       } else {
         setActiveTab(newTab);
@@ -118,6 +119,7 @@ export default function TournamentDetailPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full overflow-x-auto justify-start h-auto p-1 gap-1">
+          {shouldShowTeams && <TabsTrigger value="clubs" className="shrink-0 text-xs sm:text-sm">Clubes</TabsTrigger>}
           {shouldShowTeams && <TabsTrigger value="teamsAndCategories" className="shrink-0 text-xs sm:text-sm">Equipos</TabsTrigger>}
           {shouldShowTeams && <TabsTrigger value="staff" className="shrink-0 text-xs sm:text-sm">Staff</TabsTrigger>}
           <TabsTrigger value="fixture" className="shrink-0 text-xs sm:text-sm">Fixture</TabsTrigger>
@@ -128,6 +130,12 @@ export default function TournamentDetailPage() {
           {state.config.showShotsData && <TabsTrigger value="playerStats" className="shrink-0 text-xs sm:text-sm">Estadísticas</TabsTrigger>}
           <TabsTrigger value="discipline" className="shrink-0 text-xs sm:text-sm">Disciplina</TabsTrigger>
         </TabsList>
+
+        {shouldShowTeams && tournamentId && (
+          <TabsContent value="clubs" className="mt-6">
+            <ClubsManagementTab tournamentId={tournamentId} />
+          </TabsContent>
+        )}
 
         {shouldShowTeams && (
           <TabsContent value="teamsAndCategories" className="mt-6">

@@ -17,7 +17,7 @@ import { format, setHours, setMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useStandings } from '@/hooks/use-standings';
-import { cn, generateMatchId } from '@/lib/utils';
+import { cn, generateMatchId, getTeamDisplayName } from '@/lib/utils';
 
 interface AddEditMatchDialogProps {
     isOpen: boolean;
@@ -597,7 +597,7 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                                     <SelectItem value="none">Equipo no seleccionado</SelectItem>
                                 )}
                                 {teamsInCategory.map(team => (
-                                    <SelectItem key={team.id} value={team.id} disabled={team.id === awayTeamId}>{team.name}</SelectItem>
+                                    <SelectItem key={team.id} value={team.id} disabled={team.id === awayTeamId}>{getTeamDisplayName(team.name, team.subName)}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -615,7 +615,7 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
                                     <SelectItem value="none">Equipo no seleccionado</SelectItem>
                                 )}
                                 {teamsInCategory.map(team => (
-                                    <SelectItem key={team.id} value={team.id} disabled={team.id === homeTeamId}>{team.name}</SelectItem>
+                                    <SelectItem key={team.id} value={team.id} disabled={team.id === homeTeamId}>{getTeamDisplayName(team.name, team.subName)}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

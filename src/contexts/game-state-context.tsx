@@ -142,8 +142,9 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchInitialData]);
 
   // Effect to fetch full tournament data when selectedTournamentId changes
+  const isFetchingTournamentRef = useRef(false);
   useEffect(() => {
-    const { selectedTournamentId, activeTournament, tournaments } = state.config;
+    const { selectedTournamentId, activeTournament } = state.config;
     let cancelled = false;
 
     // Skip while initial data is still loading — tournaments array is empty until INITIALIZE_STATE
@@ -155,22 +156,23 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const tournamentMeta = tournaments.find(t => t.id === selectedTournamentId);
+      // Prevent concurrent fetches — the previous fetch (if any) will be cancelled by cleanup
+      if (isFetchingTournamentRef.current) return;
 
-      // If tournament not found in the array, clear the selectedTournamentId
-      if (!tournamentMeta) {
-        console.warn('[GameState] Selected tournament not found in tournaments array, clearing selectedTournamentId');
-        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
-        return;
-      }
+      // NOTE: We intentionally do NOT pre-validate against the local tournaments array here.
+      // The local array can be stale (e.g., after a cloud sync), causing an infinite loop:
+      // context clears selectedTournamentId → tournament page re-dispatches it → repeat.
+      // Instead, we let the API call be the authority. If the tournament truly doesn't exist,
+      // the API returns 404 and we clear then.
 
       console.log('[GameState] Selected tournament:', selectedTournamentId, 'Fetching details...');
+      isFetchingTournamentRef.current = true;
       (async () => {
         try {
           const res = await fetch(`/api/tournaments/${selectedTournamentId}`);
           if (cancelled) return;
           if (!res.ok) {
-            console.warn(`[GameState] Tournament ${selectedTournamentId} not found, clearing selectedTournamentId`);
+            console.warn(`[GameState] Tournament ${selectedTournamentId} not found (${res.status}), clearing selectedTournamentId`);
             dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
             return;
           }
@@ -182,12 +184,16 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
           if (cancelled) return;
           console.error("Error fetching tournament details:", error);
-          dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
+        } finally {
+          if (!cancelled) isFetchingTournamentRef.current = false;
         }
       })();
     }
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      isFetchingTournamentRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.config.selectedTournamentId, isLoading]);
 

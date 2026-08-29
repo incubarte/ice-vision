@@ -20,10 +20,11 @@ export async function GET(request: Request) {
     if (config?.selectedTournamentId) {
       const tournamentMeta = tournamentsData?.tournaments?.find(t => t.id === config.selectedTournamentId);
       if (tournamentMeta) {
-        const fullTournament = await readTournament(config.selectedTournamentId);
+        const fullTournament = await readTournament(config.selectedTournamentId, { includeSummaries: false });
         if (fullTournament) {
           activeTournament = {
             ...tournamentMeta,
+            clubs: fullTournament.clubs || [],
             teams: fullTournament.teams || [],
             categories: fullTournament.categories || [],
             matches: fullTournament.matches || [],
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
 
         // Save tournaments separately to tournaments.json
         if (tournaments && tournaments.length > 0) {
-            const tournamentMetas = tournaments.map(t => ({ id: t.id, name: t.name, status: t.status }));
+            const tournamentMetas = tournaments.map(t => ({ id: t.id, name: t.name, code: t.code, status: t.status }));
             await writeTournaments({ tournaments: tournamentMetas });
             setTournaments({ tournaments: tournamentMetas }); // Update in-memory cache
         }

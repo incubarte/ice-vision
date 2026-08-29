@@ -1,4 +1,4 @@
-import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics } from '@/types';
+import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics, PreMatchData } from '@/types';
 import { storageProvider } from './storage';
 import { FileNotFoundError, StorageProvider } from './storage/providers';
 import { updateManifestEntry } from './sync-manifest';
@@ -60,6 +60,12 @@ export async function readTournaments(): Promise<Partial<TournamentsData>> {
     return (await readJsonFile<TournamentsData>('tournaments.json')) || { tournaments: [] };
 }
 
+export async function findTournamentByCode(code: string): Promise<string | null> {
+    const { tournaments = [] } = await readTournaments();
+    const match = tournaments.find(t => t.code?.toLowerCase() === code.toLowerCase());
+    return match?.id ?? null;
+}
+
 export async function writeTournaments(tournamentsData: TournamentsData): Promise<void> {
     const content = JSON.stringify(tournamentsData, null, 2);
     await storageProvider.writeFile('tournaments.json', content);
@@ -95,7 +101,11 @@ export async function writeShotsMetrics(metrics: ShotsMetrics): Promise<void> {
     await storageProvider.writeFile('live-shotsMetrics.json', JSON.stringify(metrics, null, 2));
 }
 
-export async function readTournament(tournamentId: string): Promise<Partial<Tournament> | null> {
+export async function readTournament(
+    tournamentId: string,
+    options: { includeSummaries?: boolean } = {}
+): Promise<Partial<Tournament> | null> {
+    const { includeSummaries = true } = options;
     const tournamentPrefix = `tournaments/${tournamentId}/`;
     const teamsKey = `${tournamentPrefix}teams.json`;
     const fixtureKey = `${tournamentPrefix}fixture.json`;
@@ -110,7 +120,7 @@ export async function readTournament(tournamentId: string): Promise<Partial<Tour
 
         const partialTournament: Partial<Tournament> = { ...teamsData, ...fixtureData };
 
-        if (partialTournament.matches) {
+        if (partialTournament.matches && includeSummaries) {
             const matchSummaryPromises = partialTournament.matches.map(async (match: MatchData) => {
                 const summaryKey = `${tournamentPrefix}summaries/${match.id}.json`;
                 const summary = await readJsonFile<GameSummary>(summaryKey);
@@ -123,6 +133,12 @@ export async function readTournament(tournamentId: string): Promise<Partial<Tour
                 return migratedMatch;
             });
             partialTournament.matches = await Promise.all(matchSummaryPromises);
+        } else if (partialTournament.matches) {
+            // Still apply phase migration even without summaries
+            partialTournament.matches = partialTournament.matches.map((match: MatchData) => ({
+                ...match,
+                phase: match.phase || 'clasificacion' as const,
+            }));
         }
 
         return partialTournament;
@@ -188,6 +204,7 @@ export async function writeTournament(tournament: Tournament, provider?: Storage
 
     try {
         const teamsData = {
+            clubs: tournament.clubs || [],
             categories: tournament.categories || [],
             teams: tournament.teams || [],
             staff: tournament.staff || []
@@ -230,5 +247,38 @@ export async function writeTournament(tournament: Tournament, provider?: Storage
         console.error(`Error writing tournament ${tournament.id} to provider:`, error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         throw new Error(`Failed to write tournament files to provider: ${errorMessage}`);
+    }
+}
+
+// --- Pre-match roster data (ephemeral, deleted when match starts) ---
+
+const preMatchKey = (tournamentId: string, matchId: string, teamId: string) =>
+    `tournaments/${tournamentId}/pre-match/${matchId}-${teamId}.json`;
+
+export async function readPreMatchData(
+    tournamentId: string,
+    matchId: string,
+    teamId: string
+): Promise<PreMatchData | null> {
+    return readJsonFile<PreMatchData>(preMatchKey(tournamentId, matchId, teamId));
+}
+
+export async function writePreMatchData(data: PreMatchData, provider?: StorageProvider): Promise<void> {
+    const key = preMatchKey(data.tournamentId, data.matchId, data.teamId);
+    const p = provider || storageProvider;
+    await p.writeFile(key, JSON.stringify(data, null, 2));
+}
+
+export async function deletePreMatchData(
+    tournamentId: string,
+    matchId: string,
+    teamId: string,
+    provider?: StorageProvider
+): Promise<void> {
+    try {
+        const p = provider || storageProvider;
+        await p.deleteFile(preMatchKey(tournamentId, matchId, teamId));
+    } catch {
+        // Ignore — file may already be deleted
     }
 }

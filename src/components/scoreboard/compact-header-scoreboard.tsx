@@ -5,7 +5,7 @@ import { User } from 'lucide-react';
 import { TournamentLogo } from '../tournaments/tournament-logo';
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import { cn, getTeamDisplayName } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 export function useTeamLogos() {
@@ -179,7 +179,7 @@ export function CompactHeaderScoreboard() {
         {/* HOME */}
         <div className="w-[38%] flex justify-center items-center gap-3">
           <TeamStack
-            name={homeTeamName}
+            name={getTeamDisplayName(homeTeamName, homeTeamSubName)}
             logoUrl={homeLogoDataUrl}
             playersCount={playersOnIceForHome}
             align="left"
@@ -202,7 +202,7 @@ export function CompactHeaderScoreboard() {
         <div className="w-[38%] flex justify-center items-center gap-3">
           {showShots && <ShotsBadge count={awayShotsCount} />}
           <TeamStack
-            name={awayTeamName}
+            name={getTeamDisplayName(awayTeamName, awayTeamSubName)}
             logoUrl={awayLogoDataUrl}
             playersCount={playersOnIceForAway}
             align="right"

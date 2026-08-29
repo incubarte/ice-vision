@@ -41,6 +41,10 @@ export function ensureUniqueNumbers(players: { id: string; number: string; type:
     });
 }
 
+export function getTeamDisplayName(name: string, subName?: string): string {
+  return subName ? `${name} ${subName}` : name;
+}
+
 export const generateMatchId = (date: Date): string => {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');

@@ -544,8 +544,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       console.log('[Reducer] LOAD_TOURNAMENT_CONTEXT', tournamentData.id, 'teams:', tournamentData.teams?.length, 'categories:', tournamentData.categories?.length);
 
       // Ensure required fields have defaults before setting as active tournament
+      // Use selectedTournamentId as fallback for id in case the API response omitted it
+      const hydratedId = tournamentData.id || state.config.selectedTournamentId || '';
       const hydrated: Tournament = {
-        id: tournamentData.id!,
+        id: hydratedId,
         name: tournamentData.name || '',
         status: tournamentData.status || 'active',
         teams: tournamentData.teams || [],
@@ -1898,6 +1900,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const newTournament: TournamentMetadata = {
         id: safeUUID(),
         name: action.payload.name,
+        code: action.payload.code,
         status: action.payload.status,
       };
       newState = { ...state, config: { ...state.config, tournaments: [...(state.config.tournaments || []), newTournament] } };
@@ -2170,6 +2173,63 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           },
         };
         toastMessage = { title: "Equipo Actualizado", description: `El equipo "${updates.name}" ha sido actualizado.` };
+      }
+      break;
+    }
+    case 'ADD_CLUB_TO_TOURNAMENT': {
+      const { tournamentId, club } = action.payload;
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state, config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              clubs: [...(state.config.activeTournament.clubs || []), { ...club, id: safeUUID() }]
+            }
+          }
+        };
+      }
+      break;
+    }
+    case 'UPDATE_CLUB_IN_TOURNAMENT': {
+      const { tournamentId, clubId, name, logoDataUrl } = action.payload;
+      if (state.config.activeTournament?.id === tournamentId) {
+        const updatedClubs = (state.config.activeTournament.clubs || []).map(c =>
+          c.id === clubId ? { ...c, name, logoDataUrl: logoDataUrl ?? c.logoDataUrl } : c
+        );
+        // Cascade name and logo to all teams that belong to this club
+        const updatedTeams = state.config.activeTournament.teams.map(t =>
+          t.clubId === clubId ? { ...t, name, logoDataUrl: logoDataUrl ?? t.logoDataUrl } : t
+        );
+        newState = {
+          ...state, config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              clubs: updatedClubs,
+              teams: updatedTeams,
+            }
+          }
+        };
+      }
+      break;
+    }
+    case 'DELETE_CLUB_FROM_TOURNAMENT': {
+      const { tournamentId, clubId } = action.payload;
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state, config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              clubs: (state.config.activeTournament.clubs || []).filter(c => c.id !== clubId),
+              // Clear clubId from teams that belonged to this club (keep their name/logo)
+              teams: state.config.activeTournament.teams.map(t =>
+                t.clubId === clubId ? { ...t, clubId: undefined } : t
+              ),
+            }
+          }
+        };
       }
       break;
     }

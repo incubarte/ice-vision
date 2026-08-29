@@ -10,7 +10,7 @@ import { SoundPlayer } from '@/components/audio/sound-player';
 export function PageShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // Check if the current page is one of the isolated mobile views
-  const isIsolatedMobilePage = pathname === '/mobile' || pathname.startsWith('/mobile-controls') || pathname.startsWith('/nutri') || pathname === '/acceso-restringido';
+  const isIsolatedMobilePage = pathname === '/mobile' || pathname.startsWith('/mobile-controls') || pathname.startsWith('/nutri') || pathname.startsWith('/pre-match') || pathname === '/acceso-restringido';
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
 
   if (isIsolatedMobilePage) {
