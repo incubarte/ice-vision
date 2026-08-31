@@ -550,6 +550,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         id: hydratedId,
         name: tournamentData.name || '',
         status: tournamentData.status || 'active',
+        clubs: tournamentData.clubs || [],
         teams: tournamentData.teams || [],
         categories: tournamentData.categories || [],
         matches: tournamentData.matches || [],

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useGameState } from "@/contexts/game-state-context";
 import type { ClubData } from "@/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, ClipboardList } from "lucide-react";
 import { DefaultTeamLogo } from "@/components/teams/default-team-logo";
 import { getSpecificDefaultLogoUrlForCsv as getSpecificDefaultLogoUrl } from "@/components/teams/create-edit-team-dialog";
 import { CreateEditClubDialog } from "./create-edit-club-dialog";
@@ -19,10 +20,15 @@ interface ClubsManagementTabProps {
   tournamentId: string;
 }
 
+const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
+
 export function ClubsManagementTab({ tournamentId }: ClubsManagementTabProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const clubs = state.config.activeTournament?.clubs || [];
+
+  // Get tournament code for pre-match links (from meta list which always has code)
+  const tournamentCode = state.config.tournaments?.find(t => t.id === tournamentId)?.code;
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [clubToEdit, setClubToEdit] = useState<ClubData | null>(null);
@@ -51,9 +57,11 @@ export function ClubsManagementTab({ tournamentId }: ClubsManagementTabProps) {
         <p className="text-sm text-muted-foreground">
           {clubs.length === 0 ? "No hay clubes en este torneo." : `${clubs.length} club${clubs.length !== 1 ? 'es' : ''}`}
         </p>
-        <Button size="sm" onClick={handleNew}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Nuevo Club
-        </Button>
+        {!isReadOnly && (
+          <Button size="sm" onClick={handleNew}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Nuevo Club
+          </Button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -72,23 +80,36 @@ export function ClubsManagementTab({ tournamentId }: ClubsManagementTabProps) {
                 )}
               </div>
               <span className="flex-1 font-medium">{club.name}</span>
-              <Button variant="ghost" size="icon" onClick={() => handleEdit(club)}>
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setClubToDelete(club)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {tournamentCode && (
+                <Button variant="ghost" size="icon" title="Planilla pre-partido" asChild>
+                  <Link href={`/pre-match/${tournamentCode}/${encodeURIComponent(club.name)}`} target="_blank">
+                    <ClipboardList className="h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+              {!isReadOnly && (
+                <>
+                  <Button variant="ghost" size="icon" onClick={() => handleEdit(club)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setClubToDelete(club)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           );
         })}
       </div>
 
-      <CreateEditClubDialog
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        clubToEdit={clubToEdit}
-        tournamentId={tournamentId}
-      />
+      {!isReadOnly && (
+        <CreateEditClubDialog
+          isOpen={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          clubToEdit={clubToEdit}
+          tournamentId={tournamentId}
+        />
+      )}
 
       <AlertDialog open={!!clubToDelete} onOpenChange={open => !open && setClubToDelete(null)}>
         <AlertDialogContent>
