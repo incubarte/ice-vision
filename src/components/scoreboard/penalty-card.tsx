@@ -130,6 +130,20 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
       </>
     );
 
+    const timeColor = isPendingPuck ? 'rgb(250 204 21)' : clockColor;
+    const timeStyle: React.CSSProperties = doesNotReducePlayer && !isPendingPuck
+      ? {
+          fontSize: `${layout.penaltyTimeSize * 1.8}rem`,
+          background: `repeating-linear-gradient(45deg, ${clockColor} 0px, ${clockColor} 3px, transparent 3px, transparent 8px)`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }
+      : {
+          fontSize: `${layout.penaltyTimeSize * 1.8}rem`,
+          color: timeColor,
+        };
+
     return (
       <div
         className={cn(
@@ -146,12 +160,9 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
         </span>
         <span
           className="font-bold font-headline tabular-nums leading-none"
-          style={{
-            fontSize: `${layout.penaltyTimeSize * 1.8}rem`,
-            color: isPendingPuck ? 'rgb(250 204 21)' : clockColor,
-          }}
+          style={timeStyle}
         >
-          {formatTime(remainingTimeCs, { showTenths: false, rounding: 'up' })}
+          {formatTime(remainingTimeCs, { showTenths: false, rounding: 'up', trimLeadingZero: true })}
         </span>
       </div>
     );

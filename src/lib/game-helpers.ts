@@ -15,6 +15,7 @@ export const formatTime = (
     showTenths?: boolean;
     includeMinutesForTenths?: boolean;
     rounding?: 'up' | 'down';
+    trimLeadingZero?: boolean;
   } = {}
 ): string => {
   if (isNaN(totalCentiseconds) || totalCentiseconds < 0) totalCentiseconds = 0;
@@ -40,7 +41,8 @@ export const formatTime = (
   const minutes = Math.floor(totalSecondsOnly / 60);
   const seconds = totalSecondsOnly % 60;
 
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  const minutesStr = options.trimLeadingZero ? minutes.toString() : minutes.toString().padStart(2, '0');
+  return `${minutesStr}:${seconds.toString().padStart(2, '0')}`;
 };
 
 /**
