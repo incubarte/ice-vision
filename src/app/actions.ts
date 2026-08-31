@@ -62,7 +62,7 @@ function readAdminSecret(): string | null {
   }
 }
 
-export async function saveTournamentOnServer(tournament: Tournament) {
+export async function saveTournamentOnServer(tournament: Tournament, options?: { mirrorClubsToCloud?: boolean }) {
   try {
     const adminSecret = readAdminSecret();
     const response = await fetch(`/api/tournaments/${tournament.id}`, {
@@ -71,7 +71,7 @@ export async function saveTournamentOnServer(tournament: Tournament) {
         'Content-Type': 'application/json',
         ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
       },
-      body: JSON.stringify({ tournament }),
+      body: JSON.stringify({ tournament, mirrorClubsToCloud: options?.mirrorClubsToCloud }),
     });
     if (!response.ok) {
         const errorData = await response.json();

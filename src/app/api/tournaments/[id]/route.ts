@@ -50,14 +50,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const { id: tournamentId } = await params;
     try {
-        const { tournament } = await request.json() as { tournament: Tournament };
+        const { tournament, mirrorClubsToCloud } = await request.json() as { tournament: Tournament; mirrorClubsToCloud?: boolean };
 
         if (!tournament || tournament.id !== tournamentId) {
             return NextResponse.json({ message: 'Invalid tournament data provided.' }, { status: 400 });
         }
-        
+
         const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
         await writeTournament(tournament, provider);
+
+        // In local mode, mirror clubs to the cloud when explicitly requested (e.g. password change).
+        // Only writes teams.json (clubs/passwords), not the full fixture.
+        if (!isAdminRequest && mirrorClubsToCloud && process.env.STORAGE_PROVIDER === 'local' && process.env.SUPABASE_SERVICE_KEY) {
+            writeTournament(tournament, createAdminStorageProvider())
+                .catch(err => console.error('[Tournament] Cloud clubs mirror failed:', err));
+        }
 
         // Trigger sync if configured (fire and forget - don't wait)
         if (process.env.STORAGE_PROVIDER !== 'supabase_rw') {

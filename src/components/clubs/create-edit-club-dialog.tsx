@@ -27,7 +27,7 @@ interface CreateEditClubDialogProps {
 export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournamentId }: CreateEditClubDialogProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
-  const { isAdminMode } = useAdminMode();
+  const { isAdminMode, isReadOnly } = useAdminMode();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("IceVision");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -97,7 +97,7 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
     const passwordChanged = isEditing && trimmedPassword !== (clubToEdit?.password || 'IceVision');
 
     // If admin and password changed, must sync to cloud first
-    if (isAdminMode && passwordChanged && state.config.activeTournament) {
+    if (!isReadOnly && passwordChanged && state.config.activeTournament) {
       setIsSaving(true);
       const updatedTournament = {
         ...state.config.activeTournament,
@@ -106,7 +106,7 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
         ),
       };
       try {
-        const result = await saveTournamentOnServer(updatedTournament);
+        const result = await saveTournamentOnServer(updatedTournament, { mirrorClubsToCloud: true });
         if (result?.success === false) throw new Error(result.message);
       } catch {
         toast({ title: 'Error al guardar clave', description: 'No se pudo guardar en la nube. La clave no fue cambiada.', variant: 'destructive' });
@@ -188,7 +188,7 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
               <p className="text-xs text-muted-foreground">Opcional. Máximo 2MB. Si el nombre coincide con un club conocido se usará un logo predeterminado.</p>
             </div>
           </div>
-          {isAdminMode && (
+          {!isReadOnly && (
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="clubPassword" className="text-right">Clave pre-partido</Label>
               <Input
