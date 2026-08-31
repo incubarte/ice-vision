@@ -169,7 +169,6 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
       isFetchingTournamentRef.current = true;
       (async () => {
         try {
-          // Phase 1: fast load without summaries (structure, teams, fixture)
           const res = await fetch(`/api/tournaments/${selectedTournamentId}`);
           if (cancelled) return;
           if (!res.ok) {
@@ -181,16 +180,6 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
           if (cancelled) return;
           if (data.tournament) {
             dispatch({ type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: data.tournament } });
-          }
-
-          // Phase 2: background load with summaries for standings/stats
-          const resWithSummaries = await fetch(`/api/tournaments/${selectedTournamentId}?includeSummaries=true`);
-          if (cancelled) return;
-          if (resWithSummaries.ok) {
-            const dataWithSummaries = await resWithSummaries.json();
-            if (!cancelled && dataWithSummaries.tournament) {
-              dispatch({ type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: dataWithSummaries.tournament } });
-            }
           }
         } catch (error) {
           if (cancelled) return;
