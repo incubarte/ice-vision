@@ -11,9 +11,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useGameState } from "@/contexts/game-state-context";
 import type { ClubData } from "@/types";
-import { UploadCloud, XCircle, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, XCircle, Image as ImageIcon, Loader2 } from "lucide-react";
 import { DefaultTeamLogo } from "@/components/teams/default-team-logo";
 import { getSpecificDefaultLogoUrlForCsv as getSpecificDefaultLogoUrl } from "@/components/teams/create-edit-team-dialog";
+import { useAdminMode } from "@/hooks/use-admin-mode";
+import { saveTournamentOnServer } from "@/app/actions";
 
 interface CreateEditClubDialogProps {
   isOpen: boolean;
@@ -25,8 +27,11 @@ interface CreateEditClubDialogProps {
 export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournamentId }: CreateEditClubDialogProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
+  const { isAdminMode } = useAdminMode();
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("IceVision");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!clubToEdit;
@@ -36,9 +41,11 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
     if (isOpen) {
       if (isEditing && clubToEdit) {
         setName(clubToEdit.name);
+        setPassword(clubToEdit.password || 'IceVision');
         setLogoPreview(clubToEdit.logoDataUrl?.startsWith('data:image') ? clubToEdit.logoDataUrl : null);
       } else {
         setName("");
+        setPassword("IceVision");
         setLogoPreview(null);
       }
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -61,7 +68,7 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       toast({ title: "Nombre requerido", variant: "destructive" });
@@ -86,16 +93,40 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
       }
     }
 
+    const trimmedPassword = password.trim() || 'IceVision';
+    const passwordChanged = isEditing && trimmedPassword !== (clubToEdit?.password || 'IceVision');
+
+    // If admin and password changed, must sync to cloud first
+    if (isAdminMode && passwordChanged && state.config.activeTournament) {
+      setIsSaving(true);
+      const updatedTournament = {
+        ...state.config.activeTournament,
+        clubs: (state.config.activeTournament.clubs ?? []).map(c =>
+          c.id === clubToEdit!.id ? { ...c, name: trimmedName, logoDataUrl: logoDataUrl ?? c.logoDataUrl, password: trimmedPassword } : c
+        ),
+      };
+      try {
+        const result = await saveTournamentOnServer(updatedTournament);
+        if (result?.success === false) throw new Error(result.message);
+      } catch {
+        toast({ title: 'Error al guardar clave', description: 'No se pudo guardar en la nube. La clave no fue cambiada.', variant: 'destructive' });
+        setIsSaving(false);
+        return;
+      } finally {
+        setIsSaving(false);
+      }
+    }
+
     if (isEditing && clubToEdit) {
       dispatch({
         type: 'UPDATE_CLUB_IN_TOURNAMENT',
-        payload: { tournamentId, clubId: clubToEdit.id, name: trimmedName, logoDataUrl },
+        payload: { tournamentId, clubId: clubToEdit.id, name: trimmedName, logoDataUrl, password: trimmedPassword },
       });
       toast({ title: "Club actualizado" });
     } else {
       dispatch({
         type: 'ADD_CLUB_TO_TOURNAMENT',
-        payload: { tournamentId, club: { name: trimmedName, logoDataUrl } },
+        payload: { tournamentId, club: { name: trimmedName, logoDataUrl, password: trimmedPassword } },
       });
       toast({ title: "Club creado", description: `"${trimmedName}" fue agregado al torneo.` });
     }
@@ -157,10 +188,26 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
               <p className="text-xs text-muted-foreground">Opcional. Máximo 2MB. Si el nombre coincide con un club conocido se usará un logo predeterminado.</p>
             </div>
           </div>
+          {isAdminMode && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="clubPassword" className="text-right">Clave pre-partido</Label>
+              <Input
+                id="clubPassword"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="col-span-3"
+                placeholder="IceVision"
+              />
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-          <Button onClick={handleSubmit}>{isEditing ? "Guardar Cambios" : "Crear Club"}</Button>
+          <DialogClose asChild><Button variant="outline" disabled={isSaving}>Cancelar</Button></DialogClose>
+          <Button onClick={handleSubmit} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEditing ? "Guardar Cambios" : "Crear Club"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
