@@ -758,10 +758,15 @@ function SyncAnalysisCard() {
         }
 
         // Filter plan to only include selected files
+        // Photos manually selected from skippedPhotoDownloads are merged into toDownload
+        const selectedPhotos = (plan.skippedPhotoDownloads || []).filter((item: any) => selectedFiles.has(item.filePath));
         const filteredPlan = {
             ...plan,
             toUpload: plan.toUpload?.filter((item: any) => selectedFiles.has(item.filePath)) || [],
-            toDownload: plan.toDownload?.filter((item: any) => selectedFiles.has(item.filePath)) || [],
+            toDownload: [
+                ...(plan.toDownload?.filter((item: any) => selectedFiles.has(item.filePath)) || []),
+                ...selectedPhotos,
+            ],
             toDeleteLocally: plan.toDeleteLocally?.filter((item: any) => selectedFiles.has(item.filePath)) || [],
             toDeleteRemotely: plan.toDeleteRemotely?.filter((item: any) => selectedFiles.has(item.filePath)) || [],
             conflicts: plan.conflicts?.filter((item: any) => selectedFiles.has(item.filePath)) || [],
@@ -1453,6 +1458,30 @@ function SyncAnalysisCard() {
                                         onToggleFile={toggleFileSelection}
                                         extractMatchInfo={extractMatchInfoFromPath}
                                         extractPlayerPhotoInfo={extractPlayerPhotoInfo}
+                                        tournaments={state?.config?.tournaments || []}
+                                        type="download"
+                                    />
+                                </div>
+                            </details>
+                        )}
+
+                        {plan.skippedPhotoDownloads?.length > 0 && (
+                            <details className="bg-gray-50 dark:bg-gray-900/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <summary className="cursor-pointer font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                                    🖼️ Fotos omitidas del sync ({plan.skippedPhotoDownloads.length})
+                                    <span className="text-xs font-normal text-gray-500">— se descargan bajo demanda al ver un equipo</span>
+                                </summary>
+                                <div className="mt-2">
+                                    <button
+                                        className="text-xs text-blue-600 dark:text-blue-400 underline mb-2 block"
+                                        onClick={() => plan.skippedPhotoDownloads.forEach((f: any) => toggleFileSelection(f.filePath))}
+                                    >
+                                        Incluir todas en el sync
+                                    </button>
+                                    <FolderFileList
+                                        files={plan.skippedPhotoDownloads.map((f: any) => ({ ...f, reason: 'photo-on-demand' }))}
+                                        selectedFiles={selectedFiles}
+                                        onToggleFile={toggleFileSelection}
                                         tournaments={state?.config?.tournaments || []}
                                         type="download"
                                     />

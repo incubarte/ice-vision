@@ -18,6 +18,14 @@ function isBinaryFile(filePath: string): boolean {
 }
 
 /**
+ * Check if a file is a player photo (should not be auto-downloaded during sync).
+ * Photos are uploaded local→cloud but fetched on-demand in the app.
+ */
+function isPlayerPhoto(filePath: string): boolean {
+    return isBinaryFile(filePath) && /^tournaments\/[^/]+\/players\//.test(filePath);
+}
+
+/**
  * Get content type for a file based on extension
  */
 function getContentType(filePath: string): string {
@@ -103,12 +111,14 @@ export async function analyzeSync(): Promise<SyncPlan> {
             status: 'pending',
             toUpload: [],
             toDownload: [],
+            skippedPhotoDownloads: [],
             toDeleteLocally: [],
             toDeleteRemotely: [],
             conflicts: [],
             summary: {
                 uploadCount: 0,
                 downloadCount: 0,
+                skippedPhotoCount: 0,
                 deleteLocalCount: 0,
                 deleteRemoteCount: 0,
                 conflictCount: 0,
@@ -143,6 +153,15 @@ export async function analyzeSync(): Promise<SyncPlan> {
         ]);
 
         let unchangedCount = 0;
+
+        // Helper: queue a file for download, skipping player photos (fetched on-demand by the app)
+        const queueDownload = (filePath: string, hash: string) => {
+            if (isPlayerPhoto(filePath)) {
+                plan.skippedPhotoDownloads.push({ filePath, hash });
+            } else {
+                plan.toDownload.push({ filePath, hash });
+            }
+        };
 
         // Helper to check for unreferenced files
         // Use readTournaments directly to avoid race conditions/cache issues with server-side-store
@@ -301,10 +320,7 @@ export async function analyzeSync(): Promise<SyncPlan> {
                         } else {
                             console.log(`[Sync] File ${filePath} was deleted locally but remote version is different (new file with same name) - keeping remote`);
                             // Download the new remote file
-                            plan.toDownload.push({
-                                filePath,
-                                hash: remoteHash
-                            });
+                            queueDownload(filePath, remoteHash);
                         }
                     }
                 } else {
@@ -346,10 +362,7 @@ export async function analyzeSync(): Promise<SyncPlan> {
                 if (fileExists) {
                     // File exists remotely but not in local manifest = new file to download
                     // (We'll let the user decide if they want to download unreferenced files via the UI badges)
-                    plan.toDownload.push({
-                        filePath,
-                        hash: remote.hash
-                    });
+                    queueDownload(filePath, remote.hash);
                 } else {
                     // File in remote manifest but doesn't exist remotely = was deleted remotely
                     // Should delete from local if it exists
@@ -393,10 +406,7 @@ export async function analyzeSync(): Promise<SyncPlan> {
                     });
                 } else {
                     // Remote is newer, download
-                    plan.toDownload.push({
-                        filePath,
-                        hash: remote.hash
-                    });
+                    queueDownload(filePath, remote.hash);
                 }
             }
         }
@@ -404,6 +414,7 @@ export async function analyzeSync(): Promise<SyncPlan> {
         // 6. Update summary
         plan.summary.uploadCount = plan.toUpload.length;
         plan.summary.downloadCount = plan.toDownload.length;
+        plan.summary.skippedPhotoCount = plan.skippedPhotoDownloads.length;
         plan.summary.deleteLocalCount = plan.toDeleteLocally.length;
         plan.summary.deleteRemoteCount = plan.toDeleteRemotely.length;
         plan.summary.conflictCount = plan.conflicts.length;

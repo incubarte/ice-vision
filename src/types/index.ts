@@ -558,12 +558,14 @@ export interface SyncPlan {
   status: 'pending' | 'ready' | 'invalid' | 'executing';
   toUpload: { filePath: string; hash: string }[];
   toDownload: { filePath: string; hash: string }[];
+  skippedPhotoDownloads: { filePath: string; hash: string }[]; // Photos excluded from auto-sync
   toDeleteLocally: { filePath: string; reason: string }[]; // Files to delete from local storage
   toDeleteRemotely: { filePath: string; reason: string }[]; // Files to delete from remote storage
   conflicts: SyncPlanConflict[];
   summary: {
     uploadCount: number;
     downloadCount: number;
+    skippedPhotoCount: number;
     deleteLocalCount: number;
     deleteRemoteCount: number;
     conflictCount: number;

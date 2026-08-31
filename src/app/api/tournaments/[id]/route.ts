@@ -6,8 +6,10 @@ import { createAdminStorageProvider } from '@/lib/storage';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
+    const url = new URL(request.url);
+    const includeSummaries = url.searchParams.get('includeSummaries') === 'true';
     try {
-        const tournamentDetails = await readTournament(tournamentId, { includeSummaries: false });
+        const tournamentDetails = await readTournament(tournamentId, { includeSummaries });
 
         if (!tournamentDetails) {
             // If tournament directory doesn't exist, we find its metadata and return a valid empty structure.
