@@ -51,12 +51,21 @@ export default function PreMatchPage() {
   const [initialDataMap, setInitialDataMap] = useState<InitialDataMap>({});
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clubPassword, setClubPassword] = useState('IceVision');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (sessionStorage.getItem(sessionKey) === '1') setIsAuthenticated(true);
     }
   }, [sessionKey]);
+
+  // Fetch club password on mount so PasswordGate can validate correctly before auth
+  useEffect(() => {
+    fetch(`/api/pre-match/club/${tournamentCode}/${clubName}/matches`)
+      .then(r => r.ok ? r.json() : null)
+      .then(json => { if (json?.password) setClubPassword(json.password); })
+      .catch(() => {});
+  }, [tournamentCode, clubName]);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -68,8 +77,9 @@ export default function PreMatchPage() {
         setError(body.message ?? 'Error al cargar los partidos');
         return;
       }
-      const json = await res.json() as { tournamentId: string; matches: MatchEntry[] };
+      const json = await res.json() as { tournamentId: string; matches: MatchEntry[]; password?: string };
       setMatchEntries(json.matches);
+      setClubPassword(json.password || 'IceVision');
 
       const dataMap: InitialDataMap = {};
       await Promise.all(
@@ -110,7 +120,7 @@ export default function PreMatchPage() {
   }
 
   if (!isAuthenticated) {
-    return <PasswordGate onSuccess={handleAuthSuccess} />;
+    return <PasswordGate onSuccess={handleAuthSuccess} password={clubPassword} />;
   }
 
   if (isLoading) {
@@ -156,6 +166,7 @@ export default function PreMatchPage() {
             opponentName={selectedEntry.opponentName}
             initialData={initialDataMap[selectedMatchId] ?? null}
             onSaved={handleSaved}
+            password={clubPassword}
           />
         </div>
       </div>

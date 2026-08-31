@@ -2193,10 +2193,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       break;
     }
     case 'UPDATE_CLUB_IN_TOURNAMENT': {
-      const { tournamentId, clubId, name, logoDataUrl } = action.payload;
+      const { tournamentId, clubId, name, logoDataUrl, password } = action.payload;
       if (state.config.activeTournament?.id === tournamentId) {
         const updatedClubs = (state.config.activeTournament.clubs || []).map(c =>
-          c.id === clubId ? { ...c, name, logoDataUrl: logoDataUrl ?? c.logoDataUrl } : c
+          c.id === clubId ? { ...c, name, logoDataUrl: logoDataUrl ?? c.logoDataUrl, ...(password !== undefined ? { password } : {}) } : c
         );
         // Cascade name and logo to all teams that belong to this club
         const updatedTeams = state.config.activeTournament.teams.map(t =>

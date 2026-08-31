@@ -8,17 +8,16 @@ import { Lock } from 'lucide-react';
 
 interface PasswordGateProps {
   onSuccess: () => void;
+  password?: string;
 }
 
-const PASSWORD = 'IceVision';
-
-export function PasswordGate({ onSuccess }: PasswordGateProps) {
+export function PasswordGate({ onSuccess, password = 'IceVision' }: PasswordGateProps) {
   const [value, setValue] = useState('');
   const [error, setError] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (value === PASSWORD) {
+    if (value === password) {
       onSuccess();
     } else {
       setError(true);

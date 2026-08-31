@@ -77,6 +77,7 @@ export interface ClubData {
   id: string;
   name: string;
   logoDataUrl?: string | null;
+  password?: string; // Per-club pre-match password. Defaults to 'IceVision' if unset.
 }
 
 export interface TeamData {
@@ -896,7 +897,7 @@ export type GameAction =
   | { type: 'DELETE_TEAMS_FROM_TOURNAMENT'; payload: { tournamentId: string, teamIds: string[] } }
   | { type: 'UPDATE_TEAM_DETAILS'; payload: { teamId: string; name: string; subName?: string; clubId?: string; category: string; logoDataUrl?: string | null } }
   | { type: 'ADD_CLUB_TO_TOURNAMENT'; payload: { tournamentId: string; club: Omit<ClubData, 'id'> } }
-  | { type: 'UPDATE_CLUB_IN_TOURNAMENT'; payload: { tournamentId: string; clubId: string; name: string; logoDataUrl?: string | null } }
+  | { type: 'UPDATE_CLUB_IN_TOURNAMENT'; payload: { tournamentId: string; clubId: string; name: string; logoDataUrl?: string | null; password?: string } }
   | { type: 'DELETE_CLUB_FROM_TOURNAMENT'; payload: { tournamentId: string; clubId: string } }
   | { type: 'ADD_PLAYER_TO_TEAM'; payload: { teamId: string; player: Omit<PlayerData, 'id'> & { id?: string } } }
   | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName' | 'celebrationVideoFileName' | 'celebrationMediaType'>> } } // celebrationMediaType: 'photo'|'video'|'none'

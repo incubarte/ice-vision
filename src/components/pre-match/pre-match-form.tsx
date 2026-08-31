@@ -12,8 +12,6 @@ import { Shield, User, Plus, Trash2, AlertCircle, CheckCircle2, Loader2 } from '
 import { cn, getTeamDisplayName } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-const PASSWORD = 'IceVision';
-
 interface PreMatchFormProps {
   /** Base URL for this match's pre-match API, e.g. /api/pre-match/club/clausura2026/ClubName */
   apiBase: string;
@@ -25,6 +23,7 @@ interface PreMatchFormProps {
   opponentName: string | null;
   initialData: PreMatchData | null;
   onSaved: () => void;
+  password?: string;
 }
 
 function formatMatchTime(dateStr: string) {
@@ -35,7 +34,7 @@ function formatMatchTime(dateStr: string) {
   }
 }
 
-export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponentName, initialData, onSaved }: PreMatchFormProps) {
+export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponentName, initialData, onSaved, password = 'IceVision' }: PreMatchFormProps) {
   const { toast } = useToast();
 
   // Initialize player states from initialData or from team roster
@@ -192,7 +191,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
         postUrl ?? `${apiBase}/${match.id}`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-pre-match-password': PASSWORD },
+          headers: { 'Content-Type': 'application/json', 'x-pre-match-password': password },
           body: JSON.stringify({ data }),
         }
       );

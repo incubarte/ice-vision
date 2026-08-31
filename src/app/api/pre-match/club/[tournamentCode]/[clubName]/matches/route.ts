@@ -72,5 +72,5 @@ export async function GET(
       return { match: m, team: { ...team, category: categoryName }, role, opponentName: opponentDisplayName };
     });
 
-  return NextResponse.json({ tournamentId, matches: todayMatches });
+  return NextResponse.json({ tournamentId, matches: todayMatches, password: club.password || 'IceVision' });
 }

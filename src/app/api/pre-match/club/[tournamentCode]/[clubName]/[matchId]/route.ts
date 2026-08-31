@@ -5,11 +5,7 @@ import type { PreMatchData, TeamData } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
-const PASSWORD = 'IceVision';
-
-function checkPassword(request: Request): boolean {
-  return request.headers.get('x-pre-match-password') === PASSWORD;
-}
+const DEFAULT_PASSWORD = 'IceVision';
 
 const normalize = (s: string) => decodeURIComponent(s).toLowerCase().replace(/\s+/g, '');
 
@@ -36,7 +32,7 @@ async function resolveIds(tournamentCode: string, clubName: string, matchId: str
     );
   }
   if (!matchingTeam) return null;
-  return { tournamentId, teamId: matchingTeam.id };
+  return { tournamentId, teamId: matchingTeam.id, clubPassword: club?.password || DEFAULT_PASSWORD };
 }
 
 export async function GET(
@@ -56,13 +52,12 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ tournamentCode: string; clubName: string; matchId: string }> }
 ) {
-  if (!checkPassword(request)) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
   const { tournamentCode, clubName, matchId } = await params;
   const ids = await resolveIds(tournamentCode, clubName, matchId);
   if (!ids) return NextResponse.json({ message: 'Partido o club no encontrado' }, { status: 404 });
+  if (request.headers.get('x-pre-match-password') !== ids.clubPassword) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
 
   let body: { data: PreMatchData };
   try {
@@ -89,13 +84,12 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ tournamentCode: string; clubName: string; matchId: string }> }
 ) {
-  if (!checkPassword(request)) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
   const { tournamentCode, clubName, matchId } = await params;
   const ids = await resolveIds(tournamentCode, clubName, matchId);
   if (!ids) return NextResponse.json({ message: 'Not found' }, { status: 404 });
+  if (request.headers.get('x-pre-match-password') !== ids.clubPassword) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
 
   const provider = isReadOnlyMode() ? createPreMatchStorageProvider() : undefined;
   await deletePreMatchData(ids.tournamentId, matchId, ids.teamId, provider);

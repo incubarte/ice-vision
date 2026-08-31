@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { isSanctionActive } from '@/lib/discipline-helpers';
 
-const PRE_MATCH_PASSWORD = 'IceVision';
 
 interface PlayersControlCardProps {
   team: Team;
@@ -67,6 +66,14 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
   const tournamentId = matchContext?.tournamentId;
   const matchId = state.live.matchId ?? undefined;
   const teamId = teamData?.id;
+
+  const preMatchPassword = useMemo(() => {
+    if (!teamId) return 'IceVision';
+    const teamRecord = (state.config.activeTournament?.teams ?? []).find(t => t.id === teamId);
+    if (!teamRecord?.clubId) return 'IceVision';
+    const club = (state.config.activeTournament?.clubs ?? []).find(c => c.id === teamRecord.clubId);
+    return club?.password || 'IceVision';
+  }, [teamId, state.config.activeTournament]);
 
   const [preMatchData, setPreMatchData] = useState<PreMatchData | null>(null);
   const [preMatchChecked, setPreMatchChecked] = useState(false);
@@ -143,7 +150,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
     try {
       await fetch(`/api/pre-match/${tournamentId}/${teamId}/${matchId}`, {
         method: 'DELETE',
-        headers: { 'x-pre-match-password': PRE_MATCH_PASSWORD },
+        headers: { 'x-pre-match-password': preMatchPassword },
       });
     } catch {
       // Non-critical
