@@ -108,8 +108,8 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
 
   if (mode === 'scoreboard') {
     const layout = config.scoreboardLayout;
-    const textColorHsl = layout.penaltyTextColor ?? '0 0% 100%';
-    const textColor = `hsl(${textColorHsl})`;
+    const nameColor = `hsl(${layout.penaltyNameColor ?? layout.penaltyTextColor ?? '0 0% 100%'})`;
+    const clockColor = `hsl(${layout.penaltyClockColor ?? layout.penaltyTextColor ?? '220 15% 60%'})`;
     const numberStr = penalty.isBenchPenalty
       ? `Banco (#${penalty.playerNumber || 'S/N'})`
       : `#${penalty.playerNumber || 'S/N'}`;
@@ -140,7 +140,7 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
       >
         <span
           className="font-medium leading-none mb-0.5"
-          style={{ fontSize: `${layout.penaltyPlayerNumberSize * 0.85}rem`, color: textColor, opacity: 0.6 }}
+          style={{ fontSize: `${layout.penaltyPlayerNumberSize * 0.85}rem`, color: nameColor }}
         >
           {playerLine}
         </span>
@@ -148,8 +148,7 @@ export function PenaltyCard({ penalty, teamName, mode = 'desktop', clock: mobile
           className="font-bold font-headline tabular-nums leading-none"
           style={{
             fontSize: `${layout.penaltyTimeSize * 1.8}rem`,
-            color: isPendingPuck ? 'rgb(250 204 21)' : textColor,
-            opacity: isPendingPuck ? 1 : 0.75,
+            color: isPendingPuck ? 'rgb(250 204 21)' : clockColor,
           }}
         >
           {formatTime(remainingTimeCs, { showTenths: false, rounding: 'up' })}

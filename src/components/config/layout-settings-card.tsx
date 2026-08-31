@@ -170,6 +170,8 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
   const standingsRowHeight = scoreboardLayout.standingsTableRowHeight ?? INITIAL_LAYOUT_SETTINGS.standingsTableRowHeight;
 
   const penaltyTextColor = scoreboardLayout.penaltyTextColor ?? INITIAL_LAYOUT_SETTINGS.penaltyTextColor;
+  const penaltyNameColor = scoreboardLayout.penaltyNameColor ?? INITIAL_LAYOUT_SETTINGS.penaltyNameColor;
+  const penaltyClockColor = scoreboardLayout.penaltyClockColor ?? INITIAL_LAYOUT_SETTINGS.penaltyClockColor;
   const teamLogoSize = scoreboardLayout.teamLogoSize ?? INITIAL_LAYOUT_SETTINGS.teamLogoSize;
   const penaltyGap = scoreboardLayout.penaltyGap ?? INITIAL_LAYOUT_SETTINGS.penaltyGap;
   const penaltyBottomMargin = scoreboardLayout.penaltyBottomMargin ?? INITIAL_LAYOUT_SETTINGS.penaltyBottomMargin;
@@ -227,7 +229,8 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
             <SliderControl label="Espacio entre penalidades" value={penaltyGap} onValueChange={(v) => handleValueChange('penaltyGap', v)} min={0} max={6} step={0.25} />
             <SliderControl label="Margen inferior" value={penaltyBottomMargin} onValueChange={(v) => handleValueChange('penaltyBottomMargin', v)} min={0} max={12} step={0.25} />
             <SliderControl label="Icono Jugador" value={scoreboardLayout.penaltyPlayerIconSize} onValueChange={(v) => handleValueChange('penaltyPlayerIconSize', v)} min={1} max={5} step={0.1} />
-            <ColorControl label="Color texto penalidades" value={penaltyTextColor} onValueChange={(v) => handleValueChange('penaltyTextColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.penaltyTextColor} />
+            <ColorControl label="Color nombre/número" value={penaltyNameColor} onValueChange={(v) => handleValueChange('penaltyNameColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.penaltyNameColor} />
+            <ColorControl label="Color reloj penalidad" value={penaltyClockColor} onValueChange={(v) => handleValueChange('penaltyClockColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.penaltyClockColor} />
           </div>
         </div>
 

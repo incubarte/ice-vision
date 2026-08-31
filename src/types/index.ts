@@ -224,6 +224,8 @@ export interface ScoreboardLayoutSettings {
   penaltyGap: number;
   penaltyBottomMargin: number;
   penaltyTextColor: string;
+  penaltyNameColor?: string;  // Color del número/nombre del jugador en penalidades
+  penaltyClockColor?: string; // Color del reloj de penalidad
   scoreNumberStrokeWidth: number;
   showShotsInHeader?: boolean;
   shotsInHeaderSize?: number;
