@@ -128,6 +128,7 @@ export function CompactHeaderScoreboard() {
   const iconSize = scoreboardLayout.playersOnIceIconSize;
   const showShots = scoreboardLayout.showShotsInHeader ?? false;
   const shotsFontSize = scoreboardLayout.shotsInHeaderSize ?? 1.5;
+  const colWidth = `${scoreboardLayout.scoreColumnWidth ?? 38}%`;
   const homeShotsCount = shotsLog.home.length;
   const awayShotsCount = shotsLog.away.length;
 
@@ -177,7 +178,7 @@ export function CompactHeaderScoreboard() {
       <div className="flex justify-between items-center">
 
         {/* HOME */}
-        <div className="w-[38%] flex justify-center items-center gap-3">
+        <div className="flex justify-center items-center gap-3" style={{ width: colWidth }}>
           <TeamStack
             name={getTeamDisplayName(homeTeamName, homeTeamSubName)}
             logoUrl={homeLogoDataUrl}
@@ -199,7 +200,7 @@ export function CompactHeaderScoreboard() {
         </div>
 
         {/* AWAY */}
-        <div className="w-[38%] flex justify-center items-center gap-3">
+        <div className="flex justify-center items-center gap-3" style={{ width: colWidth }}>
           {showShots && <ShotsBadge count={awayShotsCount} />}
           <TeamStack
             name={getTeamDisplayName(awayTeamName, awayTeamSubName)}

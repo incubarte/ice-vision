@@ -227,6 +227,7 @@ export interface ScoreboardLayoutSettings {
   penaltyNameColor?: string;  // Color del número/nombre del jugador en penalidades
   penaltyClockColor?: string; // Color del reloj de penalidad
   scoreNumberStrokeWidth: number;
+  scoreColumnWidth?: number;  // Ancho de la columna de goles (%) — default 38
   showShotsInHeader?: boolean;
   shotsInHeaderSize?: number;
 }

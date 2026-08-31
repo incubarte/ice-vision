@@ -686,9 +686,12 @@ export function FullScoreboard({ className }: { className?: string }) {
                           <ClockDisplay sizeRem={scoreboardLayout.clockSize * 1.2} />
                         </div>
                         {/* Score SVGs — fixed, full screen height, pinned to their column edges */}
+                        {(() => {
+                          const colW = `${scoreboardLayout.scoreColumnWidth ?? 38}%`;
+                          return (<>
                         <svg
-                          className="fixed top-0 left-4 w-[38%] pointer-events-none select-none z-0"
-                          style={{ height: '100vh' }}
+                          className="fixed top-0 left-4 pointer-events-none select-none z-0"
+                          style={{ height: '100vh', width: colW }}
                           viewBox="0 0 100 100"
                           preserveAspectRatio="none"
                           aria-hidden="true"
@@ -698,8 +701,8 @@ export function FullScoreboard({ className }: { className?: string }) {
                           </text>
                         </svg>
                         <svg
-                          className="fixed top-0 right-4 w-[38%] pointer-events-none select-none z-0"
-                          style={{ height: '100vh' }}
+                          className="fixed top-0 right-4 pointer-events-none select-none z-0"
+                          style={{ height: '100vh', width: colW }}
                           viewBox="0 0 100 100"
                           preserveAspectRatio="none"
                           aria-hidden="true"
@@ -710,13 +713,15 @@ export function FullScoreboard({ className }: { className?: string }) {
                         </svg>
                         {/* Penalties */}
                         <div className="relative z-20 flex justify-between items-end h-full px-4" style={{ paddingBottom: `${scoreboardLayout.penaltyBottomMargin ?? 2}rem` }}>
-                          <div className="w-[38%]">
+                          <div style={{ width: colW }}>
                             <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} mode="scoreboard" />
                           </div>
-                          <div className="w-[38%]">
+                          <div style={{ width: colW }}>
                             <PenaltiesDisplay teamDisplayType="Visitante" teamName={awayTeamName} penalties={penalties.away} mode="scoreboard" />
                           </div>
                         </div>
+                          </>);
+                        })()}
                       </div>
                     ) : clock.periodDisplayOverride === 'Shootout' && shootout?.isActive ? (
                       <div className="flex flex-col items-center gap-4">

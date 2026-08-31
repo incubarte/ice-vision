@@ -83,6 +83,7 @@ export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
   penaltyNameColor: '0 0% 100%',    // blanco puro para nombre/número
   penaltyClockColor: '220 15% 60%', // gris azulado apagado para el reloj
   scoreNumberStrokeWidth: 0,
+  scoreColumnWidth: 38,
   showShotsInHeader: false,
   shotsInHeaderSize: 3.5,
 };

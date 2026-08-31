@@ -75,7 +75,7 @@ function hslToHex(h: number, s: number, l: number): string {
 // --- End Color Conversion Helpers ---
 
 
-const SliderControl = ({ label, value, onValueChange, min, max, step, unit = "rem" }: { label: string, value: number, onValueChange: (value: number) => void, min: number, max: number, step: number, unit?: string }) => (
+const SliderControl = ({ label, value, onValueChange, min, max, step, unit = "rem", defaultValue }: { label: string, value: number, onValueChange: (value: number) => void, min: number, max: number, step: number, unit?: string, defaultValue?: number }) => (
   <div className="grid grid-cols-3 items-center gap-x-4">
     <Label className="text-sm whitespace-nowrap">{label}</Label>
     <Slider
@@ -85,7 +85,18 @@ const SliderControl = ({ label, value, onValueChange, min, max, step, unit = "re
       max={max}
       step={step}
     />
-    <span className="text-sm text-muted-foreground tabular-nums">{value.toFixed(unit === '%' ? 0 : 2)} {unit}</span>
+    <div className="flex items-center gap-1">
+      <span className="text-sm text-muted-foreground tabular-nums">{value.toFixed(unit === '%' ? 0 : 2)} {unit}</span>
+      {defaultValue !== undefined && value !== defaultValue && (
+        <button
+          onClick={() => onValueChange(defaultValue)}
+          className="text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+          title="Restablecer valor por defecto"
+        >
+          <RotateCcw className="h-3 w-3" />
+        </button>
+      )}
+    </div>
   </div>
 );
 
@@ -217,6 +228,7 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
             <SliderControl label="Período" value={scoreboardLayout.periodSize} onValueChange={(v) => handleValueChange('periodSize', v)} min={2} max={8} step={0.1} />
             <SliderControl label="Logo del Torneo (tamaño)" value={scoreboardLayout.scoreSize} onValueChange={(v) => handleValueChange('scoreSize', v)} min={4} max={12} step={0.25} />
             <SliderControl label="Goles — Borde (grosor)" value={scoreNumberStrokeWidth} onValueChange={(v) => handleValueChange('scoreNumberStrokeWidth', v)} min={0} max={2} step={0.05} unit="u" />
+            <SliderControl label="Goles — Ancho columna" value={scoreboardLayout.scoreColumnWidth ?? INITIAL_LAYOUT_SETTINGS.scoreColumnWidth} onValueChange={(v) => handleValueChange('scoreColumnWidth', v)} min={20} max={60} step={1} unit="%" defaultValue={INITIAL_LAYOUT_SETTINGS.scoreColumnWidth} />
           </div>
         </div>
 
