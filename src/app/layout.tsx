@@ -22,7 +22,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Oswald:wght@400;700&family=Bebas+Neue&family=Barlow+Condensed:wght@400;700&family=Russo+One&family=Exo+2:wght@400;700;900&family=Orbitron:wght@400;700;900&family=Saira:wght@400;700;900&display=swap" rel="stylesheet" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

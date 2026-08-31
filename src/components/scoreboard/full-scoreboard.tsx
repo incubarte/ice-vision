@@ -696,7 +696,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                           preserveAspectRatio="none"
                           aria-hidden="true"
                         >
-                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.2)" strokeWidth={scoreboardLayout.scoreNumberStrokeWidth ?? 0} paintOrder="stroke">
+                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.2)" strokeWidth={scoreboardLayout.scoreNumberStrokeWidth ?? 0} paintOrder="stroke" fontFamily={scoreboardLayout.scoreFont ?? 'Space Grotesk'}>
                             {score.home}
                           </text>
                         </svg>
@@ -707,7 +707,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                           preserveAspectRatio="none"
                           aria-hidden="true"
                         >
-                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.2)" strokeWidth={scoreboardLayout.scoreNumberStrokeWidth ?? 0} paintOrder="stroke">
+                          <text x="50" y="88" textAnchor="middle" fontSize="105" fontWeight="900" textLength="90" lengthAdjust="spacingAndGlyphs" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.2)" strokeWidth={scoreboardLayout.scoreNumberStrokeWidth ?? 0} paintOrder="stroke" fontFamily={scoreboardLayout.scoreFont ?? 'Space Grotesk'}>
                             {score.away}
                           </text>
                         </svg>

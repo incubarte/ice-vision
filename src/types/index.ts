@@ -230,6 +230,7 @@ export interface ScoreboardLayoutSettings {
   scoreColumnWidth?: number;  // Ancho de la columna de goles (%) — default 38
   showShotsInHeader?: boolean;
   shotsInHeaderSize?: number;
+  scoreFont?: string;
 }
 
 export interface ScoreboardLayoutProfile extends ScoreboardLayoutSettings {

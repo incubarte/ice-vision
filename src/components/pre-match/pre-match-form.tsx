@@ -38,7 +38,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
   const { toast } = useToast();
 
   // Initialize player states from initialData or from team roster
-  const [playerStates, setPlayerStates] = useState<Record<string, { isPresent: boolean; number: string; clearedConflict?: boolean }>>(() => {
+  const [playerStates, setPlayerStates] = useState<Record<string, { isPresent: boolean; number: string }>>(() => {
     const init: Record<string, { isPresent: boolean; number: string; clearedConflict?: boolean }> = {};
     for (const p of team.players) {
       const saved = initialData?.players.find(e => e.playerId === p.id);
@@ -76,50 +76,33 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
   }, [playerStates, extraPlayers, team.players]);
 
   function handleNumberChange(playerId: string, newNumber: string) {
-    setPlayerStates(prev => {
-      const updated = { ...prev };
-
-      // Auto-clear any other roster player that has this number
-      if (newNumber.trim()) {
-        for (const pid of Object.keys(updated)) {
-          if (pid !== playerId && updated[pid].number.trim() === newNumber.trim()) {
-            updated[pid] = { ...updated[pid], number: '', clearedConflict: true };
-          }
-        }
-        // Auto-clear any extra player with the same number
-        setExtraPlayers(prev =>
-          prev.map(e => e.number.trim() === newNumber.trim() ? { ...e, number: '' } : e)
-        );
-      }
-
-      updated[playerId] = { ...updated[playerId], number: newNumber, clearedConflict: false };
-      return updated;
-    });
+    setPlayerStates(prev => ({
+      ...prev,
+      [playerId]: { ...prev[playerId], number: newNumber },
+    }));
   }
 
   function handleExtraNumberChange(index: number, newNumber: string) {
     setExtraPlayers(prev => {
       const updated = [...prev];
-      // Auto-clear conflicts in extras
-      const cleared = updated.map((e, i) =>
-        i !== index && e.number.trim() === newNumber.trim() ? { ...e, number: '' } : e
-      );
-      cleared[index] = { ...cleared[index], number: newNumber };
-      // Auto-clear conflicts in roster players
-      if (newNumber.trim()) {
-        setPlayerStates(prev2 => {
-          const updated2 = { ...prev2 };
-          for (const pid of Object.keys(updated2)) {
-            if (updated2[pid].number.trim() === newNumber.trim()) {
-              updated2[pid] = { ...updated2[pid], number: '', clearedConflict: true };
-            }
-          }
-          return updated2;
-        });
-      }
-      return cleared;
+      updated[index] = { ...updated[index], number: newNumber };
+      return updated;
     });
   }
+
+  // Compute duplicate numbers for inline validation
+  const duplicateNumbers = (() => {
+    const seen: Record<string, number> = {};
+    for (const p of team.players) {
+      const n = playerStates[p.id]?.number?.trim();
+      if (n) seen[n] = (seen[n] ?? 0) + 1;
+    }
+    extraPlayers.forEach(e => {
+      const n = e.number.trim();
+      if (n) seen[n] = (seen[n] ?? 0) + 1;
+    });
+    return new Set(Object.keys(seen).filter(n => seen[n] > 1));
+  })();
 
   function handleAddExtra() {
     const name = newExtraName.trim();
@@ -271,13 +254,13 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
                   {player.name}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  {state.clearedConflict && (
-                    <span title="Número liberado por conflicto con otro jugador">
-                      <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  {duplicateNumbers.has(state.number?.trim()) && state.number?.trim() && (
+                    <span title="Número repetido">
+                      <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
                     </span>
                   )}
                   <Input
-                    className="w-16 h-7 text-center text-sm font-mono"
+                    className={cn("w-16 h-7 text-center text-sm font-mono", duplicateNumbers.has(state.number?.trim()) && state.number?.trim() && "border-destructive text-destructive")}
                     value={state.number}
                     onChange={e => handleNumberChange(player.id, e.target.value)}
                     placeholder="Nº"
@@ -303,7 +286,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
               )}
               <span className="flex-1 text-sm">{extra.name}</span>
               <Input
-                className="w-16 h-7 text-center text-sm font-mono"
+                className={cn("w-16 h-7 text-center text-sm font-mono", duplicateNumbers.has(extra.number?.trim()) && extra.number?.trim() && "border-destructive text-destructive")}
                 value={extra.number}
                 onChange={e => handleExtraNumberChange(i, e.target.value)}
                 placeholder="Nº"

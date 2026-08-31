@@ -7,6 +7,7 @@ import { ControlCardWrapper } from "@/components/controls/control-card-wrapper";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RotateCcw } from "lucide-react";
 import {
   Tooltip,
@@ -15,6 +16,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { INITIAL_LAYOUT_SETTINGS } from "@/contexts/game-state-context";
+
+const SCORE_FONTS = [
+  { value: 'Space Grotesk',    label: 'Space Grotesk' },
+  { value: 'Oswald',           label: 'Oswald' },
+  { value: 'Bebas Neue',       label: 'Bebas Neue' },
+  { value: 'Barlow Condensed', label: 'Barlow Condensed (default)' },
+  { value: 'Russo One',        label: 'Russo One' },
+  { value: 'Exo 2',            label: 'Exo 2' },
+  { value: 'Orbitron',         label: 'Orbitron' },
+  { value: 'Saira',            label: 'Saira' },
+];
 
 // --- Color Conversion Helpers ---
 function hexToHsl(hex: string): string {
@@ -229,6 +241,26 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
             <SliderControl label="Logo del Torneo (tamaño)" value={scoreboardLayout.scoreSize} onValueChange={(v) => handleValueChange('scoreSize', v)} min={4} max={12} step={0.25} />
             <SliderControl label="Goles — Borde (grosor)" value={scoreNumberStrokeWidth} onValueChange={(v) => handleValueChange('scoreNumberStrokeWidth', v)} min={0} max={2} step={0.05} unit="u" />
             <SliderControl label="Goles — Ancho columna" value={scoreboardLayout.scoreColumnWidth ?? INITIAL_LAYOUT_SETTINGS.scoreColumnWidth} onValueChange={(v) => handleValueChange('scoreColumnWidth', v)} min={20} max={60} step={1} unit="%" defaultValue={INITIAL_LAYOUT_SETTINGS.scoreColumnWidth} />
+            <div className="grid grid-cols-3 items-center gap-x-4">
+              <Label className="text-sm whitespace-nowrap">Goles — Tipografía</Label>
+              <div className="col-span-2">
+                <Select
+                  value={scoreboardLayout.scoreFont ?? INITIAL_LAYOUT_SETTINGS.scoreFont}
+                  onValueChange={(v) => handleValueChange('scoreFont', v)}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SCORE_FONTS.map(f => (
+                      <SelectItem key={f.value} value={f.value} style={{ fontFamily: `'${f.value}', sans-serif` }}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </div>
 

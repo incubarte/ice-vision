@@ -86,6 +86,7 @@ export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
   scoreColumnWidth: 38,
   showShotsInHeader: false,
   shotsInHeaderSize: 3.5,
+  scoreFont: 'Barlow Condensed',
 };
 
 export const IN_CODE_INITIAL_REPLAYS_SETTINGS: ReplaySettings = {

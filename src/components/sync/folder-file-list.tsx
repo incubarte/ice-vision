@@ -189,17 +189,17 @@ export function FolderFileList({
           <div
             className={`flex items-center gap-2 py-1 px-2 rounded cursor-pointer ${colors.hover}`}
             style={{ paddingLeft: `${Math.max(8, level * 16)}px` }}
+            onClick={() => toggleExpanded(node.path)}
           >
-            <Checkbox
-              id={`folder-${node.path}`}
-              checked={isPartiallySelected ? 'indeterminate' : isFullySelected}
-              onCheckedChange={() => toggleFolder(node)}
-              className="mt-0.5"
-            />
-            <div
-              className="flex items-center gap-1 flex-1"
-              onClick={() => toggleExpanded(node.path)}
-            >
+            <div onClick={e => e.stopPropagation()}>
+              <Checkbox
+                id={`folder-${node.path}`}
+                checked={isPartiallySelected ? 'indeterminate' : isFullySelected}
+                onCheckedChange={() => toggleFolder(node)}
+                className="mt-0.5"
+              />
+            </div>
+            <div className="flex items-center gap-1 flex-1">
               {isExpanded ? (
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
               ) : (

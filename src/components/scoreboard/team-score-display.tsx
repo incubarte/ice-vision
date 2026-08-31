@@ -178,7 +178,8 @@ export function TeamScoreDisplay({
                 )}
               style={{
                 fontSize: `${layout.scoreSize}rem`,
-                marginTop: `${layout.scoreLabelGap}rem`
+                marginTop: `${layout.scoreLabelGap}rem`,
+                fontFamily: layout.scoreFont ? `'${layout.scoreFont}', sans-serif` : undefined,
               }}
             >
             {score}
