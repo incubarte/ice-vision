@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Home, Settings, Wrench, MonitorPlay, Loader2, Trophy, ChevronsUpDown, Video, Check } from 'lucide-react';
+import { Home, Settings, Wrench, MonitorPlay, Loader2, Trophy, ChevronsUpDown, Video, Check, AlertTriangle } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FullscreenToggle } from './fullscreen-toggle';
@@ -19,6 +19,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useGameState } from '@/contexts/game-state-context';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { TournamentLogo } from '../tournaments/tournament-logo';
 
 const EXTERNAL_WINDOW_CONFIG_KEY = 'externalWindowConfig';
@@ -70,9 +74,30 @@ export function Header() {
     return (tournaments || []).find(t => t.id === selectedTournamentId);
   }, [tournaments, selectedTournamentId]);
 
+  const [pendingTournamentId, setPendingTournamentId] = useState<string | null>(null);
+
+  const hasActiveMatch = !!(state.live?.matchId);
+  const activeMatchTournamentId = state.live?.matchContext?.tournamentId ?? null;
+
   const handleSelectTournament = (tournamentId: string) => {
+    // If there's an active match belonging to a different tournament, confirm before switching
+    if (hasActiveMatch && activeMatchTournamentId && activeMatchTournamentId !== tournamentId) {
+      setPendingTournamentId(tournamentId);
+      return;
+    }
+    doSelectTournament(tournamentId);
+  };
+
+  const doSelectTournament = (tournamentId: string) => {
     dispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { tournamentId } });
     router.push(`/tournaments/${tournamentId}`);
+  };
+
+  const handleConfirmTournamentSwitch = () => {
+    if (!pendingTournamentId) return;
+    dispatch({ type: 'RESET_GAME_STATE' });
+    doSelectTournament(pendingTournamentId);
+    setPendingTournamentId(null);
   };
 
 
@@ -355,6 +380,26 @@ export function Header() {
         </div>
       </div>
     </header>
+
+    <AlertDialog open={!!pendingTournamentId} onOpenChange={open => { if (!open) setPendingTournamentId(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            ¿Cambiar de torneo?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            Hay un partido en curso. Si cambiás de torneo, el partido actual será descartado y no se podrá recuperar.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmTournamentSwitch} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Descartar partido y cambiar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     </>
   );
