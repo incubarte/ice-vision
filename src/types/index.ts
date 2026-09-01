@@ -88,6 +88,9 @@ export interface TeamData {
   logoDataUrl?: string | null;
   players: PlayerData[];
   category: string;
+  coach?: string;
+  assistant1?: string;
+  assistant2?: string;
 }
 
 export type SanctionType = 'calendar_days' | 'matches' | 'pending_review';
@@ -308,6 +311,9 @@ export interface PreMatchData {
   version?: number;       // Incremented on each save
   players: PreMatchPlayerEntry[];
   extraPlayers: PreMatchExtraPlayer[];
+  coach?: string;
+  assistant1?: string;
+  assistant2?: string;
 }
 
 // Live attendance: only present players stored. id/isPresent kept optional for backward compat with old data.
@@ -425,6 +431,12 @@ export interface SummaryPeriodSummary {
 }
 
 // This is the model for post-game summaries. It should be self-contained.
+export interface TeamCoachInfo {
+  coach: string;
+  assistant1?: string;
+  assistant2?: string;
+}
+
 export interface GameSummary {
   attendance: {
     home: SummaryRosterEntry[];
@@ -442,6 +454,10 @@ export interface GameSummary {
   staff?: {
     mesa: AssignedStaffInfo[];
     referees: AssignedStaffInfo[];
+  };
+  coaches?: {
+    home: TeamCoachInfo;
+    away: TeamCoachInfo;
   };
 }
 
@@ -715,6 +731,12 @@ export interface MatchContext {
   homeRoster: PlayerData[];    // full roster snapshot for photos (has photoFileName)
   awayRoster: PlayerData[];    // full roster snapshot for photos
   staff: StaffMember[];        // resolved staff list
+  homeCoach?: string;
+  homeAssistant1?: string;
+  homeAssistant2?: string;
+  awayCoach?: string;
+  awayAssistant1?: string;
+  awayAssistant2?: string;
 }
 
 // This is the model for live, in-game data

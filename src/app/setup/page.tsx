@@ -302,6 +302,12 @@ function SetupPageContent() {
                     homeRoster: homeTeam.players,
                     awayRoster: awayTeam.players,
                     staff: selectedTournament.staff || [],
+                    homeCoach: homeTeam.coach,
+                    homeAssistant1: homeTeam.assistant1,
+                    homeAssistant2: homeTeam.assistant2,
+                    awayCoach: awayTeam.coach,
+                    awayAssistant1: awayTeam.assistant1,
+                    awayAssistant2: awayTeam.assistant2,
                 };
                 dispatch({ type: 'UPDATE_LIVE_STATE', payload: { matchContext } });
             }

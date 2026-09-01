@@ -404,5 +404,21 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
         finalSummary.expulsions = live.matchExpulsions;
     }
 
+    // Coaching staff from matchContext
+    if (matchContext?.homeCoach || matchContext?.awayCoach) {
+        finalSummary.coaches = {
+            home: {
+                coach: matchContext.homeCoach || '',
+                assistant1: matchContext.homeAssistant1,
+                assistant2: matchContext.homeAssistant2,
+            },
+            away: {
+                coach: matchContext.awayCoach || '',
+                assistant1: matchContext.awayAssistant1,
+                assistant2: matchContext.awayAssistant2,
+            },
+        };
+    }
+
     return finalSummary;
 };

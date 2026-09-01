@@ -6,7 +6,9 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useGameState, getCategoryNameById } from "@/contexts/game-state-context";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Trash2, Users, Info, ListFilter, LayoutGrid, LayoutList, Shield, User, Calendar, Trophy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Edit, Trash2, Users, Info, ListFilter, LayoutGrid, LayoutList, Shield, User, Calendar, Trophy, UserCog, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddPlayerForm } from "@/components/teams/add-player-form";
 import { usePlayerStats } from "@/hooks/use-player-stats";
@@ -61,6 +63,18 @@ export default function ManageTeamPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [editingPlayer, setEditingPlayer] = useState<PlayerData | null>(null);
   const [playerToDelete, setPlayerToDelete] = useState<PlayerData | null>(null);
+
+  const [coachName, setCoachName] = useState('');
+  const [assistant1Name, setAssistant1Name] = useState('');
+  const [assistant2Name, setAssistant2Name] = useState('');
+
+  useEffect(() => {
+    if (team) {
+      setCoachName(team.coach ?? '');
+      setAssistant1Name(team.assistant1 ?? '');
+      setAssistant2Name(team.assistant2 ?? '');
+    }
+  }, [team?.id]);
 
   const sortedPlayers = useMemo(() => {
     if (!team?.players) return [];
@@ -145,6 +159,28 @@ export default function ManageTeamPage() {
       variant: "destructive",
     });
     router.push(`/tournaments/${tournament.id}`);
+  };
+
+  const handleSaveCoaching = () => {
+    if (!coachName.trim()) {
+      toast({ title: 'El coach es obligatorio', variant: 'destructive' });
+      return;
+    }
+    dispatch({
+      type: 'UPDATE_TEAM_DETAILS',
+      payload: {
+        teamId: team.id,
+        name: team.name,
+        subName: team.subName,
+        clubId: team.clubId,
+        category: team.category,
+        logoDataUrl: team.logoDataUrl ?? null,
+        coach: coachName.trim(),
+        assistant1: assistant1Name.trim() || undefined,
+        assistant2: assistant2Name.trim() || undefined,
+      },
+    });
+    toast({ title: 'Cuerpo técnico guardado' });
   };
 
   const categoryName = getCategoryNameById(team.category, tournament.categories);
@@ -372,6 +408,60 @@ export default function ManageTeamPage() {
               </div>
             )}
           </div>
+          {/* Coaching staff */}
+          {!isReadOnly && (
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <UserCog className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Cuerpo Técnico</h3>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Coach / Responsable <span className="text-destructive">*</span></Label>
+                  <Input
+                    value={coachName}
+                    onChange={e => setCoachName(e.target.value)}
+                    placeholder="Nombre completo"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">1er Asistente</Label>
+                  <Input
+                    value={assistant1Name}
+                    onChange={e => setAssistant1Name(e.target.value)}
+                    placeholder="Opcional"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">2do Asistente</Label>
+                  <Input
+                    value={assistant2Name}
+                    onChange={e => setAssistant2Name(e.target.value)}
+                    placeholder="Opcional"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <Button size="sm" onClick={handleSaveCoaching} className="h-8">
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+                Guardar cuerpo técnico
+              </Button>
+            </div>
+          )}
+
+          {isReadOnly && (team.coach) && (
+            <div className="border rounded-lg p-4 space-y-1">
+              <div className="flex items-center gap-2 mb-1">
+                <UserCog className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Cuerpo Técnico</h3>
+              </div>
+              <p className="text-sm">Coach: <span className="font-medium">{team.coach}</span></p>
+              {team.assistant1 && <p className="text-sm text-muted-foreground">1er Asistente: {team.assistant1}</p>}
+              {team.assistant2 && <p className="text-sm text-muted-foreground">2do Asistente: {team.assistant2}</p>}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="matches" className="space-y-6 mt-6">

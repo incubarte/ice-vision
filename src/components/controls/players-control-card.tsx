@@ -140,7 +140,25 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
       }
     }
 
-    // 3. Store extra players for display (operator adds them manually)
+    // 3. Apply coach info to matchContext
+    if (preMatchData.coach && matchContext) {
+      const coachKey = team === 'home' ? 'homeCoach' : 'awayCoach';
+      const asst1Key = team === 'home' ? 'homeAssistant1' : 'awayAssistant1';
+      const asst2Key = team === 'home' ? 'homeAssistant2' : 'awayAssistant2';
+      dispatch({
+        type: 'UPDATE_LIVE_STATE',
+        payload: {
+          matchContext: {
+            ...matchContext,
+            [coachKey]: preMatchData.coach,
+            [asst1Key]: preMatchData.assistant1 ?? undefined,
+            [asst2Key]: preMatchData.assistant2 ?? undefined,
+          },
+        },
+      });
+    }
+
+    // 4. Store extra players for display (operator adds them manually)
     if (preMatchData.extraPlayers.length > 0) {
       setPendingExtras(preMatchData.extraPlayers);
       setExtrasApplied(true);

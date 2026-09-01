@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, User, Plus, Trash2, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Shield, User, Plus, Trash2, AlertCircle, CheckCircle2, Loader2, UserCog } from 'lucide-react';
 import { cn, getTeamDisplayName } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -57,6 +57,10 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
   const [newExtraName, setNewExtraName] = useState('');
   const [newExtraNumber, setNewExtraNumber] = useState('');
   const [newExtraType, setNewExtraType] = useState<PlayerType>('player');
+
+  const [coachName, setCoachName] = useState(initialData?.coach ?? team.coach ?? '');
+  const [assistant1Name, setAssistant1Name] = useState(initialData?.assistant1 ?? team.assistant1 ?? '');
+  const [assistant2Name, setAssistant2Name] = useState(initialData?.assistant2 ?? team.assistant2 ?? '');
 
   const [isSaving, setIsSaving] = useState(false);
   const [savedOnce, setSavedOnce] = useState(initialData !== null);
@@ -152,6 +156,11 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
       return;
     }
 
+    if (!coachName.trim()) {
+      toast({ title: 'El coach/responsable es obligatorio', variant: 'destructive' });
+      return;
+    }
+
     const data: PreMatchData = {
       tournamentId: '', // resolved server-side from tournamentCode
       matchId: match.id,
@@ -166,6 +175,9 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
         isPresent: playerStates[p.id]?.isPresent ?? false,
       })),
       extraPlayers,
+      coach: coachName.trim(),
+      assistant1: assistant1Name.trim() || undefined,
+      assistant2: assistant2Name.trim() || undefined,
     };
 
     setIsSaving(true);
@@ -344,6 +356,47 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
             >
               <Plus className="h-4 w-4" />
             </Button>
+          </div>
+        </div>
+
+        {/* Coaching staff */}
+        <div className="space-y-2 border-t pt-4">
+          <div className="flex items-center gap-2">
+            <UserCog className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm font-medium">Cuerpo Técnico</Label>
+          </div>
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">
+                Coach / Responsable <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                className={cn('h-8 text-sm', !coachName.trim() && 'border-destructive')}
+                placeholder="Nombre completo (obligatorio)"
+                value={coachName}
+                onChange={e => setCoachName(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">1er Asistente</Label>
+                <Input
+                  className="h-8 text-sm"
+                  placeholder="Opcional"
+                  value={assistant1Name}
+                  onChange={e => setAssistant1Name(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">2do Asistente</Label>
+                <Input
+                  className="h-8 text-sm"
+                  placeholder="Opcional"
+                  value={assistant2Name}
+                  onChange={e => setAssistant2Name(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
