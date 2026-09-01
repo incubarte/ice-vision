@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     if (config?.selectedTournamentId) {
       const tournamentMeta = tournamentsData?.tournaments?.find(t => t.id === config.selectedTournamentId);
       if (tournamentMeta) {
-        const fullTournament = await readTournament(config.selectedTournamentId, { includeSummaries: false });
+        const fullTournament = await readTournament(config.selectedTournamentId);
         if (fullTournament) {
           activeTournament = {
             ...tournamentMeta,
