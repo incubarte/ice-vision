@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, User, Plus, ChevronUp, ShieldAlert, ClipboardCheck, Info, X, Download, Loader2, UserCog, Save } from 'lucide-react';
+import { Shield, User, Plus, ChevronUp, ShieldAlert, ClipboardCheck, Info, X, Download, Loader2, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -110,7 +110,6 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
         },
       },
     });
-    toast({ title: 'Cuerpo técnico guardado' });
   };
 
   const fetchPreMatchData = useCallback(async (showToast = false) => {
@@ -750,6 +749,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
                 placeholder="Nombre completo"
                 value={coachName}
                 onChange={e => setCoachName(e.target.value)}
+                onBlur={handleSaveCoaching}
               />
             </div>
             <div className="grid grid-cols-2 gap-1.5">
@@ -760,6 +760,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
                   placeholder="Opcional"
                   value={assistant1Name}
                   onChange={e => setAssistant1Name(e.target.value)}
+                  onBlur={handleSaveCoaching}
                 />
               </div>
               <div className="space-y-0.5">
@@ -769,12 +770,10 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
                   placeholder="Opcional"
                   value={assistant2Name}
                   onChange={e => setAssistant2Name(e.target.value)}
+                  onBlur={handleSaveCoaching}
                 />
               </div>
             </div>
-            <Button size="sm" variant="outline" className="h-7 text-xs w-full" onClick={handleSaveCoaching}>
-              <Save className="h-3 w-3 mr-1.5" /> Guardar
-            </Button>
           </div>
         </div>
       </CardContent>
