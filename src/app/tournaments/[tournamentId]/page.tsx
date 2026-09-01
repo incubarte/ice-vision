@@ -32,14 +32,24 @@ export default function TournamentDetailPage() {
 
   const tournamentId = typeof params.tournamentId === 'string' ? params.tournamentId : undefined;
 
+  // Fetch full tournament data directly (teams, matches, summaries) without touching selectedTournamentId.
+  // This keeps "browsing a tournament" decoupled from "setting the active scoreboard tournament".
   useEffect(() => {
-    if (tournamentId && state.config.selectedTournamentId !== tournamentId) {
-      dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: tournamentId } });
-    }
-  // Only re-run when the URL param changes, not when selectedTournamentId is changed externally.
-  // Including selectedTournamentId in deps would cause a loop with use-auto-switch-tournament.
+    if (!tournamentId) return;
+    if (state.config.activeTournament?.id === tournamentId) return; // Already loaded
+    fetch(`/api/tournaments/${tournamentId}`)
+      .then(res => { if (!res.ok) throw new Error(`${res.status}`); return res.json(); })
+      .then(data => {
+        if (data.tournament) {
+          dispatch({ type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: data.tournament } });
+        }
+      })
+      .catch(err => console.error('[TournamentPage] Failed to load tournament data:', err));
+  // Re-run only when the URL param changes. activeTournament is checked at runtime to skip
+  // unnecessary fetches but is not a trigger — adding it would cause re-fetch loops.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentId, dispatch]);
+
   const initialTab = searchParams.get('tab') || (shouldShowTeams ? 'clubs' : 'fixture');
   const initialFixtureView = searchParams.get('view') === 'list' ? 'list' : 'calendar';
 
