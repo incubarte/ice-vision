@@ -34,6 +34,12 @@ export async function POST(request: NextRequest) {
     const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
     await writeSingleMatchSummary(tournamentId, matchId, summary, provider);
 
+    // In local mode, mirror summary to Supabase so the cloud (read-only) deployment sees it
+    if (!isAdminRequest && process.env.STORAGE_PROVIDER === 'local' && process.env.SUPABASE_SERVICE_KEY) {
+      writeSingleMatchSummary(tournamentId, matchId, summary, createAdminStorageProvider())
+        .catch(err => console.error('[match-summary] Cloud mirror failed:', err));
+    }
+
     return NextResponse.json({
       success: true,
       message: `Summary for match ${matchId} saved successfully`
