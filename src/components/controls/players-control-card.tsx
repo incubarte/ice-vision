@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, User, Plus, ChevronUp, ShieldAlert, ClipboardCheck, Info, X, Download, Loader2 } from 'lucide-react';
+import { Shield, User, Plus, ChevronUp, ShieldAlert, ClipboardCheck, Info, X, Download, Loader2, UserCog, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -80,6 +80,38 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
   const [isDownloading, setIsDownloading] = useState(false);
   const [pendingExtras, setPendingExtras] = useState<PreMatchExtraPlayer[]>([]);
   const [extrasApplied, setExtrasApplied] = useState(false);
+
+  // Coaching staff — initialized from matchContext and kept in sync
+  const coachKey = team === 'home' ? 'homeCoach' : 'awayCoach';
+  const asst1Key = team === 'home' ? 'homeAssistant1' : 'awayAssistant1';
+  const asst2Key = team === 'home' ? 'homeAssistant2' : 'awayAssistant2';
+  const [coachName, setCoachName] = useState((matchContext as any)?.[coachKey] ?? '');
+  const [assistant1Name, setAssistant1Name] = useState((matchContext as any)?.[asst1Key] ?? '');
+  const [assistant2Name, setAssistant2Name] = useState((matchContext as any)?.[asst2Key] ?? '');
+
+  // Keep local state in sync if matchContext changes (e.g. after pre-match apply)
+  useEffect(() => {
+    setCoachName((matchContext as any)?.[coachKey] ?? '');
+    setAssistant1Name((matchContext as any)?.[asst1Key] ?? '');
+    setAssistant2Name((matchContext as any)?.[asst2Key] ?? '');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchContext?.[coachKey as keyof typeof matchContext], matchContext?.[asst1Key as keyof typeof matchContext], matchContext?.[asst2Key as keyof typeof matchContext]]);
+
+  const handleSaveCoaching = () => {
+    if (!matchContext) return;
+    dispatch({
+      type: 'UPDATE_LIVE_STATE',
+      payload: {
+        matchContext: {
+          ...matchContext,
+          [coachKey]: coachName.trim() || undefined,
+          [asst1Key]: assistant1Name.trim() || undefined,
+          [asst2Key]: assistant2Name.trim() || undefined,
+        },
+      },
+    });
+    toast({ title: 'Cuerpo técnico guardado' });
+  };
 
   const fetchPreMatchData = useCallback(async (showToast = false) => {
     if (!tournamentId || !matchId || !teamId) return;
@@ -701,6 +733,48 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Coaching staff */}
+        <div className="mt-4 border-t pt-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <UserCog className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Cuerpo Técnico</span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="space-y-0.5">
+              <Label className="text-xs text-muted-foreground">Coach / Responsable</Label>
+              <Input
+                className="h-8 text-sm"
+                placeholder="Nombre completo"
+                value={coachName}
+                onChange={e => setCoachName(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="space-y-0.5">
+                <Label className="text-xs text-muted-foreground">1er Asistente</Label>
+                <Input
+                  className="h-8 text-sm"
+                  placeholder="Opcional"
+                  value={assistant1Name}
+                  onChange={e => setAssistant1Name(e.target.value)}
+                />
+              </div>
+              <div className="space-y-0.5">
+                <Label className="text-xs text-muted-foreground">2do Asistente</Label>
+                <Input
+                  className="h-8 text-sm"
+                  placeholder="Opcional"
+                  value={assistant2Name}
+                  onChange={e => setAssistant2Name(e.target.value)}
+                />
+              </div>
+            </div>
+            <Button size="sm" variant="outline" className="h-7 text-xs w-full" onClick={handleSaveCoaching}>
+              <Save className="h-3 w-3 mr-1.5" /> Guardar
+            </Button>
           </div>
         </div>
       </CardContent>
