@@ -79,6 +79,7 @@ export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
   teamLogoSize: 12,
   penaltyGap: 1,
   penaltyBottomMargin: 2,
+  penaltySideMargin: 1,
   penaltyTextColor: '0 0% 100%',
   penaltyNameColor: '0 0% 100%',    // blanco puro para nombre/número
   penaltyClockColor: '220 15% 60%', // gris azulado apagado para el reloj

@@ -198,6 +198,7 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
   const teamLogoSize = scoreboardLayout.teamLogoSize ?? INITIAL_LAYOUT_SETTINGS.teamLogoSize;
   const penaltyGap = scoreboardLayout.penaltyGap ?? INITIAL_LAYOUT_SETTINGS.penaltyGap;
   const penaltyBottomMargin = scoreboardLayout.penaltyBottomMargin ?? INITIAL_LAYOUT_SETTINGS.penaltyBottomMargin;
+  const penaltySideMargin = scoreboardLayout.penaltySideMargin ?? INITIAL_LAYOUT_SETTINGS.penaltySideMargin;
   const scoreNumberStrokeWidth = scoreboardLayout.scoreNumberStrokeWidth ?? INITIAL_LAYOUT_SETTINGS.scoreNumberStrokeWidth;
 
   return (
@@ -209,7 +210,7 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
           <h4 className="text-base font-semibold mb-3">Datos de Equipo</h4>
           <div className="space-y-4">
             <SliderControl label="Posición vertical" value={scoreboardLayout.scoreboardVerticalPosition} onValueChange={(v) => handleValueChange('scoreboardVerticalPosition', v)} min={-4} max={20} step={0.5} />
-            <SliderControl label="Logo (tamaño)" value={teamLogoSize} onValueChange={(v) => handleValueChange('teamLogoSize', v)} min={4} max={24} step={0.5} />
+            <SliderControl label="Logo (tamaño)" value={teamLogoSize} onValueChange={(v) => handleValueChange('teamLogoSize', v)} min={4} max={40} step={0.5} />
             <SliderControl label="Nombre (tamaño)" value={scoreboardLayout.teamNameSize} onValueChange={(v) => handleValueChange('teamNameSize', v)} min={1.5} max={10} step={0.1} />
             <SliderControl label="Nombre (ancho máx.)" value={scoreboardLayout.teamNameWidth} onValueChange={(v) => handleValueChange('teamNameWidth', v)} min={8} max={60} step={0.5} />
             <SliderControl label="Iconos Jugadores" value={scoreboardLayout.playersOnIceIconSize} onValueChange={(v) => handleValueChange('playersOnIceIconSize', v)} min={1} max={4} step={0.1} />
@@ -272,6 +273,7 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
             <SliderControl label="Tiempo (tamaño)" value={scoreboardLayout.penaltyTimeSize} onValueChange={(v) => handleValueChange('penaltyTimeSize', v)} min={1.5} max={14} step={0.1} />
             <SliderControl label="Espacio entre penalidades" value={penaltyGap} onValueChange={(v) => handleValueChange('penaltyGap', v)} min={0} max={6} step={0.25} />
             <SliderControl label="Margen inferior" value={penaltyBottomMargin} onValueChange={(v) => handleValueChange('penaltyBottomMargin', v)} min={0} max={12} step={0.25} />
+            <SliderControl label="Margen lateral" value={penaltySideMargin} onValueChange={(v) => handleValueChange('penaltySideMargin', v)} min={0} max={20} step={0.25} />
             <SliderControl label="Icono Jugador" value={scoreboardLayout.penaltyPlayerIconSize} onValueChange={(v) => handleValueChange('penaltyPlayerIconSize', v)} min={1} max={5} step={0.1} />
             <ColorControl label="Color nombre/número" value={penaltyNameColor} onValueChange={(v) => handleValueChange('penaltyNameColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.penaltyNameColor} />
             <ColorControl label="Color reloj penalidad" value={penaltyClockColor} onValueChange={(v) => handleValueChange('penaltyClockColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.penaltyClockColor} />

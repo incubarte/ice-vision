@@ -712,7 +712,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                           </text>
                         </svg>
                         {/* Penalties */}
-                        <div className="relative z-20 flex justify-between items-end h-full px-4" style={{ paddingBottom: `${scoreboardLayout.penaltyBottomMargin ?? 2}rem` }}>
+                        <div className="relative z-20 flex justify-between items-end h-full" style={{ paddingBottom: `${scoreboardLayout.penaltyBottomMargin ?? 2}rem`, paddingLeft: `${scoreboardLayout.penaltySideMargin ?? 1}rem`, paddingRight: `${scoreboardLayout.penaltySideMargin ?? 1}rem` }}>
                           <div style={{ width: colW }}>
                             <PenaltiesDisplay teamDisplayType="Local" teamName={homeTeamName} penalties={penalties.home} mode="scoreboard" />
                           </div>
