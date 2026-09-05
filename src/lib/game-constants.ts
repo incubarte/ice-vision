@@ -87,6 +87,9 @@ export const INITIAL_LAYOUT_SETTINGS: ScoreboardLayoutSettings = {
   scoreColumnWidth: 38,
   showShotsInHeader: false,
   shotsInHeaderSize: 3.5,
+  shotsTitleSize: 1.0,
+  shotsTitleColor: '220 15% 60%',
+  shotsGap: 0.25,
   scoreFont: 'Barlow Condensed',
 };
 

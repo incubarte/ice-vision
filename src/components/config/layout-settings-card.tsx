@@ -189,6 +189,9 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
 
   const showShotsInHeader = scoreboardLayout.showShotsInHeader ?? INITIAL_LAYOUT_SETTINGS.showShotsInHeader;
   const shotsInHeaderSize = scoreboardLayout.shotsInHeaderSize ?? INITIAL_LAYOUT_SETTINGS.shotsInHeaderSize;
+  const shotsTitleSize = scoreboardLayout.shotsTitleSize ?? INITIAL_LAYOUT_SETTINGS.shotsTitleSize;
+  const shotsTitleColor = scoreboardLayout.shotsTitleColor ?? INITIAL_LAYOUT_SETTINGS.shotsTitleColor;
+  const shotsGap = scoreboardLayout.shotsGap ?? INITIAL_LAYOUT_SETTINGS.shotsGap;
   const standingsFontSize = scoreboardLayout.standingsTableFontSize ?? INITIAL_LAYOUT_SETTINGS.standingsTableFontSize;
   const standingsRowHeight = scoreboardLayout.standingsTableRowHeight ?? INITIAL_LAYOUT_SETTINGS.standingsTableRowHeight;
 
@@ -226,7 +229,12 @@ export const LayoutSettingsCard = forwardRef<LayoutSettingsCardRef, LayoutSettin
               </div>
             </div>
             {showShotsInHeader && (
-              <SliderControl label="Tiros (tamaño)" value={shotsInHeaderSize!} onValueChange={(v) => handleValueChange('shotsInHeaderSize', v)} min={3} max={5} step={0.1} />
+              <>
+                <SliderControl label="Tiros — Número (tamaño)" value={shotsInHeaderSize!} onValueChange={(v) => handleValueChange('shotsInHeaderSize', v)} min={1} max={8} step={0.1} />
+                <SliderControl label="Tiros — Título (tamaño)" value={shotsTitleSize!} onValueChange={(v) => handleValueChange('shotsTitleSize', v)} min={0.5} max={4} step={0.05} />
+                <ColorControl label="Tiros — Título (color)" value={shotsTitleColor!} onValueChange={(v) => handleValueChange('shotsTitleColor', v)} defaultValue={INITIAL_LAYOUT_SETTINGS.shotsTitleColor} />
+                <SliderControl label="Tiros — Espacio título/número" value={shotsGap!} onValueChange={(v) => handleValueChange('shotsGap', v)} min={0} max={3} step={0.05} />
+              </>
             )}
           </div>
         </div>

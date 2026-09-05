@@ -234,6 +234,9 @@ export interface ScoreboardLayoutSettings {
   scoreColumnWidth?: number;  // Ancho de la columna de goles (%) — default 38
   showShotsInHeader?: boolean;
   shotsInHeaderSize?: number;
+  shotsTitleSize?: number;
+  shotsTitleColor?: string;
+  shotsGap?: number;
   scoreFont?: string;
 }
 

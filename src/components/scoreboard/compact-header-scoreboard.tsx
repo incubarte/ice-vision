@@ -127,7 +127,10 @@ export function CompactHeaderScoreboard() {
   const logoSize = `${scoreboardLayout.teamLogoSize ?? scoreSize * 1.2}rem`;
   const iconSize = scoreboardLayout.playersOnIceIconSize;
   const showShots = scoreboardLayout.showShotsInHeader ?? false;
-  const shotsFontSize = scoreboardLayout.shotsInHeaderSize ?? 1.5;
+  const shotsFontSize = scoreboardLayout.shotsInHeaderSize ?? 3.5;
+  const shotsTitleSize = scoreboardLayout.shotsTitleSize ?? 1.0;
+  const shotsTitleColor = scoreboardLayout.shotsTitleColor ?? '220 15% 60%';
+  const shotsGap = scoreboardLayout.shotsGap ?? 0.25;
   const colWidth = `${scoreboardLayout.scoreColumnWidth ?? 38}%`;
   const homeShotsCount = shotsLog.home.length;
   const awayShotsCount = shotsLog.away.length;
@@ -165,12 +168,23 @@ export function CompactHeaderScoreboard() {
   );
 
   const ShotsBadge = ({ count }: { count: number }) => (
-    <span
-      className="font-bold tabular-nums text-white/70 leading-none shrink-0 border border-white/25 rounded px-2 py-1"
-      style={{ fontSize: `${shotsFontSize}rem` }}
+    <div
+      className="flex flex-col items-center shrink-0 border border-white/25 rounded px-2 py-1"
+      style={{ gap: `${shotsGap}rem` }}
     >
-      T {count}
-    </span>
+      <span
+        className="font-medium leading-none uppercase tracking-wide"
+        style={{ fontSize: `${shotsTitleSize}rem`, color: `hsl(${shotsTitleColor})` }}
+      >
+        Tiros
+      </span>
+      <span
+        className="font-bold tabular-nums text-white leading-none"
+        style={{ fontSize: `${shotsFontSize}rem` }}
+      >
+        {count}
+      </span>
+    </div>
   );
 
   return (
