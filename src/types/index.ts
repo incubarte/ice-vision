@@ -46,6 +46,9 @@ export interface PlayerData {
   photoFileName?: string; // Optional filename for player photo (e.g., "john_doe_a3f2.png")
   celebrationVideoFileName?: string; // Optional .webm filename for goal celebration animation
   celebrationMediaType?: 'photo' | 'video' | 'none'; // What to show in goal celebration (default: none)
+  docNumber?: string; // DNI or other document number
+  email?: string;
+  phone?: string;
 }
 
 export type MatchPhase = 'clasificacion' | 'playoffs' | 'playoffs-5-8' | 'relegation';
@@ -932,7 +935,7 @@ export type GameAction =
   | { type: 'UPDATE_CLUB_IN_TOURNAMENT'; payload: { tournamentId: string; clubId: string; name: string; logoDataUrl?: string | null; password?: string } }
   | { type: 'DELETE_CLUB_FROM_TOURNAMENT'; payload: { tournamentId: string; clubId: string } }
   | { type: 'ADD_PLAYER_TO_TEAM'; payload: { teamId: string; player: Omit<PlayerData, 'id'> & { id?: string } } }
-  | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName' | 'celebrationVideoFileName' | 'celebrationMediaType'>> } } // celebrationMediaType: 'photo'|'video'|'none'
+  | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName' | 'celebrationVideoFileName' | 'celebrationMediaType' | 'docNumber' | 'email' | 'phone'>> } } // celebrationMediaType: 'photo'|'video'|'none'
   | { type: 'REMOVE_PLAYER_FROM_TEAM'; payload: { teamId: string; playerId: string } }
   | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerNumbers: string[] } }
   | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerName: string; updates: { number: string } } }
