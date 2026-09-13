@@ -18,8 +18,16 @@ function checkWriteAccess(request: Request): NextResponse | null {
   return null;
 }
 
-export async function GET() {
-  const players = await readPlayerProfiles();
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get('q')?.trim().toLowerCase();
+  let players = await readPlayerProfiles();
+  if (q) {
+    players = players.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      (p.document?.docNumber?.toLowerCase().includes(q))
+    );
+  }
   return NextResponse.json({ players });
 }
 

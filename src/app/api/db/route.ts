@@ -1,18 +1,19 @@
 
 import { NextResponse } from 'next/server';
-import type { GameState, ConfigState, LiveState, TournamentsData, ShotsMetrics, Tournament } from '@/types';
+import type { GameState, ConfigState, LiveState, TournamentsData, ShotsMetrics, Tournament, Organization } from '@/types';
 import { setGameState, setConfig, getGameState, getConfig, setTournaments, getTournaments, setShotsMetrics, getShotsMetrics } from '@/lib/server-side-store';
-import { readConfig, writeConfig, readLiveState, writeLiveState, readTournaments, writeTournaments, readShotsMetrics, writeShotsMetrics, readTournament } from '@/lib/data-access';
+import { readConfig, writeConfig, readLiveState, writeLiveState, readTournaments, writeTournaments, readShotsMetrics, writeShotsMetrics, readTournament, readOrganization } from '@/lib/data-access';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const [config, liveState, shotsMetrics, tournamentsData] = await Promise.all([
+    const [config, liveState, shotsMetrics, tournamentsData, activeOrganization] = await Promise.all([
         getConfig(),
         getGameState(),
         getShotsMetrics(),
-        getTournaments()
+        getTournaments(),
+        readOrganization(),
     ]);
 
     // Server-side hydration: If a tournament is selected, load its full data
@@ -42,10 +43,11 @@ export async function GET(request: Request) {
     } : undefined;
 
     const initialState: Partial<GameState> = {
-      config: config ? { 
-        ...config, 
+      config: config ? {
+        ...config,
         tournaments: tournamentsData?.tournaments || [],
-        activeTournament
+        activeTournament,
+        activeOrganization: activeOrganization ?? null,
       } : undefined,
       live: mergedLiveState,
       _initialConfigLoadComplete: false,

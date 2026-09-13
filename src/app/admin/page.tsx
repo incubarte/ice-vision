@@ -13,7 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, ShieldAlert, LogIn, SlidersHorizontal, Info, MessageSquare, CalendarCheck, Clapperboard, Download, Cloud, Loader2, RefreshCw, FileSearch, Bug, RefreshCcw, AlertTriangle, MoreVertical, Undo2 } from 'lucide-react';
+import { Trash2, ShieldAlert, LogIn, SlidersHorizontal, Info, MessageSquare, CalendarCheck, Clapperboard, Download, Cloud, Loader2, RefreshCw, FileSearch, Bug, RefreshCcw, AlertTriangle, MoreVertical, Undo2, Building2, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from "@/hooks/use-auth";
@@ -36,6 +36,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { FolderFileList } from "@/components/sync/folder-file-list";
 import { RemoteFileManager } from "@/components/sync/remote-file-manager";
+import { OrganizationSection } from "@/components/admin/organization-section";
+import { PlayersRegistrySection } from "@/components/admin/players-registry-section";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -2391,7 +2393,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="debug" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="debug" className="flex items-center gap-2">
                     <Bug className="h-4 w-4" />
                     Debug
@@ -2403,6 +2405,14 @@ export default function AdminPage() {
                 <TabsTrigger value="danger" className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
                     Danger Zone
+                </TabsTrigger>
+                <TabsTrigger value="organization" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Organización
+                </TabsTrigger>
+                <TabsTrigger value="players" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Jugadores
                 </TabsTrigger>
             </TabsList>
 
@@ -2502,6 +2512,16 @@ export default function AdminPage() {
                         </div>
                     </CardContent>
                 </Card>
+            </TabsContent>
+
+            {/* ORGANIZATION TAB */}
+            <TabsContent value="organization" className="space-y-6 mt-6">
+                <OrganizationSection />
+            </TabsContent>
+
+            {/* PLAYERS TAB */}
+            <TabsContent value="players" className="space-y-6 mt-6">
+                <PlayersRegistrySection />
             </TabsContent>
         </Tabs>
     </div>
