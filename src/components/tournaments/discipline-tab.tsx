@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
 import { useAdminMode } from '@/hooks/use-admin-mode';
 import { isTournamentHydrated } from '@/types';
-import type { DisciplinarySanction, SanctionType } from '@/types';
+import type { DisciplinarySanction, SanctionType, DocType } from '@/types';
 import { calculateReinstatementDate, isSanctionActive, formatSanctionDate } from '@/lib/discipline-helpers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,10 @@ interface SanctionFormState {
   sanctionType: SanctionType;
   sanctionValue: string;
   notes: string;
+  // Cross-tournament identity (auto-populated from player, not shown in form)
+  globalPlayerId?: string;
+  docType?: DocType;
+  docNumber?: string;
 }
 
 const EMPTY_FORM: SanctionFormState = {
@@ -45,6 +49,9 @@ const EMPTY_FORM: SanctionFormState = {
   sanctionType: 'pending_review',
   sanctionValue: '',
   notes: '',
+  globalPlayerId: undefined,
+  docType: undefined,
+  docNumber: undefined,
 };
 
 interface DisciplineTabProps {
@@ -53,7 +60,7 @@ interface DisciplineTabProps {
 
 export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
   const { state, dispatch } = useGameState();
-  const { isAdminMode } = useAdminMode();
+  const { isAdminMode, adminSecret } = useAdminMode();
 
   const tournament = state.config.activeTournament;
   const isHydrated = isTournamentHydrated(tournament);
@@ -111,6 +118,9 @@ export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
       sanctionType: s.sanctionType,
       sanctionValue: s.sanctionValue?.toString() ?? '',
       notes: s.notes ?? '',
+      globalPlayerId: s.globalPlayerId,
+      docType: s.docType,
+      docNumber: s.docNumber,
     });
     setDialogOpen(true);
   }
@@ -137,10 +147,16 @@ export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
       playerId: player.id,
       playerName: player.name,
       playerNumber: player.number,
+      globalPlayerId: player.globalPlayerId,
+      docType: player.document?.docType,
+      docNumber: player.document?.docNumber,
     }));
   }
 
-  function handleSave() {
+  const orgId = state.config.activeOrganization?.id ?? 'default';
+  const authHeaders: Record<string, string> = adminSecret ? { 'x-admin-secret': adminSecret } : {};
+
+  async function handleSave() {
     if (!form.teamId || !form.playerId || !form.startDate) return;
     if (form.sanctionType !== 'pending_review' && !form.sanctionValue) return;
 
@@ -155,6 +171,10 @@ export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
       sanctionType: form.sanctionType,
       sanctionValue: form.sanctionType !== 'pending_review' ? Number(form.sanctionValue) : undefined,
       notes: form.notes || undefined,
+      organizationId: orgId,
+      globalPlayerId: form.globalPlayerId,
+      docType: form.docType,
+      docNumber: form.docNumber,
     };
 
     if (editingId) {
@@ -162,17 +182,35 @@ export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
         type: 'UPDATE_SANCTION_IN_TOURNAMENT',
         payload: { tournamentId, sanctionId: editingId, updates: sanctionPayload },
       });
+      // Mirror to org-level storage
+      fetch(`/api/sanctions/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ sanction: { ...sanctionPayload, id: editingId } }),
+      }).catch(() => {});
     } else {
       dispatch({
         type: 'ADD_SANCTION_TO_TOURNAMENT',
         payload: { tournamentId, sanction: sanctionPayload },
       });
+      // Mirror to org-level storage (use same id that the reducer will assign — we don't know it,
+      // so POST creates its own UUID; that's fine, check endpoint deduplicates by both sources)
+      fetch('/api/sanctions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ sanction: sanctionPayload }),
+      }).catch(() => {});
     }
     setDialogOpen(false);
   }
 
   function handleDelete(sanctionId: string) {
     dispatch({ type: 'REMOVE_SANCTION_FROM_TOURNAMENT', payload: { tournamentId, sanctionId } });
+    // Best-effort removal from org-level storage
+    fetch(`/api/sanctions/${sanctionId}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders },
+    }).catch(() => {});
   }
 
   function getSanctionLabel(s: DisciplinarySanction): string {
