@@ -1,4 +1,4 @@
-import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics, PreMatchData, Organization, PlayerProfile } from '@/types';
+import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics, PreMatchData, Organization, PlayerProfile, DisciplinarySanction } from '@/types';
 import { storageProvider } from './storage';
 import { FileNotFoundError, StorageProvider } from './storage/providers';
 import { updateManifestEntry } from './sync-manifest';
@@ -348,4 +348,41 @@ export async function deletePlayerProfile(id: string, provider?: StorageProvider
     const players = await readPlayerProfiles();
     const filtered = players.filter(p => p.id !== id);
     await writePlayerProfiles(filtered, provider);
+}
+
+// ---------------------------------------------------------------------------
+// Org-level Disciplinary Sanctions
+// Stored as: sanctions.json  { sanctions: DisciplinarySanction[] }
+// ---------------------------------------------------------------------------
+
+interface SanctionsFile { sanctions: DisciplinarySanction[] }
+
+export async function readOrgSanctions(): Promise<DisciplinarySanction[]> {
+    const data = await readJsonFile<SanctionsFile>('sanctions.json');
+    return data?.sanctions ?? [];
+}
+
+export async function writeOrgSanctions(sanctions: DisciplinarySanction[], provider?: StorageProvider): Promise<void> {
+    const content = JSON.stringify({ sanctions }, null, 2);
+    const p = provider || storageProvider;
+    await p.writeFile('sanctions.json', content);
+    await updateManifestEntry('sanctions.json', content);
+}
+
+/** Insert or replace a single DisciplinarySanction by id */
+export async function upsertOrgSanction(sanction: DisciplinarySanction, provider?: StorageProvider): Promise<void> {
+    const sanctions = await readOrgSanctions();
+    const idx = sanctions.findIndex(s => s.id === sanction.id);
+    if (idx >= 0) {
+        sanctions[idx] = sanction;
+    } else {
+        sanctions.push(sanction);
+    }
+    await writeOrgSanctions(sanctions, provider);
+}
+
+export async function deleteOrgSanction(id: string, provider?: StorageProvider): Promise<void> {
+    const sanctions = await readOrgSanctions();
+    const filtered = sanctions.filter(s => s.id !== id);
+    await writeOrgSanctions(filtered, provider);
 }

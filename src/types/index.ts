@@ -148,6 +148,11 @@ export interface DisciplinarySanction {
   sanctionValue?: number; // calendar days OR number of matches missed
   notes?: string;
   createdAt: string;    // ISO
+  // Cross-tournament / org-level fields (all optional for backward compat)
+  organizationId?: string;  // which org issued this sanction
+  globalPlayerId?: string;  // links to PlayerProfile.id if player is registered
+  docType?: DocType;        // player document type for cross-tournament matching
+  docNumber?: string;       // player document number for cross-tournament matching
 }
 
 export interface SummarySanctionedPlayer {

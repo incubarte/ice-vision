@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { isSanctionActive } from '@/lib/discipline-helpers';
 
 
 interface PlayersControlCardProps {
@@ -47,25 +46,22 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
   // Get active goalkeeper
   const activeGoalkeeperNumber = team === 'home' ? state.live.homeActiveGoalkeeperNumber : state.live.awayActiveGoalkeeperNumber;
 
-  // Sanctioned player IDs for this team today
-  const sanctionedPlayerIds = useMemo(() => {
-    const tournament = state.config.activeTournament;
-    const sanctions = tournament?.disciplinarySanctions;
-    if (!sanctions?.length || !teamData?.id) return new Set<string>();
-    const matchDate = tournament!.matches?.find(m => m.id === state.live.matchId)?.date?.split('T')[0]
-      ?? new Date().toISOString().split('T')[0];
-    const allMatches = tournament!.matches ?? [];
-    return new Set(
-      sanctions
-        .filter(s => s.teamId === teamData.id && isSanctionActive(s, allMatches, matchDate))
-        .map(s => s.playerId)
-    );
-  }, [state.config.activeTournament, state.live.matchId, teamData]);
+  // Sanctioned player IDs for this team — fetched from the API (supports cross-tournament sanctions)
+  const [sanctionedPlayerIds, setSanctionedPlayerIds] = useState<Set<string>>(new Set());
 
   // Pre-match data integration
   const tournamentId = matchContext?.tournamentId;
   const matchId = state.live.matchId ?? undefined;
   const teamId = teamData?.id;
+
+  // Fetch sanctioned player IDs from the API (supports org-level cross-tournament sanctions)
+  useEffect(() => {
+    if (!tournamentId || !teamId || !matchId) { setSanctionedPlayerIds(new Set()); return; }
+    fetch(`/api/sanctions/check?tournamentId=${tournamentId}&teamId=${teamId}&matchId=${matchId}`)
+      .then(r => r.json())
+      .then(data => setSanctionedPlayerIds(new Set(data.sanctionedPlayerIds ?? [])))
+      .catch(() => setSanctionedPlayerIds(new Set()));
+  }, [tournamentId, teamId, matchId]);
 
   const preMatchPassword = useMemo(() => {
     if (!teamId) return 'IceVision';
