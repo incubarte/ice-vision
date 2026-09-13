@@ -2486,6 +2486,22 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       }
       break;
     }
+    case 'CLEAR_SANCTIONS_FROM_TOURNAMENT': {
+      const { tournamentId } = action.payload;
+      if (state.config.activeTournament?.id === tournamentId) {
+        newState = {
+          ...state,
+          config: {
+            ...state.config,
+            activeTournament: {
+              ...state.config.activeTournament,
+              disciplinarySanctions: [],
+            },
+          },
+        };
+      }
+      break;
+    }
     case 'SET_MATCH_STAFF': {
       const { assignment } = action.payload;
       newState = {

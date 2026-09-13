@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useGameState } from '@/contexts/game-state-context';
 import { useAdminMode } from '@/hooks/use-admin-mode';
 import { isTournamentHydrated } from '@/types';
@@ -70,13 +70,44 @@ export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<SanctionFormState>(EMPTY_FORM);
+  const [sanctions, setSanctions] = useState<DisciplinarySanction[]>([]);
 
   const today = new Date().toISOString().split('T')[0];
+  const orgId = state.config.activeOrganization?.id ?? 'default';
+  const authHeaders: Record<string, string> = adminSecret ? { 'x-admin-secret': adminSecret } : {};
 
-  const sanctions = useMemo(
-    () => (isHydrated ? tournament.disciplinarySanctions ?? [] : []),
-    [isHydrated, tournament]
-  );
+  // Load sanctions from org-level API
+  const loadSanctions = useCallback(async () => {
+    try {
+      const res = await fetch('/api/sanctions');
+      if (!res.ok) return;
+      const data = await res.json();
+      const all: DisciplinarySanction[] = data.sanctions ?? [];
+      // Filter to teams in this tournament
+      const teamIds = new Set((isHydrated ? tournament.teams : []).map(t => t.id));
+      setSanctions(all.filter(s => teamIds.has(s.teamId)));
+    } catch { /* silent */ }
+  }, [isHydrated, tournament]);
+
+  useEffect(() => { loadSanctions(); }, [loadSanctions]);
+
+  // One-time silent migration: move existing tournament sanctions to org-level
+  useEffect(() => {
+    if (!isHydrated) return;
+    const legacy = tournament.disciplinarySanctions ?? [];
+    if (legacy.length === 0) return;
+    // Migrate each legacy sanction to org-level (fire-and-forget)
+    legacy.forEach(s => {
+      fetch('/api/sanctions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ sanction: { ...s, organizationId: orgId } }),
+      }).catch(() => {});
+    });
+    // Clear from tournament state
+    dispatch({ type: 'CLEAR_SANCTIONS_FROM_TOURNAMENT', payload: { tournamentId } });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournamentId]); // intentionally only on mount
 
   const filtered = useMemo(
     () => sanctions.filter(s => categoryFilter === ALL_CATEGORIES || s.categoryId === categoryFilter),
@@ -153,9 +184,6 @@ export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
     }));
   }
 
-  const orgId = state.config.activeOrganization?.id ?? 'default';
-  const authHeaders: Record<string, string> = adminSecret ? { 'x-admin-secret': adminSecret } : {};
-
   async function handleSave() {
     if (!form.teamId || !form.playerId || !form.startDate) return;
     if (form.sanctionType !== 'pending_review' && !form.sanctionValue) return;
@@ -178,39 +206,29 @@ export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
     };
 
     if (editingId) {
-      dispatch({
-        type: 'UPDATE_SANCTION_IN_TOURNAMENT',
-        payload: { tournamentId, sanctionId: editingId, updates: sanctionPayload },
-      });
-      // Mirror to org-level storage
-      fetch(`/api/sanctions/${editingId}`, {
+      await fetch(`/api/sanctions/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ sanction: { ...sanctionPayload, id: editingId } }),
-      }).catch(() => {});
-    } else {
-      dispatch({
-        type: 'ADD_SANCTION_TO_TOURNAMENT',
-        payload: { tournamentId, sanction: sanctionPayload },
       });
-      // Mirror to org-level storage (use same id that the reducer will assign — we don't know it,
-      // so POST creates its own UUID; that's fine, check endpoint deduplicates by both sources)
-      fetch('/api/sanctions', {
+    } else {
+      await fetch('/api/sanctions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ sanction: sanctionPayload }),
-      }).catch(() => {});
+      });
     }
+
     setDialogOpen(false);
+    loadSanctions();
   }
 
-  function handleDelete(sanctionId: string) {
-    dispatch({ type: 'REMOVE_SANCTION_FROM_TOURNAMENT', payload: { tournamentId, sanctionId } });
-    // Best-effort removal from org-level storage
-    fetch(`/api/sanctions/${sanctionId}`, {
+  async function handleDelete(sanctionId: string) {
+    await fetch(`/api/sanctions/${sanctionId}`, {
       method: 'DELETE',
       headers: { ...authHeaders },
-    }).catch(() => {});
+    });
+    setSanctions(prev => prev.filter(s => s.id !== sanctionId));
   }
 
   function getSanctionLabel(s: DisciplinarySanction): string {

@@ -989,6 +989,7 @@ export type GameAction =
   | { type: 'ADD_SANCTION_TO_TOURNAMENT'; payload: { tournamentId: string; sanction: Omit<DisciplinarySanction, 'id' | 'createdAt'> } }
   | { type: 'UPDATE_SANCTION_IN_TOURNAMENT'; payload: { tournamentId: string; sanctionId: string; updates: Partial<Omit<DisciplinarySanction, 'id' | 'createdAt'>> } }
   | { type: 'REMOVE_SANCTION_FROM_TOURNAMENT'; payload: { tournamentId: string; sanctionId: string } }
+  | { type: 'CLEAR_SANCTIONS_FROM_TOURNAMENT'; payload: { tournamentId: string } }
   | { type: 'SET_MATCH_STAFF'; payload: { assignment: MatchStaffAssignment } }
   | { type: 'SET_PLAYER_SHOTS'; payload: { team: Team; playerId: string; periodText: string; shotCount: number } }
   | { type: 'SET_ACTIVE_GOALKEEPER'; payload: { team: Team; playerNumber: string | null } }
