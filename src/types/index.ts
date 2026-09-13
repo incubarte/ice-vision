@@ -103,7 +103,6 @@ export interface PlayerDocument {
  */
 export interface PlayerProfile {
   id: string;                  // UUID — same id reused in TeamData.players for linked players
-  organizationId: string;
   name: string;
   document?: PlayerDocument;
   photoFileName?: string;

@@ -151,7 +151,6 @@ export function AddPlayerForm({ teamId }: AddPlayerFormProps) {
           body: JSON.stringify({
             player: {
               name: trimmedName,
-              organizationId: "default",
               document: {
                 docType,
                 ...(docType === "other" && docTypeLabel.trim() ? { docTypeLabel: docTypeLabel.trim() } : {}),

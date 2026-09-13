@@ -61,7 +61,6 @@ export function PlayersRegistrySection() {
         body: JSON.stringify({
           player: {
             name: trimmedName,
-            organizationId: "default",
             document: {
               docType,
               ...(docType === "other" ? { docTypeLabel: docTypeLabel.trim() } : {}),
