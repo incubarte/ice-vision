@@ -50,6 +50,9 @@ export interface PlayerData {
   document?: PlayerDocument;
   /** UUID of the linked PlayerProfile in the global registry. Null for legacy/unlinked players. */
   globalPlayerId?: string;
+  docNumber?: string;  // Shorthand DNI/doc number (used when not linked to a PlayerProfile)
+  email?: string;
+  phone?: string;
 }
 
 export type MatchPhase = 'clasificacion' | 'playoffs' | 'playoffs-5-8' | 'relegation';
@@ -105,6 +108,8 @@ export interface PlayerProfile {
   id: string;                  // UUID — same id reused in TeamData.players for linked players
   name: string;
   document?: PlayerDocument;
+  email?: string;
+  phone?: string;
   photoFileName?: string;
   createdAt: string;           // ISO
   updatedAt: string;           // ISO
@@ -979,7 +984,7 @@ export type GameAction =
   | { type: 'UPDATE_CLUB_IN_TOURNAMENT'; payload: { tournamentId: string; clubId: string; name: string; logoDataUrl?: string | null; password?: string } }
   | { type: 'DELETE_CLUB_FROM_TOURNAMENT'; payload: { tournamentId: string; clubId: string } }
   | { type: 'ADD_PLAYER_TO_TEAM'; payload: { teamId: string; player: Omit<PlayerData, 'id'> & { id?: string } } }
-  | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName' | 'celebrationVideoFileName' | 'celebrationMediaType'>> } } // celebrationMediaType: 'photo'|'video'|'none'
+  | { type: 'UPDATE_PLAYER_IN_TEAM'; payload: { teamId: string; playerId: string; updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName' | 'celebrationVideoFileName' | 'celebrationMediaType' | 'docNumber' | 'email' | 'phone'>> } } // celebrationMediaType: 'photo'|'video'|'none'
   | { type: 'REMOVE_PLAYER_FROM_TEAM'; payload: { teamId: string; playerId: string } }
   | { type: 'SET_TEAM_ATTENDANCE'; payload: { team: Team; playerNumbers: string[] } }
   | { type: 'UPDATE_ATTENDANCE_PLAYER'; payload: { team: Team; playerName: string; updates: { number: string } } }

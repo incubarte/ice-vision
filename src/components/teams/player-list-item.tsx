@@ -6,7 +6,8 @@ import type { PlayerData } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Shield, Trash2, CheckCircle, XCircle, Edit3, Upload, X } from "lucide-react";
+import { User, Shield, Trash2, CheckCircle, XCircle, Edit3, Upload, X, FileCheck, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useGameState } from "@/contexts/game-state-context";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminMode } from "@/hooks/use-admin-mode";
@@ -27,10 +28,22 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
   const [isEditing, setIsEditing] = useState(false);
   const [editableNumber, setEditableNumber] = useState(player.number);
   const [editableName, setEditableName] = useState(player.name);
+  const [editableDocNumber, setEditableDocNumber] = useState(player.docNumber ?? '');
+  const [editableEmail, setEditableEmail] = useState(player.email ?? '');
+  const [editablePhone, setEditablePhone] = useState(player.phone ?? '');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [showPhotoPreview, setShowPhotoPreview] = useState(false);
+
+  // Consent dialog state
+  const [isConsentOpen, setIsConsentOpen] = useState(false);
+  const [consentFirstName, setConsentFirstName] = useState('');
+  const [consentLastName, setConsentLastName] = useState('');
+  const [consentDocNumber, setConsentDocNumber] = useState('');
+  const [consentEmail, setConsentEmail] = useState('');
+  const [consentPhone, setConsentPhone] = useState('');
+  const [isSendingConsent, setIsSendingConsent] = useState(false);
 
   const numberInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,13 +64,16 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
     if (!isEditing) {
       setEditableNumber(player.number);
       setEditableName(player.name);
+      setEditableDocNumber(player.docNumber ?? '');
+      setEditableEmail(player.email ?? '');
+      setEditablePhone(player.phone ?? '');
       setPhotoFile(null);
       setPhotoPreview(null);
     } else {
       numberInputRef.current?.focus();
       numberInputRef.current?.select();
     }
-  }, [isEditing, player.number, player.name]);
+  }, [isEditing, player.number, player.name, player.docNumber, player.email, player.phone]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -66,6 +82,9 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
   const handleCancel = () => {
     setEditableNumber(player.number);
     setEditableName(player.name);
+    setEditableDocNumber(player.docNumber ?? '');
+    setEditableEmail(player.email ?? '');
+    setEditablePhone(player.phone ?? '');
     setPhotoFile(null);
     setPhotoPreview(null);
     setIsEditing(false);
@@ -235,8 +254,11 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
 
     const trimmedNumber = editableNumber.trim();
     const trimmedName = editableName.trim();
+    const trimmedDocNumber = editableDocNumber.trim();
+    const trimmedEmail = editableEmail.trim();
+    const trimmedPhone = editablePhone.trim();
     let changesMade = false;
-    const updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName'>> = {};
+    const updates: Partial<Pick<PlayerData, 'name' | 'number' | 'photoFileName' | 'docNumber' | 'email' | 'phone'>> = {};
 
     if (!trimmedName) {
       toast({ title: "Nombre Requerido", description: "El nombre no puede estar vacío.", variant: "destructive" });
@@ -270,6 +292,19 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
     }
     if (trimmedNumber !== player.number) {
       updates.number = trimmedNumber;
+      changesMade = true;
+    }
+
+    if (trimmedDocNumber !== (player.docNumber ?? '')) {
+      updates.docNumber = trimmedDocNumber || undefined;
+      changesMade = true;
+    }
+    if (trimmedEmail !== (player.email ?? '')) {
+      updates.email = trimmedEmail || undefined;
+      changesMade = true;
+    }
+    if (trimmedPhone !== (player.phone ?? '')) {
+      updates.phone = trimmedPhone || undefined;
       changesMade = true;
     }
 
@@ -333,9 +368,61 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
     setIsEditing(false);
   };
 
+  function splitName(fullName: string): { first: string; last: string } {
+    const trimmed = fullName.trim();
+    if (trimmed.includes(',')) {
+      const [last, first] = trimmed.split(',').map(s => s.trim());
+      return { first: first ?? '', last };
+    }
+    const parts = trimmed.split(' ');
+    if (parts.length === 1) return { first: '', last: trimmed };
+    return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] };
+  }
+
+  const handleOpenConsent = () => {
+    const { first, last } = splitName(player.name);
+    setConsentFirstName(first);
+    setConsentLastName(last);
+    setConsentDocNumber(player.docNumber ?? '');
+    setConsentEmail(player.email ?? '');
+    setConsentPhone(player.phone ?? '');
+    setIsConsentOpen(true);
+  };
+
+  const handleSendConsent = async () => {
+    setIsSendingConsent(true);
+    try {
+      const res = await fetch('/api/consent/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: consentFirstName,
+          lastName: consentLastName,
+          docNumber: consentDocNumber,
+          email: consentEmail,
+          phone: consentPhone,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Consentimiento enviado", description: data.message });
+        setIsConsentOpen(false);
+      } else {
+        toast({ title: "Error al enviar", description: data.message, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "No se pudo conectar con el servidor.", variant: "destructive" });
+    } finally {
+      setIsSendingConsent(false);
+    }
+  };
+
+  const consentSubmitDisabled = !consentFirstName && !consentLastName && !consentDocNumber;
+
   const displayPlayerNumber = player.number ? `#${player.number}` : 'S/N';
 
   return (
+    <>
     <Card className="bg-muted/30">
       <CardContent className="p-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-grow min-w-0">
@@ -373,6 +460,41 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
                     className="h-7 px-1 py-0 flex-1 text-sm min-w-[100px]"
                     placeholder="Nombre/Apodo"
                   />
+                </div>
+                <div className="flex flex-col gap-1 mt-1">
+                  <div className="flex items-center gap-1">
+                    <label className="text-xs text-muted-foreground w-16 shrink-0">DNI</label>
+                    <Input
+                      type="text"
+                      value={editableDocNumber}
+                      onChange={(e) => setEditableDocNumber(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSave(); } if (e.key === 'Escape') handleCancel(); }}
+                      className="h-7 px-1 py-0 flex-1 text-sm"
+                      placeholder="12345678"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <label className="text-xs text-muted-foreground w-16 shrink-0">Email</label>
+                    <Input
+                      type="email"
+                      value={editableEmail}
+                      onChange={(e) => setEditableEmail(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSave(); } if (e.key === 'Escape') handleCancel(); }}
+                      className="h-7 px-1 py-0 flex-1 text-sm"
+                      placeholder="jugador@mail.com"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <label className="text-xs text-muted-foreground w-16 shrink-0">Teléfono</label>
+                    <Input
+                      type="text"
+                      value={editablePhone}
+                      onChange={(e) => setEditablePhone(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSave(); } if (e.key === 'Escape') handleCancel(); }}
+                      className="h-7 px-1 py-0 flex-1 text-sm"
+                      placeholder="+54 11 1234-5678"
+                    />
+                  </div>
                 </div>
 
                 {/* Photo upload section */}
@@ -536,6 +658,15 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="text-muted-foreground hover:text-foreground h-8 w-8"
+                  onClick={handleOpenConsent}
+                  aria-label={`Enviar consentimiento de ${player.name}`}
+                >
+                  <FileCheck className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="text-destructive hover:text-destructive h-8 w-8"
                   onClick={() => onRemovePlayer(player.id)}
                   aria-label={`Eliminar jugador ${player.name}`}
@@ -548,5 +679,76 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
         </div>
       </CardContent>
     </Card>
+
+    <Dialog open={isConsentOpen} onOpenChange={setIsConsentOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Enviar consentimiento a pista</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-2">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Nombre</label>
+            <Input
+              value={consentFirstName}
+              onChange={(e) => setConsentFirstName(e.target.value)}
+              placeholder="Nombre"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Apellido</label>
+            <Input
+              value={consentLastName}
+              onChange={(e) => setConsentLastName(e.target.value)}
+              placeholder="Apellido"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">DNI</label>
+            <Input
+              value={consentDocNumber}
+              onChange={(e) => setConsentDocNumber(e.target.value)}
+              placeholder="12345678"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Email</label>
+            <Input
+              type="email"
+              value={consentEmail}
+              onChange={(e) => setConsentEmail(e.target.value)}
+              placeholder="jugador@mail.com"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Teléfono</label>
+            <Input
+              value={consentPhone}
+              onChange={(e) => setConsentPhone(e.target.value)}
+              placeholder="+54 11 1234-5678"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">Los datos se enviarán al formulario de consentimiento de pista.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsConsentOpen(false)} disabled={isSendingConsent}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSendConsent} disabled={isSendingConsent || consentSubmitDisabled}>
+            {isSendingConsent ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <FileCheck className="h-4 w-4 mr-2" />
+                Enviar consentimiento
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
