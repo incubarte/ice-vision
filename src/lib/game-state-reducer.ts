@@ -186,6 +186,7 @@ export const getInitialState = (): GameState => {
       tournaments: [],
       activeTournament: null,
       selectedTournamentId: null,
+      activeOrganization: null,
       tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
       replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,
       // Auto-sync defaults

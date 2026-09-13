@@ -1,4 +1,4 @@
-import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics, PreMatchData } from '@/types';
+import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics, PreMatchData, Organization, PlayerProfile } from '@/types';
 import { storageProvider } from './storage';
 import { FileNotFoundError, StorageProvider } from './storage/providers';
 import { updateManifestEntry } from './sync-manifest';
@@ -291,4 +291,61 @@ export async function deletePreMatchData(
     } catch {
         // Ignore — file may already be deleted
     }
+}
+
+// ---------------------------------------------------------------------------
+// Organization
+// ---------------------------------------------------------------------------
+
+export async function readOrganization(): Promise<Organization | null> {
+    return readJsonFile<Organization>('organization.json');
+}
+
+export async function writeOrganization(org: Organization, provider?: StorageProvider): Promise<void> {
+    const content = JSON.stringify(org, null, 2);
+    const p = provider || storageProvider;
+    await p.writeFile('organization.json', content);
+    await updateManifestEntry('organization.json', content);
+}
+
+// ---------------------------------------------------------------------------
+// Global Player Registry
+// Players are stored as a single JSON file: players.json  { players: PlayerProfile[] }
+// ---------------------------------------------------------------------------
+
+interface PlayersFile { players: PlayerProfile[] }
+
+export async function readPlayerProfiles(): Promise<PlayerProfile[]> {
+    const data = await readJsonFile<PlayersFile>('players.json');
+    return data?.players ?? [];
+}
+
+export async function readPlayerProfile(id: string): Promise<PlayerProfile | null> {
+    const players = await readPlayerProfiles();
+    return players.find(p => p.id === id) ?? null;
+}
+
+export async function writePlayerProfiles(players: PlayerProfile[], provider?: StorageProvider): Promise<void> {
+    const content = JSON.stringify({ players }, null, 2);
+    const p = provider || storageProvider;
+    await p.writeFile('players.json', content);
+    await updateManifestEntry('players.json', content);
+}
+
+/** Insert or replace a single PlayerProfile by id */
+export async function upsertPlayerProfile(player: PlayerProfile, provider?: StorageProvider): Promise<void> {
+    const players = await readPlayerProfiles();
+    const idx = players.findIndex(p => p.id === player.id);
+    if (idx >= 0) {
+        players[idx] = player;
+    } else {
+        players.push(player);
+    }
+    await writePlayerProfiles(players, provider);
+}
+
+export async function deletePlayerProfile(id: string, provider?: StorageProvider): Promise<void> {
+    const players = await readPlayerProfiles();
+    const filtered = players.filter(p => p.id !== id);
+    await writePlayerProfiles(filtered, provider);
 }

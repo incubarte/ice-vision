@@ -46,6 +46,10 @@ export interface PlayerData {
   photoFileName?: string; // Optional filename for player photo (e.g., "john_doe_a3f2.png")
   celebrationVideoFileName?: string; // Optional .webm filename for goal celebration animation
   celebrationMediaType?: 'photo' | 'video' | 'none'; // What to show in goal celebration (default: none)
+  /** Identity document. Populated when the player is linked to a global PlayerProfile. */
+  document?: PlayerDocument;
+  /** UUID of the linked PlayerProfile in the global registry. Null for legacy/unlinked players. */
+  globalPlayerId?: string;
 }
 
 export type MatchPhase = 'clasificacion' | 'playoffs' | 'playoffs-5-8' | 'relegation';
@@ -78,6 +82,43 @@ export interface ClubData {
   name: string;
   logoDataUrl?: string | null;
   password?: string; // Per-club pre-match password. Defaults to 'IceVision' if unset.
+}
+
+// ---------------------------------------------------------------------------
+// Organization & Global Player Registry
+// ---------------------------------------------------------------------------
+
+export type DocType = 'DNI' | 'other';
+
+export interface PlayerDocument {
+  docType: DocType;
+  /** Free-form label when docType === 'other' (e.g. "Pasaporte", "CI") */
+  docTypeLabel?: string;
+  docNumber: string;
+}
+
+/**
+ * A player registered at the platform level, belonging to an Organization.
+ * Tournaments reference players by UUID; PlayerProfile is the source of truth.
+ */
+export interface PlayerProfile {
+  id: string;                  // UUID — same id reused in TeamData.players for linked players
+  organizationId: string;
+  name: string;
+  document?: PlayerDocument;
+  photoFileName?: string;
+  createdAt: string;           // ISO
+  updatedAt: string;           // ISO
+}
+
+/**
+ * Top-level organization that owns tournaments, the global player registry,
+ * and cross-tournament discipline records. For now there is only one.
+ */
+export interface Organization {
+  id: string;
+  name: string;                // e.g. "InterClubes"
+  createdAt: string;           // ISO
 }
 
 export interface TeamData {
@@ -620,6 +661,8 @@ export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'n
   activeTournament: Tournament | null; // Added for the full hydrated tournament
   selectedTournamentId: string | null;
   selectedMatchCategory: string;
+  /** Active organization. Null until loaded (backwards compat — existing installs have no org yet). */
+  activeOrganization: Organization | null;
 }
 
 export type PeriodDisplayOverrideType = 'Pre Warm-up' | 'Warm-up' | 'Break' | 'Pre-OT Break' | 'Time Out' | 'End of Game' | 'Shootout' | 'AwaitingDecision' | null;
