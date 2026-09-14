@@ -235,7 +235,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
       } else {
         errorMessages.push(`${rp.name}: ${result.message}`);
       }
-      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 1000));
     }
     // Update state and save file once with all marks
     setConsentSentAt(bulkUpdated);
