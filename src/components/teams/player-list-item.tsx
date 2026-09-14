@@ -293,6 +293,13 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
       updates.email = trimmedEmail || undefined;
       changesMade = true;
     }
+    if (trimmedPhone) {
+      const phoneRegex = /((\+\d{1,3}(-|.| )?\(?\d\)?(-| |.)?\d{1,5})|(\(?\d{2,6}\)?))(-|.| )?(\d{3,4})(-|.| )?(\d{4})(( x| ext)\d{1,5}){0,1}$/;
+      if (!phoneRegex.test(trimmedPhone)) {
+        toast({ title: "Teléfono Inválido", description: "Formato inválido. Ej: +54 11 1234-5678 o 011 1234-5678", variant: "destructive" });
+        return;
+      }
+    }
     if (trimmedPhone !== (player.phone ?? '')) {
       updates.phone = trimmedPhone || undefined;
       changesMade = true;
