@@ -44,88 +44,21 @@ export async function POST(request: Request) {
   const nonce    = extractHidden('frm_submit_entry_2');
   const frmState = extractHidden('frm_state');
 
+  // The antispam_token comes from the form's data-token attribute (set by Formidable server-side)
+  // Formidable JS reads it: object.getAttribute("data-token") and injects it as antispam_token
+  const dataTokenMatch = html.match(/data-token="([^"]+)"/i);
+  const dataToken = dataTokenMatch?.[1] ?? '';
+  console.log(`[consent/send]   data-token del form: ${dataToken ? `✓ (${dataToken.slice(0, 12)}…)` : '✗ no encontrado'}`);
+
   if (!nonce || !frmState) {
     return NextResponse.json({ success: false, message: 'No se pudo obtener tokens del formulario' }, { status: 502 });
   }
 
-  // Try to find the exact AJAX action Formidable uses for antispam by reading its JS source
-  let antispamAction = '';
-  {
-    // Look for formidable JS script URL in HTML
-    const frmJsSrcMatch = html.match(/https?:[^"']+formidable[^"']*(?:frm|front)[^"']*\.js[^"']*/i);
-    if (frmJsSrcMatch) {
-      const jsUrl = frmJsSrcMatch[0].split('\\/').join('/');
-      console.log(`[consent/send]   Fetching Formidable JS: ${jsUrl}`);
-      try {
-        const jsRes = await fetch(jsUrl, { headers: { 'user-agent': 'Mozilla/5.0' } });
-        if (jsRes.ok) {
-          const jsText = await jsRes.text();
-          // Look for the antispam AJAX action name
-          const actionMatch = jsText.match(/action['":\s]+['"](frm_antispam[^'"]*)['"]/i)
-            ?? jsText.match(/action['":\s]+['"](frm[^'"]*spam[^'"]*)['"]/i);
-          if (actionMatch) {
-            antispamAction = actionMatch[1];
-            console.log(`[consent/send]   Action antispam encontrado en JS: ${antispamAction}`);
-          } else {
-            // Log the section around antispam mentions
-            const idx = jsText.indexOf('antispam');
-            if (idx !== -1) {
-              console.log(`[consent/send]   Contexto antispam en frm.js: …${jsText.slice(Math.max(0, idx - 100), idx + 300).replace(/\s+/g, ' ')}…`);
-            } else {
-              console.log(`[consent/send]   "antispam" no aparece en el JS de Formidable`);
-            }
-          }
-        }
-      } catch (e) { console.warn('[consent/send]   No se pudo leer frm.js:', e); }
-    } else {
-      console.log('[consent/send]   No se encontró URL de frm.js en el HTML');
-    }
-  }
 
-  // Try multiple AJAX actions to get antispam token
-  let antispam = '';
-  const actionsToTry = [
-    antispamAction,
-    'frm_antispam_js',
-    'frm_antispam',
-    'frm_entries_list',
-    'frm_form_field_value',
-  ].filter(Boolean);
-
-  for (const action of actionsToTry) {
-    const body = new URLSearchParams({ action, nonce: frmNonce, form_id: '2', security: frmNonce });
-    try {
-      const r = await fetch(ajaxUrl, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded',
-          'cookie': cookies,
-          'referer': 'https://fantasyskate.com.ar/consentimiento/',
-          'x-requested-with': 'XMLHttpRequest',
-          'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        },
-        body: body.toString(),
-      });
-      const txt = await r.text();
-      console.log(`[consent/send]   AJAX action=${action} → status=${r.status} body=${txt.slice(0, 120)}`);
-      if (txt && txt !== '0' && txt !== '-1' && txt !== 'false' && r.status === 200) {
-        try {
-          const j = JSON.parse(txt);
-          const candidate = j?.data ?? j?.token ?? j?.antispam_token ?? (typeof j === 'string' ? j : '');
-          if (candidate) { antispam = candidate; console.log(`[consent/send]   ✓ antispam_token obtenido con action=${action}: ${antispam.slice(0, 12)}…`); break; }
-        } catch {
-          // plain string token
-          antispam = txt.trim().replace(/^["'](.*)["']$/, '$1');
-          if (antispam) { console.log(`[consent/send]   ✓ antispam_token (plain) con action=${action}: ${antispam.slice(0, 12)}…`); break; }
-        }
-      }
-    } catch (e) { console.warn(`[consent/send]   AJAX ${action} excepción:`, e); }
-  }
-
-  // Last resort: try frm_js.nonce itself as the token (some Formidable configs accept this)
-  if (!antispam) {
-    antispam = frmNonce;
-    console.log(`[consent/send]   Usando frm_js.nonce como antispam_token: ${antispam}`);
+  // antispam_token = form's data-token attribute (Formidable reads it and injects it as hidden field via JS)
+  const antispam = dataToken || frmNonce;
+  if (!dataToken) {
+    console.warn(`[consent/send]   data-token no encontrado, usando frm_js.nonce como fallback`);
   }
 
   const uniqueId = extractHidden('unique_id') || randomUUID();
