@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Shield, User, Plus, Trash2, AlertCircle, CheckCircle2, Loader2, UserCog, FileCheck } from 'lucide-react';
 import { cn, getTeamDisplayName } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -89,6 +90,14 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
   });
   const [bulkConsentSending, setBulkConsentSending] = useState(false);
   const [bulkConsentProgress, setBulkConsentProgress] = useState<{ current: number; total: number; name: string } | null>(null);
+  const [sendingConsentIds, setSendingConsentIds] = useState<Set<string>>(new Set());
+
+  // Dialog for filling in missing data before sending
+  const [consentDialog, setConsentDialog] = useState<{
+    playerId: string; firstName: string; lastName: string;
+    docNumber: string; email: string; phone: string;
+  } | null>(null);
+  const [consentDialogSending, setConsentDialogSending] = useState(false);
 
   const consentPatchUrl = postUrl ?? `${apiBase}/${match.id}`;
 
@@ -102,36 +111,72 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
         body: JSON.stringify({ playerId, consentSentAt: sentAt }),
       });
     } catch {
-      // Non-fatal — state already updated locally; will be lost on reload but consent was sent
+      // Non-fatal — state updated locally; will be lost on reload but consent was sent
     }
   }
 
-  async function sendConsent(player: { id: string; name: string; docNumber?: string; email?: string; phone?: string }): Promise<boolean> {
-    const { first, last } = splitName(player.name);
+  async function sendConsent(player: { id: string; firstName: string; lastName: string; docNumber: string; email?: string; phone?: string }): Promise<{ success: boolean; message: string }> {
     try {
       const res = await fetch('/api/consent/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName: first, lastName: last, docNumber: player.docNumber ?? '', email: player.email ?? '', phone: player.phone ?? '' }),
+        body: JSON.stringify({ firstName: player.firstName, lastName: player.lastName, docNumber: player.docNumber, email: player.email ?? '', phone: player.phone ?? '' }),
       });
       const data = await res.json();
-      console.log(`[consent/pre-match] ${player.name}:`, data);
-      if (data.success) { await markConsentSent(player.id); return true; }
-      return false;
+      console.log(`[consent/pre-match] ${player.firstName} ${player.lastName}:`, data);
+      if (data.success) {
+        await markConsentSent(player.id);
+        return { success: true, message: data.message ?? 'Consentimiento enviado' };
+      }
+      return { success: false, message: data.message ?? 'Error al enviar el consentimiento' };
     } catch (err) {
-      console.error(`[consent/pre-match] Error para ${player.name}:`, err);
-      return false;
+      console.error(`[consent/pre-match] Error de red:`, err);
+      return { success: false, message: 'No se pudo conectar con el servidor' };
     }
   }
 
   async function handleSendConsent(playerId: string) {
-    const rosterPlayer = team.players.find(p => p.id === playerId);
-    if (!rosterPlayer) return;
-    const ok = await sendConsent({ id: playerId, name: rosterPlayer.name, docNumber: rosterPlayer.docNumber, email: rosterPlayer.email, phone: rosterPlayer.phone });
-    toast(ok
-      ? { title: 'Consentimiento enviado', description: rosterPlayer.name }
-      : { title: 'Error al enviar', description: rosterPlayer.name, variant: 'destructive' }
+    const rp = team.players.find(p => p.id === playerId);
+    if (!rp) return;
+    // If missing docNumber → open dialog to complete data
+    if (!rp.docNumber?.trim()) {
+      const { first, last } = splitName(rp.name);
+      setConsentDialog({ playerId, firstName: first, lastName: last, docNumber: '', email: rp.email ?? '', phone: rp.phone ?? '' });
+      return;
+    }
+    // Has all required data → send directly
+    setSendingConsentIds(prev => new Set(prev).add(playerId));
+    const { first, last } = splitName(rp.name);
+    const result = await sendConsent({ id: playerId, firstName: first, lastName: last, docNumber: rp.docNumber, email: rp.email, phone: rp.phone });
+    setSendingConsentIds(prev => { const s = new Set(prev); s.delete(playerId); return s; });
+    toast(result.success
+      ? { title: 'Consentimiento enviado', description: rp.name }
+      : { title: 'Error al enviar', description: result.message, variant: 'destructive' }
     );
+  }
+
+  async function handleConsentDialogSend() {
+    if (!consentDialog) return;
+    if (!consentDialog.docNumber.trim()) {
+      toast({ title: 'El DNI es obligatorio', variant: 'destructive' });
+      return;
+    }
+    setConsentDialogSending(true);
+    const result = await sendConsent({
+      id: consentDialog.playerId,
+      firstName: consentDialog.firstName,
+      lastName: consentDialog.lastName,
+      docNumber: consentDialog.docNumber,
+      email: consentDialog.email,
+      phone: consentDialog.phone,
+    });
+    setConsentDialogSending(false);
+    if (result.success) {
+      toast({ title: 'Consentimiento enviado' });
+      setConsentDialog(null);
+    } else {
+      toast({ title: 'Error al enviar', description: result.message, variant: 'destructive' });
+    }
   }
 
   async function handleBulkConsent() {
@@ -142,17 +187,29 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
     if (!pending.length || bulkConsentSending) return;
     setBulkConsentSending(true);
     let successCount = 0;
+    let errorMessages: string[] = [];
     for (let i = 0; i < pending.length; i++) {
       const rp = team.players.find(p => p.id === pending[i]);
       if (!rp) continue;
+      // Skip players without docNumber — they need manual entry
+      if (!rp.docNumber?.trim()) {
+        errorMessages.push(`${rp.name}: falta DNI`);
+        continue;
+      }
       setBulkConsentProgress({ current: i + 1, total: pending.length, name: rp.name });
-      const ok = await sendConsent({ id: rp.id, name: rp.name, docNumber: rp.docNumber, email: rp.email, phone: rp.phone });
-      if (ok) successCount++;
+      const { first, last } = splitName(rp.name);
+      const result = await sendConsent({ id: rp.id, firstName: first, lastName: last, docNumber: rp.docNumber, email: rp.email, phone: rp.phone });
+      if (result.success) successCount++;
+      else errorMessages.push(`${rp.name}: ${result.message}`);
       if (i < pending.length - 1) await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
     }
     setBulkConsentSending(false);
     setBulkConsentProgress(null);
-    toast({ title: `${successCount}/${pending.length} consentimientos enviados` });
+    if (errorMessages.length > 0) {
+      toast({ title: `${successCount} enviados, ${errorMessages.length} con error`, description: errorMessages.join(' · '), variant: errorMessages.length === pending.length ? 'destructive' : 'default' });
+    } else {
+      toast({ title: `${successCount}/${pending.length} consentimientos enviados` });
+    }
   }
 
   // Collect all currently used numbers (across roster + extras)
@@ -300,6 +357,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
   const presentCount = Object.values(playerStates).filter(s => s.isPresent).length + extraPlayers.length;
 
   return (
+    <>
     <div className="border rounded-lg overflow-hidden">
       {/* Match header */}
       <div className="bg-muted/50 px-4 py-3 border-b flex items-center justify-between">
@@ -371,7 +429,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
                     <button
                       type="button"
                       onClick={() => handleSendConsent(player.id)}
-                      disabled={!!consentSentAt[player.id]}
+                      disabled={!!consentSentAt[player.id] || sendingConsentIds.has(player.id)}
                       title={consentSentAt[player.id] ? 'Consentimiento enviado' : 'Enviar consentimiento'}
                       className={cn(
                         'h-7 w-7 flex items-center justify-center rounded transition-colors',
@@ -382,7 +440,9 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
                     >
                       {consentSentAt[player.id]
                         ? <CheckCircle2 className="h-4 w-4" />
-                        : <FileCheck className="h-4 w-4" />
+                        : sendingConsentIds.has(player.id)
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <FileCheck className="h-4 w-4" />
                       }
                     </button>
                   )}
@@ -564,5 +624,74 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
         </div>
       </div>
     </div>
+
+    {/* Consent fill-in dialog — shown when player is missing docNumber */}
+    <Dialog open={!!consentDialog} onOpenChange={open => { if (!open && !consentDialogSending) setConsentDialog(null); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Datos para consentimiento</DialogTitle>
+        </DialogHeader>
+        {consentDialog && (
+          <div className="space-y-3 py-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-sm">Nombre</Label>
+                <Input
+                  value={consentDialog.firstName}
+                  onChange={e => setConsentDialog(d => d ? { ...d, firstName: e.target.value } : d)}
+                  placeholder="Nombre"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Apellido</Label>
+                <Input
+                  value={consentDialog.lastName}
+                  onChange={e => setConsentDialog(d => d ? { ...d, lastName: e.target.value } : d)}
+                  placeholder="Apellido"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">DNI <span className="text-destructive">*</span></Label>
+              <Input
+                value={consentDialog.docNumber}
+                onChange={e => setConsentDialog(d => d ? { ...d, docNumber: e.target.value } : d)}
+                placeholder="12345678"
+                inputMode="numeric"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">Email</Label>
+              <Input
+                type="email"
+                value={consentDialog.email}
+                onChange={e => setConsentDialog(d => d ? { ...d, email: e.target.value } : d)}
+                placeholder="jugador@mail.com"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">Teléfono</Label>
+              <Input
+                value={consentDialog.phone}
+                onChange={e => setConsentDialog(d => d ? { ...d, phone: e.target.value } : d)}
+                placeholder="+54 11 1234-5678"
+              />
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setConsentDialog(null)} disabled={consentDialogSending}>
+            Cancelar
+          </Button>
+          <Button onClick={handleConsentDialogSend} disabled={consentDialogSending || !consentDialog?.docNumber.trim()}>
+            {consentDialogSending
+              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Enviando...</>
+              : <><FileCheck className="h-4 w-4 mr-2" />Enviar</>
+            }
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
