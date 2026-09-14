@@ -117,9 +117,10 @@ export async function POST(request: Request) {
   const redirectedAway = submitRes.url !== 'https://fantasyskate.com.ar/consentimiento/';
 
   const isSuccess = submitRes.ok && (redirectedAway || hasMessage || !hasError);
+  const reason = redirectedAway ? 'redirigió' : hasMessage ? 'frm_message presente' : !hasError ? 'sin frm_error' : 'desconocido';
 
   if (isSuccess) {
-    console.log(`[consent/send] ✓ Enviado: ${player}`);
+    console.log(`[consent/send] ✓ Enviado: ${player} (razón: ${reason})`);
   } else {
     const errorIdx = responseText.indexOf('frm_error');
     const snippet = errorIdx !== -1
