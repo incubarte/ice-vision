@@ -467,7 +467,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
                     <button
                       type="button"
                       onClick={() => handleSendConsent(player.id)}
-                      disabled={!!consentSentAt[player.id] || sendingConsentIds.has(player.id)}
+                      disabled={!!consentSentAt[player.id] || sendingConsentIds.has(player.id) || bulkConsentSending}
                       title={consentSentAt[player.id] ? 'Consentimiento enviado' : 'Enviar consentimiento'}
                       className={cn(
                         'h-7 w-7 flex items-center justify-center rounded transition-colors',
