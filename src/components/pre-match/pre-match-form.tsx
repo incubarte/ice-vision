@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, User, Plus, Trash2, AlertCircle, CheckCircle2, Loader2, UserCog } from 'lucide-react';
+import { Shield, User, Plus, Trash2, AlertCircle, CheckCircle2, Loader2, UserCog, FileCheck } from 'lucide-react';
 import { cn, getTeamDisplayName } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,6 +24,8 @@ interface PreMatchFormProps {
   initialData: PreMatchData | null;
   onSaved: () => void;
   password?: string;
+  /** Show consent send buttons (only for ACEMHH club) */
+  showConsent?: boolean;
 }
 
 function formatMatchTime(dateStr: string) {
@@ -34,7 +36,18 @@ function formatMatchTime(dateStr: string) {
   }
 }
 
-export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponentName, initialData, onSaved, password = 'IceVision' }: PreMatchFormProps) {
+function splitName(fullName: string): { first: string; last: string } {
+  const trimmed = fullName.trim();
+  if (trimmed.includes(',')) {
+    const [last, first] = trimmed.split(',').map(s => s.trim());
+    return { first: first ?? '', last };
+  }
+  const parts = trimmed.split(' ');
+  if (parts.length === 1) return { first: '', last: trimmed };
+  return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] };
+}
+
+export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponentName, initialData, onSaved, password = 'IceVision', showConsent = false }: PreMatchFormProps) {
   const { toast } = useToast();
 
   // Initialize player states from initialData or from team roster
@@ -65,6 +78,82 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
   const [isSaving, setIsSaving] = useState(false);
   const [savedOnce, setSavedOnce] = useState(initialData !== null);
   const [currentVersion, setCurrentVersion] = useState(initialData?.version ?? 0);
+
+  // Consent state — keyed by playerId, value is ISO timestamp when sent
+  const [consentSentAt, setConsentSentAt] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const p of initialData?.players ?? []) {
+      if (p.consentSentAt) init[p.playerId] = p.consentSentAt;
+    }
+    return init;
+  });
+  const [bulkConsentSending, setBulkConsentSending] = useState(false);
+  const [bulkConsentProgress, setBulkConsentProgress] = useState<{ current: number; total: number; name: string } | null>(null);
+
+  const consentPatchUrl = postUrl ?? `${apiBase}/${match.id}`;
+
+  async function markConsentSent(playerId: string): Promise<void> {
+    const sentAt = new Date().toISOString();
+    setConsentSentAt(prev => ({ ...prev, [playerId]: sentAt }));
+    try {
+      await fetch(consentPatchUrl, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-pre-match-password': password },
+        body: JSON.stringify({ playerId, consentSentAt: sentAt }),
+      });
+    } catch {
+      // Non-fatal — state already updated locally; will be lost on reload but consent was sent
+    }
+  }
+
+  async function sendConsent(player: { id: string; name: string; docNumber?: string; email?: string; phone?: string }): Promise<boolean> {
+    const { first, last } = splitName(player.name);
+    try {
+      const res = await fetch('/api/consent/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstName: first, lastName: last, docNumber: player.docNumber ?? '', email: player.email ?? '', phone: player.phone ?? '' }),
+      });
+      const data = await res.json();
+      console.log(`[consent/pre-match] ${player.name}:`, data);
+      if (data.success) { await markConsentSent(player.id); return true; }
+      return false;
+    } catch (err) {
+      console.error(`[consent/pre-match] Error para ${player.name}:`, err);
+      return false;
+    }
+  }
+
+  async function handleSendConsent(playerId: string) {
+    const rosterPlayer = team.players.find(p => p.id === playerId);
+    if (!rosterPlayer) return;
+    const ok = await sendConsent({ id: playerId, name: rosterPlayer.name, docNumber: rosterPlayer.docNumber, email: rosterPlayer.email, phone: rosterPlayer.phone });
+    toast(ok
+      ? { title: 'Consentimiento enviado', description: rosterPlayer.name }
+      : { title: 'Error al enviar', description: rosterPlayer.name, variant: 'destructive' }
+    );
+  }
+
+  async function handleBulkConsent() {
+    const presentPlayerIds = Object.entries(playerStates)
+      .filter(([, s]) => s.isPresent)
+      .map(([id]) => id);
+    const pending = presentPlayerIds.filter(id => !consentSentAt[id]);
+    if (!pending.length || bulkConsentSending) return;
+    setBulkConsentSending(true);
+    let successCount = 0;
+    for (let i = 0; i < pending.length; i++) {
+      const rp = team.players.find(p => p.id === pending[i]);
+      if (!rp) continue;
+      setBulkConsentProgress({ current: i + 1, total: pending.length, name: rp.name });
+      const ok = await sendConsent({ id: rp.id, name: rp.name, docNumber: rp.docNumber, email: rp.email, phone: rp.phone });
+      if (ok) successCount++;
+      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+    }
+    setBulkConsentSending(false);
+    setBulkConsentProgress(null);
+    toast({ title: `${successCount}/${pending.length} consentimientos enviados` });
+  }
 
   // Collect all currently used numbers (across roster + extras)
   const getAllNumbers = useCallback(() => {
@@ -278,6 +367,25 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
                     placeholder="Nº"
                     maxLength={3}
                   />
+                  {showConsent && (
+                    <button
+                      type="button"
+                      onClick={() => handleSendConsent(player.id)}
+                      disabled={!!consentSentAt[player.id]}
+                      title={consentSentAt[player.id] ? 'Consentimiento enviado' : 'Enviar consentimiento'}
+                      className={cn(
+                        'h-7 w-7 flex items-center justify-center rounded transition-colors',
+                        consentSentAt[player.id]
+                          ? 'text-green-500 cursor-default'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )}
+                    >
+                      {consentSentAt[player.id]
+                        ? <CheckCircle2 className="h-4 w-4" />
+                        : <FileCheck className="h-4 w-4" />
+                      }
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -399,6 +507,41 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
             </div>
           </div>
         </div>
+
+        {/* Bulk consent button — ACEMHH only */}
+        {showConsent && (() => {
+          const presentIds = Object.entries(playerStates).filter(([, s]) => s.isPresent).map(([id]) => id);
+          const pendingCount = presentIds.filter(id => !consentSentAt[id]).length;
+          if (presentIds.length === 0) return null;
+          return (
+            <div className="border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-9"
+                onClick={handleBulkConsent}
+                disabled={bulkConsentSending || pendingCount === 0}
+              >
+                {bulkConsentSending ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                    {bulkConsentProgress
+                      ? `${bulkConsentProgress.current}/${bulkConsentProgress.total} — ${bulkConsentProgress.name}`
+                      : 'Enviando...'}
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="h-3.5 w-3.5 mr-2" />
+                    {pendingCount === 0
+                      ? 'Consentimientos enviados ✓'
+                      : `Enviar consentimientos (${pendingCount} pendientes)`}
+                  </>
+                )}
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Save button */}
         <div className="flex items-center gap-3 pt-2">
