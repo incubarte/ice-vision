@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,24 +28,51 @@ export async function POST(request: Request) {
   const cookies = pageRes.headers.get('set-cookie') ?? '';
   const html = await pageRes.text();
 
-  // Extract hidden field values using regex
+  // Extract hidden field value — tries attribute order variations
   function extractHidden(name: string): string {
     const escaped = name.replace(/[[\]]/g, '\\$&');
-    const match =
+    const m =
       html.match(new RegExp(`name="${escaped}"[^>]*value="([^"]*)"`, 'i')) ??
       html.match(new RegExp(`value="([^"]*)"[^>]*name="${escaped}"`, 'i'));
-    return match?.[1] ?? '';
+    return m?.[1] ?? '';
   }
 
-  const nonce = extractHidden('frm_submit_entry_2');
-  const frmState = extractHidden('frm_state');
-  const antispam = extractHidden('antispam_token');
-  const uniqueId = extractHidden('unique_id');
+  // Extract a value from inline <script> JSON blobs (wp_localize_script / inline vars)
+  function extractFromScript(key: string): string {
+    const escaped = key.replace(/[[\]]/g, '\\$&');
+    // Matches: "key":"value" or "key": "value"
+    const m = html.match(new RegExp(`"${escaped}"\\s*:\\s*"([^"]+)"`, 'i'));
+    return m?.[1] ?? '';
+  }
 
-  console.log(`[consent/send]   Tokens extraídos — nonce: ${nonce ? '✓' : '✗ FALTA'} | frm_state: ${frmState ? '✓' : '✗ FALTA'} | antispam: ${antispam ? '✓' : '✗ FALTA'} | unique_id: ${uniqueId ? '✓' : '✗ FALTA'}`);
+  const nonce     = extractHidden('frm_submit_entry_2');
+  const frmState  = extractHidden('frm_state');
+
+  // antispam_token: try hidden input first, then inline script JSON
+  let antispam = extractHidden('antispam_token');
+  if (!antispam) antispam = extractFromScript('antispam_token');
+
+  // unique_id: try hidden input, then script JSON, then generate a UUID ourselves
+  // (Formidable's JS generates this client-side to deduplicate submissions)
+  let uniqueId = extractHidden('unique_id');
+  if (!uniqueId) uniqueId = extractFromScript('unique_id');
+  if (!uniqueId) {
+    uniqueId = randomUUID();
+    console.log(`[consent/send]   unique_id no encontrado en HTML — generando: ${uniqueId}`);
+  }
+
+  console.log(`[consent/send]   Tokens — nonce: ${nonce ? '✓' : '✗ FALTA'} | frm_state: ${frmState ? '✓' : '✗ FALTA'} | antispam: ${antispam ? `✓ (${antispam.slice(0, 8)}…)` : '✗ ausente'} | unique_id: ${uniqueId ? '✓' : '✗'}`);
+
+  // Log HTML sections that mention antispam_token / unique_id so we can see the real format
+  const antispamIdx = html.indexOf('antispam_token');
+  if (antispamIdx !== -1) {
+    console.log(`[consent/send]   HTML alrededor de antispam_token: …${html.slice(Math.max(0, antispamIdx - 80), antispamIdx + 120).replace(/\s+/g, ' ')}…`);
+  } else {
+    console.log(`[consent/send]   "antispam_token" no aparece en el HTML estático — probablemente inyectado por JS`);
+  }
 
   if (!nonce || !frmState) {
-    console.error(`[consent/send] ✗ Tokens insuficientes, abortando para: ${player}`);
+    console.error(`[consent/send] ✗ Tokens mínimos faltantes (nonce/frm_state), abortando para: ${player}`);
     return NextResponse.json(
       { success: false, message: 'No se pudo obtener los tokens del formulario' },
       { status: 502 }
@@ -79,7 +107,7 @@ export async function POST(request: Request) {
   formData.append('item_key', '');
   formData.append('item_meta[36]', '');
   formData.append('frm_state', frmState);
-  formData.append('antispam_token', antispam);
+  if (antispam) formData.append('antispam_token', antispam);
   formData.append('unique_id', uniqueId);
 
   let submitRes: Response;
@@ -102,27 +130,29 @@ export async function POST(request: Request) {
 
   console.log(`[consent/send]   POST /consentimiento/ → status ${submitRes.status} | url final: ${submitRes.url}`);
 
-  // WordPress Formidable typically redirects on success or shows success message
   const responseText = await submitRes.text();
 
-  const hasMessage = responseText.includes('frm_message');
-  const hasSuccess = responseText.includes('success');
-  const hasError = responseText.includes('frm_error');
+  const hasMessage   = responseText.includes('frm_message');
+  const hasSuccess   = responseText.includes('success');
+  const hasError     = responseText.includes('frm_error');
   const redirectedAway = submitRes.url !== 'https://fantasyskate.com.ar/consentimiento/';
 
-  console.log(`[consent/send]   Análisis respuesta — frm_message: ${hasMessage} | success: ${hasSuccess} | frm_error: ${hasError} | redirigió: ${redirectedAway}`);
+  console.log(`[consent/send]   Análisis — frm_message: ${hasMessage} | success: ${hasSuccess} | frm_error: ${hasError} | redirigió: ${redirectedAway}`);
 
-  const isSuccess =
-    submitRes.ok &&
-    (redirectedAway || hasMessage || hasSuccess || !hasError);
+  const isSuccess = submitRes.ok && (redirectedAway || hasMessage || hasSuccess || !hasError);
 
   if (isSuccess) {
     console.log(`[consent/send] ✓ Enviado exitosamente: ${player}`);
   } else {
-    console.warn(`[consent/send] ✗ Posible fallo para: ${player}`);
-    // Log a snippet of the response for debugging
-    const snippet = responseText.slice(0, 500).replace(/\s+/g, ' ');
-    console.warn(`[consent/send]   Inicio de respuesta: ${snippet}`);
+    console.warn(`[consent/send] ✗ Fallo para: ${player}`);
+    // Log the section of the response that mentions frm_error for diagnosis
+    const errorIdx = responseText.indexOf('frm_error');
+    if (errorIdx !== -1) {
+      const snippet = responseText.slice(Math.max(0, errorIdx - 100), errorIdx + 300).replace(/\s+/g, ' ');
+      console.warn(`[consent/send]   Contexto del error en respuesta: …${snippet}…`);
+    } else {
+      console.warn(`[consent/send]   Inicio de respuesta: ${responseText.slice(0, 400).replace(/\s+/g, ' ')}`);
+    }
   }
 
   return NextResponse.json({
