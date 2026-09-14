@@ -91,6 +91,65 @@ export async function POST(
   return NextResponse.json({ success: true });
 }
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ tournamentCode: string; clubName: string; matchId: string }> }
+) {
+  const { tournamentCode, clubName, matchId } = await params;
+  const teamId = new URL(request.url).searchParams.get('teamId') ?? undefined;
+  const ids = await resolveIds(tournamentCode, clubName, matchId, teamId);
+  if (!ids) return NextResponse.json({ message: 'Not found' }, { status: 404 });
+  if (request.headers.get('x-pre-match-password') !== ids.clubPassword) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  let body: { playerId: string; consentSentAt: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: 'Invalid JSON' }, { status: 400 });
+  }
+
+  let existing = await readPreMatchData(ids.tournamentId, matchId, ids.teamId);
+
+  if (!existing) {
+    // Pre-match not saved yet — create a stub so consent is persisted
+    const tournamentId = ids.tournamentId;
+    const tournament = await readTournament(tournamentId, { includeSummaries: false });
+    const team = tournament ? (tournament.teams ?? []).find((t: TeamData) => t.id === ids.teamId) : null;
+    const players = team
+      ? (team.players ?? []).map((p: { id: string; name: string; number: string; type: string }) => ({
+          playerId: p.id,
+          name: p.name,
+          number: p.number ?? '',
+          type: p.type,
+          isPresent: false,
+        }))
+      : [];
+    existing = {
+      tournamentId,
+      matchId,
+      teamId: ids.teamId,
+      submittedAt: new Date().toISOString(),
+      version: 1,
+      players,
+      extraPlayers: [],
+      coach: '',
+    };
+  }
+
+  const updated: PreMatchData = {
+    ...existing,
+    players: existing.players.map(p =>
+      p.playerId === body.playerId ? { ...p, consentSentAt: body.consentSentAt } : p
+    ),
+  };
+
+  const provider = isReadOnlyMode() ? createPreMatchStorageProvider() : undefined;
+  await writePreMatchData(updated, provider);
+  return NextResponse.json({ success: true });
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ tournamentCode: string; clubName: string; matchId: string }> }
