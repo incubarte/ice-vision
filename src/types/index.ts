@@ -302,6 +302,7 @@ export interface PreMatchPlayerEntry {
   number: string;         // may differ from roster if delegate changed it
   type: PlayerType;
   isPresent: boolean;
+  consentSentAt?: string; // ISO timestamp — set when consent form was sent
 }
 
 export interface PreMatchExtraPlayer {

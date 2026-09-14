@@ -171,6 +171,7 @@ export default function PreMatchPage() {
             initialData={initialDataMap[selectedKey] ?? null}
             onSaved={handleSaved}
             password={clubPassword}
+            showConsent={decodedClubName.toLowerCase().includes('acemhh')}
           />
         </div>
       </div>
