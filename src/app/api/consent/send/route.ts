@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     // Look for formidable JS script URL in HTML
     const frmJsSrcMatch = html.match(/https?:[^"']+formidable[^"']*(?:frm|front)[^"']*\.js[^"']*/i);
     if (frmJsSrcMatch) {
-      const jsUrl = frmJsSrcMatch[0].replace(/\\//g, '/');
+      const jsUrl = frmJsSrcMatch[0].split('\\/').join('/');
       console.log(`[consent/send]   Fetching Formidable JS: ${jsUrl}`);
       try {
         const jsRes = await fetch(jsUrl, { headers: { 'user-agent': 'Mozilla/5.0' } });
