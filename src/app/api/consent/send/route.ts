@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const { firstName, lastName, docNumber, email, phone } = await request.json();
 
   const player = `${firstName} ${lastName}`.trim() || '(sin nombre)';
-  console.log(`[consent/send] → Iniciando envío para: ${player}`);
+  console.log(`[consent/send] → Iniciando envío para: ${player} | DNI: "${docNumber || '—'}" | email: "${email || '—'}" | phone: "${phone || '—'}"`);
 
   // Step 1: GET the form page
   const pageRes = await fetch('https://fantasyskate.com.ar/consentimiento/', {
@@ -122,11 +122,25 @@ export async function POST(request: Request) {
   if (isSuccess) {
     console.log(`[consent/send] ✓ Enviado: ${player} (razón: ${reason})`);
   } else {
-    const errorIdx = responseText.indexOf('frm_error');
-    const snippet = errorIdx !== -1
-      ? responseText.slice(Math.max(0, errorIdx - 30), errorIdx + 350).replace(/\s+/g, ' ')
-      : responseText.slice(0, 300).replace(/\s+/g, ' ');
-    console.warn(`[consent/send] ✗ Fallo: ${player} → ${snippet}`);
+    console.warn(`[consent/send] ✗ Fallo: ${player}`);
+    // Extract ALL field-level error messages (Formidable puts them in <p class="frm_error"> or similar)
+    const fieldErrors: string[] = [];
+    const fieldErrorRegex = /class="[^"]*frm_error[^"]*"[^>]*>([^<]{1,200})</gi;
+    let m: RegExpExecArray | null;
+    while ((m = fieldErrorRegex.exec(responseText)) !== null) {
+      const msg = m[1].trim();
+      if (msg) fieldErrors.push(msg);
+    }
+    if (fieldErrors.length > 0) {
+      console.warn(`[consent/send]   Errores de campo: ${fieldErrors.join(' | ')}`);
+    } else {
+      // Fallback: log 600 chars around first frm_error occurrence
+      const idx = responseText.indexOf('frm_error');
+      const snippet = idx !== -1
+        ? responseText.slice(Math.max(0, idx - 30), idx + 600).replace(/\s+/g, ' ')
+        : responseText.slice(0, 600).replace(/\s+/g, ' ');
+      console.warn(`[consent/send]   Respuesta (sin errores de campo identificados): ${snippet}`);
+    }
   }
 
   return NextResponse.json({
