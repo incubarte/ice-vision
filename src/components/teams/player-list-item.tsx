@@ -18,9 +18,11 @@ interface PlayerListItemProps {
   teamId: string;
   onRemovePlayer: (playerId: string) => void;
   allPlayers?: PlayerData[];
+  isSent?: boolean;
+  onConsentSent?: (playerId: string) => void;
 }
 
-export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = [] }: PlayerListItemProps) {
+export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = [], isSent = false, onConsentSent }: PlayerListItemProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const { isReadOnly } = useAdminMode();
@@ -407,6 +409,7 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
       if (data.success) {
         toast({ title: "Consentimiento enviado", description: data.message });
         setIsConsentOpen(false);
+        onConsentSent?.(player.id);
       } else {
         toast({ title: "Error al enviar", description: data.message, variant: "destructive" });
       }
@@ -658,11 +661,12 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
+                  className={`h-8 w-8 ${isSent ? 'text-green-500 hover:text-green-600' : 'text-muted-foreground hover:text-foreground'}`}
                   onClick={handleOpenConsent}
                   aria-label={`Enviar consentimiento de ${player.name}`}
+                  title={isSent ? 'Consentimiento enviado' : 'Enviar consentimiento'}
                 >
-                  <FileCheck className="h-4 w-4" />
+                  {isSent ? <CheckCircle className="h-4 w-4" /> : <FileCheck className="h-4 w-4" />}
                 </Button>
                 <Button
                   variant="ghost"

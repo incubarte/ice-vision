@@ -8,7 +8,7 @@ import { useGameState, getCategoryNameById } from "@/contexts/game-state-context
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Edit, Trash2, Users, Info, ListFilter, LayoutGrid, LayoutList, Shield, User, Calendar, Trophy, UserCog, Save } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Users, Info, ListFilter, LayoutGrid, LayoutList, Shield, User, Calendar, Trophy, UserCog, Save, FileCheck, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddPlayerForm } from "@/components/teams/add-player-form";
 import { usePlayerStats } from "@/hooks/use-player-stats";
@@ -65,6 +65,11 @@ export default function ManageTeamPage() {
   const [editingPlayer, setEditingPlayer] = useState<PlayerData | null>(null);
   const [playerToDelete, setPlayerToDelete] = useState<PlayerData | null>(null);
 
+  // Consent tracking
+  const [sentConsentIds, setSentConsentIds] = useState<Set<string>>(new Set());
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; name: string } | null>(null);
+
   const [coachName, setCoachName] = useState('');
   const [assistant1Name, setAssistant1Name] = useState('');
   const [assistant2Name, setAssistant2Name] = useState('');
@@ -76,6 +81,71 @@ export default function ManageTeamPage() {
       setAssistant2Name(team.assistant2 ?? '');
     }
   }, [team?.id]);
+
+  useEffect(() => {
+    if (!team?.id) return;
+    try {
+      const stored = localStorage.getItem(`consent_sent_${team.id}`);
+      if (stored) setSentConsentIds(new Set(JSON.parse(stored)));
+    } catch {}
+  }, [team?.id]);
+
+  const handleConsentSent = (playerId: string) => {
+    if (!team?.id) return;
+    setSentConsentIds(prev => {
+      const next = new Set(prev);
+      next.add(playerId);
+      try { localStorage.setItem(`consent_sent_${team.id}`, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
+  function splitName(fullName: string): { first: string; last: string } {
+    const trimmed = fullName.trim();
+    if (trimmed.includes(',')) {
+      const [last, first] = trimmed.split(',').map(s => s.trim());
+      return { first: first ?? '', last };
+    }
+    const parts = trimmed.split(' ');
+    if (parts.length === 1) return { first: '', last: trimmed };
+    return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] };
+  }
+
+  const handleBulkConsent = async () => {
+    const pending = sortedPlayers.filter(p => !sentConsentIds.has(p.id));
+    if (!pending.length || bulkSending) return;
+    setBulkSending(true);
+    let successCount = 0;
+    for (let i = 0; i < pending.length; i++) {
+      const player = pending[i];
+      setBulkProgress({ current: i + 1, total: pending.length, name: player.name });
+      const { first, last } = splitName(player.name);
+      try {
+        const res = await fetch('/api/consent/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: first,
+            lastName: last,
+            docNumber: player.docNumber ?? '',
+            email: player.email ?? '',
+            phone: player.phone ?? '',
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          successCount++;
+          handleConsentSent(player.id);
+        }
+      } catch {}
+      if (i < pending.length - 1) {
+        await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+      }
+    }
+    setBulkSending(false);
+    setBulkProgress(null);
+    toast({ title: `${successCount}/${pending.length} consentimientos enviados` });
+  };
 
   const sortedPlayers = useMemo(() => {
     if (!team?.players) return [];
@@ -256,6 +326,28 @@ export default function ManageTeamPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-semibold text-primary-foreground">Lista de Jugadores</h2>
+              <div className="flex items-center gap-2">
+                {!isReadOnly && sortedPlayers.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkConsent}
+                    disabled={bulkSending || sortedPlayers.every(p => sentConsentIds.has(p.id))}
+                    className="h-8 text-xs"
+                  >
+                    {bulkSending ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                        {bulkProgress ? `${bulkProgress.current}/${bulkProgress.total} — ${bulkProgress.name}` : 'Enviando...'}
+                      </>
+                    ) : (
+                      <>
+                        <FileCheck className="h-3 w-3 mr-1.5" />
+                        Consentimientos ({sortedPlayers.filter(p => !sentConsentIds.has(p.id)).length} pendientes)
+                      </>
+                    )}
+                  </Button>
+                )}
               <div className="flex gap-1 border rounded-md p-1">
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
@@ -274,13 +366,14 @@ export default function ManageTeamPage() {
                   <LayoutGrid className="h-4 w-4" />
                 </Button>
               </div>
+              </div>
             </div>
 
             {sortedPlayers.length > 0 ? (
           viewMode === 'list' ? (
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
               {sortedPlayers.map(player => (
-                <PlayerListItem key={player.id} player={player} teamId={team.id} onRemovePlayer={(playerId) => { const p = team.players.find(pl => pl.id === playerId); if (p) setPlayerToDelete(p); }} allPlayers={team.players} />
+                <PlayerListItem key={player.id} player={player} teamId={team.id} onRemovePlayer={(playerId) => { const p = team.players.find(pl => pl.id === playerId); if (p) setPlayerToDelete(p); }} allPlayers={team.players} isSent={sentConsentIds.has(player.id)} onConsentSent={handleConsentSent} />
               ))}
             </div>
           ) : (

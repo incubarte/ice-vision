@@ -40,6 +40,8 @@ export function AddPlayerForm({ teamId }: AddPlayerFormProps) {
   const [docType, setDocType] = useState<DocType>("DNI");
   const [docTypeLabel, setDocTypeLabel] = useState("");
   const [docNumber, setDocNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
   const showForm = mode !== "search";
 
@@ -73,6 +75,8 @@ export function AddPlayerForm({ teamId }: AddPlayerFormProps) {
     setDocType("DNI");
     setDocTypeLabel("");
     setDocNumber("");
+    setEmail("");
+    setPhone("");
   };
 
   const selectLinked = (p: PlayerProfile) => {
@@ -156,6 +160,8 @@ export function AddPlayerForm({ teamId }: AddPlayerFormProps) {
                 ...(docType === "other" && docTypeLabel.trim() ? { docTypeLabel: docTypeLabel.trim() } : {}),
                 docNumber: docNumber.trim(),
               },
+              ...(email.trim() ? { email: email.trim() } : {}),
+              ...(phone.trim() ? { phone: phone.trim() } : {}),
             },
           }),
         });
@@ -330,6 +336,26 @@ export function AddPlayerForm({ teamId }: AddPlayerFormProps) {
                     onChange={(e) => setDocNumber(e.target.value)}
                     placeholder="12345678"
                     required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-email">Email (opcional)</Label>
+                  <Input
+                    id="new-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="jugador@ejemplo.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-phone">Teléfono (opcional)</Label>
+                  <Input
+                    id="new-phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+54 11 1234-5678"
                   />
                 </div>
               </>

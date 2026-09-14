@@ -23,6 +23,8 @@ export function PlayersRegistrySection() {
   const [docType, setDocType] = useState<DocType>("DNI");
   const [docTypeLabel, setDocTypeLabel] = useState("");
   const [docNumber, setDocNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
   const loadPlayers = () => {
     setLoading(true);
@@ -39,6 +41,8 @@ export function PlayersRegistrySection() {
     setDocType("DNI");
     setDocTypeLabel("");
     setDocNumber("");
+    setEmail("");
+    setPhone("");
     setShowForm(false);
   };
 
@@ -66,6 +70,8 @@ export function PlayersRegistrySection() {
               ...(docType === "other" ? { docTypeLabel: docTypeLabel.trim() } : {}),
               docNumber: trimmedDocNumber,
             },
+            ...(email.trim() ? { email: email.trim() } : {}),
+            ...(phone.trim() ? { phone: phone.trim() } : {}),
           },
         }),
       });
@@ -96,13 +102,21 @@ export function PlayersRegistrySection() {
         ) : (
           <div className="space-y-2">
             {players.map((p) => (
-              <div key={p.id} className="flex items-center gap-2 py-1 border-b last:border-0">
-                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="font-medium text-sm">{p.name}</span>
-                {p.document && (
-                  <span className="text-xs text-muted-foreground">
-                    {p.document.docTypeLabel ?? p.document.docType} {p.document.docNumber}
-                  </span>
+              <div key={p.id} className="py-1 border-b last:border-0">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-medium text-sm">{p.name}</span>
+                  {p.document && (
+                    <span className="text-xs text-muted-foreground">
+                      {p.document.docTypeLabel ?? p.document.docType} {p.document.docNumber}
+                    </span>
+                  )}
+                </div>
+                {(p.email || p.phone) && (
+                  <div className="ml-6 flex gap-3 mt-0.5">
+                    {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
+                    {p.phone && <span className="text-xs text-muted-foreground">{p.phone}</span>}
+                  </div>
                 )}
               </div>
             ))}
@@ -157,6 +171,26 @@ export function PlayersRegistrySection() {
                 onChange={(e) => setDocNumber(e.target.value)}
                 placeholder="12345678"
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="reg-email">Email (opcional)</Label>
+              <Input
+                id="reg-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="jugador@ejemplo.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="reg-phone">Teléfono (opcional)</Label>
+              <Input
+                id="reg-phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+54 11 1234-5678"
               />
             </div>
             <div className="flex gap-2">
