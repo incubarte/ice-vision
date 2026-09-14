@@ -110,8 +110,33 @@ export async function PATCH(
     return NextResponse.json({ message: 'Invalid JSON' }, { status: 400 });
   }
 
-  const existing = await readPreMatchData(ids.tournamentId, matchId, ids.teamId);
-  if (!existing) return NextResponse.json({ message: 'Pre-match data not found' }, { status: 404 });
+  let existing = await readPreMatchData(ids.tournamentId, matchId, ids.teamId);
+
+  if (!existing) {
+    // Pre-match not saved yet — create a stub so consent is persisted
+    const tournamentId = ids.tournamentId;
+    const tournament = await readTournament(tournamentId, { includeSummaries: false });
+    const team = tournament ? (tournament.teams ?? []).find((t: TeamData) => t.id === ids.teamId) : null;
+    const players = team
+      ? (team.players ?? []).map((p: { id: string; name: string; number: string; type: string }) => ({
+          playerId: p.id,
+          name: p.name,
+          number: p.number ?? '',
+          type: p.type,
+          isPresent: false,
+        }))
+      : [];
+    existing = {
+      tournamentId,
+      matchId,
+      teamId: ids.teamId,
+      submittedAt: new Date().toISOString(),
+      version: 1,
+      players,
+      extraPlayers: [],
+      coach: '',
+    };
+  }
 
   const updated: PreMatchData = {
     ...existing,

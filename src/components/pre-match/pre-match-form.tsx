@@ -319,6 +319,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
         number: playerStates[p.id]?.number ?? p.number,
         type: p.type,
         isPresent: playerStates[p.id]?.isPresent ?? false,
+        ...(consentSentAt[p.id] ? { consentSentAt: consentSentAt[p.id] } : {}),
       })),
       extraPlayers,
       coach: coachName.trim(),
