@@ -116,10 +116,12 @@ export default function ManageTeamPage() {
     if (!pending.length || bulkSending) return;
     setBulkSending(true);
     let successCount = 0;
+    console.log(`[consent/bulk] Iniciando envío masivo: ${pending.length} jugadores pendientes`);
     for (let i = 0; i < pending.length; i++) {
       const player = pending[i];
       setBulkProgress({ current: i + 1, total: pending.length, name: player.name });
       const { first, last } = splitName(player.name);
+      console.log(`[consent/bulk] [${i + 1}/${pending.length}] Enviando: ${player.name} | DNI: ${player.docNumber || '—'}`);
       try {
         const res = await fetch('/api/consent/send', {
           method: 'POST',
@@ -133,17 +135,26 @@ export default function ManageTeamPage() {
           }),
         });
         const data = await res.json();
+        console.log(`[consent/bulk] [${i + 1}/${pending.length}] Respuesta para ${player.name}:`, data);
         if (data.success) {
           successCount++;
           handleConsentSent(player.id);
+          console.log(`[consent/bulk] ✓ OK — ${player.name}`);
+        } else {
+          console.warn(`[consent/bulk] ✗ Fallo — ${player.name} | mensaje: ${data.message}`);
         }
-      } catch {}
+      } catch (err) {
+        console.error(`[consent/bulk] ✗ Error de red para ${player.name}:`, err);
+      }
       if (i < pending.length - 1) {
-        await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+        const delay = Math.round(3000 + Math.random() * 2000);
+        console.log(`[consent/bulk] Esperando ${(delay / 1000).toFixed(1)}s antes del siguiente...`);
+        await new Promise(r => setTimeout(r, delay));
       }
     }
     setBulkSending(false);
     setBulkProgress(null);
+    console.log(`[consent/bulk] Finalizado: ${successCount}/${pending.length} enviados exitosamente`);
     toast({ title: `${successCount}/${pending.length} consentimientos enviados` });
   };
 

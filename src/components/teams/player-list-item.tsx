@@ -393,6 +393,8 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
 
   const handleSendConsent = async () => {
     setIsSendingConsent(true);
+    const label = `${consentFirstName} ${consentLastName}`.trim() || player.name;
+    console.log(`[consent] Enviando consentimiento para: ${label} | DNI: ${consentDocNumber || '—'} | email: ${consentEmail || '—'}`);
     try {
       const res = await fetch('/api/consent/send', {
         method: 'POST',
@@ -406,14 +408,18 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
         }),
       });
       const data = await res.json();
+      console.log(`[consent] Respuesta para ${label}:`, data);
       if (data.success) {
+        console.log(`[consent] ✓ OK — ${label}`);
         toast({ title: "Consentimiento enviado", description: data.message });
         setIsConsentOpen(false);
         onConsentSent?.(player.id);
       } else {
+        console.warn(`[consent] ✗ Fallo — ${label} | mensaje: ${data.message}`);
         toast({ title: "Error al enviar", description: data.message, variant: "destructive" });
       }
-    } catch {
+    } catch (err) {
+      console.error(`[consent] ✗ Error de red para ${label}:`, err);
       toast({ title: "Error", description: "No se pudo conectar con el servidor.", variant: "destructive" });
     } finally {
       setIsSendingConsent(false);
