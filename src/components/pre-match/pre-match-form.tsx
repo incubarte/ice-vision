@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { MatchData, TeamData, PreMatchData, PreMatchPlayerEntry, PreMatchExtraPlayer, PlayerType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +88,8 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
     }
     return init;
   });
+  // Ref always holds the latest value so concurrent markConsentSent calls don't read stale closure state
+  const consentSentAtRef = useRef(consentSentAt);
   const [bulkConsentSending, setBulkConsentSending] = useState(false);
   const [bulkConsentProgress, setBulkConsentProgress] = useState<{ current: number; total: number; name: string } | null>(null);
   const [sendingConsentIds, setSendingConsentIds] = useState<Set<string>>(new Set());
@@ -137,7 +139,9 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
 
   async function markConsentSent(playerId: string): Promise<void> {
     const sentAt = new Date().toISOString();
-    const updated = { ...consentSentAt, [playerId]: sentAt };
+    // Read from ref (always current) and update it synchronously before any await
+    const updated = { ...consentSentAtRef.current, [playerId]: sentAt };
+    consentSentAtRef.current = updated;
     setConsentSentAt(updated);
     await saveWithConsent(updated);
   }
@@ -237,7 +241,8 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
       }
       if (i < pending.length - 1) await new Promise(r => setTimeout(r, 1000));
     }
-    // Update state and save file once with all marks
+    // Update ref and state, then save file once with all marks
+    consentSentAtRef.current = bulkUpdated;
     setConsentSentAt(bulkUpdated);
     if (successCount > 0) await saveWithConsent(bulkUpdated);
     setBulkConsentSending(false);
