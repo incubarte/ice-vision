@@ -117,10 +117,11 @@ export async function POST(request: Request) {
   const redirectedAway = submitRes.url !== 'https://fantasyskate.com.ar/consentimiento/';
   const responseSnippet = responseText.slice(0, 400).replace(/\s+/g, ' ');
 
-  // Strict: only trust a redirect or an explicit success message. "no frm_error" alone is NOT enough —
-  // Cloudflare/WP can return 200 with the original page and nothing gets processed.
-  const isSuccess = submitRes.ok && (redirectedAway || (hasMessage && !hasError));
-  const reason = redirectedAway ? 'redirigió' : hasMessage ? 'frm_message presente' : 'ninguno';
+  const hasSuccessText = responseText.includes('Consentimiento registrado correctamente');
+  // Strict: only trust a redirect, the known success text, or an explicit frm_message without errors.
+  // "no frm_error" alone is NOT enough — Cloudflare/WP can return 200 with the original page unprocessed.
+  const isSuccess = submitRes.ok && (redirectedAway || hasSuccessText || (hasMessage && !hasError));
+  const reason = redirectedAway ? 'redirigió' : hasSuccessText ? 'texto de éxito' : hasMessage ? 'frm_message' : 'ninguno';
 
   if (isSuccess) {
     console.log(`[consent/send] ✓ Enviado: ${player} (razón: ${reason}) | respuesta: ${responseSnippet}`);
