@@ -23,7 +23,7 @@ interface PlayerListItemProps {
 export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = [] }: PlayerListItemProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
-  const { isReadOnly } = useAdminMode();
+  const { isReadOnly, isAdminMode } = useAdminMode();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editableNumber, setEditableNumber] = useState(player.number);
@@ -662,15 +662,17 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
                 <Button variant="ghost" size="icon" className="text-primary hover:text-primary/80 h-8 w-8" onClick={handleEdit} aria-label={`Editar jugador ${player.name}`}>
                   <Edit3 className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                  onClick={handleOpenConsent}
-                  aria-label={`Enviar consentimiento de ${player.name}`}
-                >
-                  <FileCheck className="h-4 w-4" />
-                </Button>
+                {isAdminMode && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground h-8 w-8"
+                    onClick={handleOpenConsent}
+                    aria-label={`Enviar consentimiento de ${player.name}`}
+                  >
+                    <FileCheck className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
