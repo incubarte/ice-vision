@@ -223,8 +223,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
         }
         // Logic to save active tournament if it changes
         if (state._lastActionType !== 'SAVE_MATCH_SUMMARY' &&
-          state._lastActionType !== 'TRIGGER_SUMMARY_GENERATION' &&
-          state._lastActionType !== 'UPDATE_MATCH_SUMMARY_IN_STATE') {
+          state._lastActionType !== 'TRIGGER_SUMMARY_GENERATION') {
 
           if (state.config.activeTournament && !isEqual(state.config.activeTournament, oldState.config.activeTournament)) {
             console.log('[GameState] Active tournament changed, saving...', state.config.activeTournament.id);
