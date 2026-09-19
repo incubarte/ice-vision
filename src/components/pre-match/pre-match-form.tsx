@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { MatchData, TeamData, PreMatchData, PreMatchPlayerEntry, PreMatchExtraPlayer, PlayerType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +88,8 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
     }
     return init;
   });
+  // Ref always holds the latest value so concurrent markConsentSent calls don't read stale closure state
+  const consentSentAtRef = useRef(consentSentAt);
   const [bulkConsentSending, setBulkConsentSending] = useState(false);
   const [bulkConsentProgress, setBulkConsentProgress] = useState<{ current: number; total: number; name: string } | null>(null);
   const [sendingConsentIds, setSendingConsentIds] = useState<Set<string>>(new Set());
@@ -99,20 +101,49 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
   } | null>(null);
   const [consentDialogSending, setConsentDialogSending] = useState(false);
 
-  const consentPatchUrl = postUrl ?? `${apiBase}/${match.id}`;
+  const consentPostUrl = postUrl ?? `${apiBase}/${match.id}`;
+
+  // Saves the full current form state with the given consentSentAt map so consent marks persist on reload.
+  async function saveWithConsent(updatedConsentSentAt: Record<string, string>): Promise<void> {
+    const data: PreMatchData = {
+      tournamentId: '',
+      matchId: match.id,
+      teamId: team.id,
+      submittedAt: new Date().toISOString(),
+      version: currentVersion + 1,
+      players: team.players.map(p => ({
+        playerId: p.id,
+        name: p.name,
+        number: playerStates[p.id]?.number ?? p.number,
+        type: p.type,
+        isPresent: playerStates[p.id]?.isPresent ?? false,
+        ...(updatedConsentSentAt[p.id] ? { consentSentAt: updatedConsentSentAt[p.id] } : {}),
+      })),
+      extraPlayers,
+      coach: coachName.trim(),
+      assistant1: assistant1Name.trim() || undefined,
+      assistant2: assistant2Name.trim() || undefined,
+    };
+    try {
+      await fetch(consentPostUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-pre-match-password': password },
+        body: JSON.stringify({ data }),
+      });
+      setCurrentVersion(v => v + 1);
+      setSavedOnce(true);
+    } catch {
+      // Non-fatal
+    }
+  }
 
   async function markConsentSent(playerId: string): Promise<void> {
     const sentAt = new Date().toISOString();
-    setConsentSentAt(prev => ({ ...prev, [playerId]: sentAt }));
-    try {
-      await fetch(consentPatchUrl, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-pre-match-password': password },
-        body: JSON.stringify({ playerId, consentSentAt: sentAt }),
-      });
-    } catch {
-      // Non-fatal — state updated locally; will be lost on reload but consent was sent
-    }
+    // Read from ref (always current) and update it synchronously before any await
+    const updated = { ...consentSentAtRef.current, [playerId]: sentAt };
+    consentSentAtRef.current = updated;
+    setConsentSentAt(updated);
+    await saveWithConsent(updated);
   }
 
   async function sendConsent(player: { id: string; firstName: string; lastName: string; docNumber: string; email?: string; phone?: string }): Promise<{ success: boolean; message: string }> {
@@ -125,7 +156,6 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
       const data = await res.json();
       console.log(`[consent/pre-match] ${player.firstName} ${player.lastName}:`, data);
       if (data.success) {
-        await markConsentSent(player.id);
         return { success: true, message: data.message ?? 'Consentimiento enviado' };
       }
       return { success: false, message: data.message ?? 'Error al enviar el consentimiento' };
@@ -149,6 +179,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
     const { first, last } = splitName(rp.name);
     const result = await sendConsent({ id: playerId, firstName: first, lastName: last, docNumber: rp.docNumber, email: rp.email, phone: rp.phone });
     setSendingConsentIds(prev => { const s = new Set(prev); s.delete(playerId); return s; });
+    if (result.success) await markConsentSent(playerId);
     toast(result.success
       ? { title: 'Consentimiento enviado', description: rp.name }
       : { title: 'Error al enviar', description: result.message, variant: 'destructive' }
@@ -172,6 +203,7 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
     });
     setConsentDialogSending(false);
     if (result.success) {
+      await markConsentSent(consentDialog.playerId);
       toast({ title: 'Consentimiento enviado' });
       setConsentDialog(null);
     } else {
@@ -187,7 +219,8 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
     if (!pending.length || bulkConsentSending) return;
     setBulkConsentSending(true);
     let successCount = 0;
-    let errorMessages: string[] = [];
+    const errorMessages: string[] = [];
+    const bulkUpdated = { ...consentSentAt };
     for (let i = 0; i < pending.length; i++) {
       const rp = team.players.find(p => p.id === pending[i]);
       if (!rp) continue;
@@ -198,17 +231,26 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
       }
       setBulkConsentProgress({ current: i + 1, total: pending.length, name: rp.name });
       const { first, last } = splitName(rp.name);
+      // Don't call markConsentSent here — accumulate and save once at the end
       const result = await sendConsent({ id: rp.id, firstName: first, lastName: last, docNumber: rp.docNumber, email: rp.email, phone: rp.phone });
-      if (result.success) successCount++;
-      else errorMessages.push(`${rp.name}: ${result.message}`);
-      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+      if (result.success) {
+        successCount++;
+        bulkUpdated[rp.id] = new Date().toISOString();
+      } else {
+        errorMessages.push(`${rp.name}: ${result.message}`);
+      }
+      if (i < pending.length - 1) await new Promise(r => setTimeout(r, 1000));
     }
+    // Update ref and state, then save file once with all marks
+    consentSentAtRef.current = bulkUpdated;
+    setConsentSentAt(bulkUpdated);
+    if (successCount > 0) await saveWithConsent(bulkUpdated);
     setBulkConsentSending(false);
     setBulkConsentProgress(null);
     if (errorMessages.length > 0) {
-      toast({ title: `${successCount} enviados, ${errorMessages.length} con error`, description: errorMessages.join(' · '), variant: errorMessages.length === pending.length ? 'destructive' : 'default' });
+      toast({ title: `${successCount} enviados, ${errorMessages.length} con error`, description: errorMessages.join(' · '), variant: errorMessages.length === pending.length ? 'destructive' : 'default', duration: Infinity });
     } else {
-      toast({ title: `${successCount}/${pending.length} consentimientos enviados` });
+      toast({ title: `${successCount}/${pending.length} consentimientos enviados`, duration: Infinity });
     }
   }
 
@@ -426,11 +468,11 @@ export function PreMatchForm({ apiBase, postUrl, match, team, teamRole, opponent
                     placeholder="Nº"
                     maxLength={3}
                   />
-                  {showConsent && (
+                  {showConsent && state.isPresent && (
                     <button
                       type="button"
                       onClick={() => handleSendConsent(player.id)}
-                      disabled={!!consentSentAt[player.id] || sendingConsentIds.has(player.id)}
+                      disabled={!!consentSentAt[player.id] || sendingConsentIds.has(player.id) || bulkConsentSending}
                       title={consentSentAt[player.id] ? 'Consentimiento enviado' : 'Enviar consentimiento'}
                       className={cn(
                         'h-7 w-7 flex items-center justify-center rounded transition-colors',

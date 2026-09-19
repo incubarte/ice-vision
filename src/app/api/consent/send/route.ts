@@ -112,15 +112,19 @@ export async function POST(request: Request) {
   console.log(`[consent/send]   POST → status ${submitRes.status} | url: ${submitRes.url}`);
 
   const responseText = await submitRes.text();
-  const hasMessage   = responseText.includes('frm_message');
-  const hasError     = responseText.includes('frm_error');
+  const hasMessage     = responseText.includes('frm_message');
+  const hasError       = responseText.includes('frm_error');
   const redirectedAway = submitRes.url !== 'https://fantasyskate.com.ar/consentimiento/';
+  const responseSnippet = responseText.slice(0, 400).replace(/\s+/g, ' ');
 
-  const isSuccess = submitRes.ok && (redirectedAway || hasMessage || !hasError);
-  const reason = redirectedAway ? 'redirigió' : hasMessage ? 'frm_message presente' : !hasError ? 'sin frm_error' : 'desconocido';
+  const hasSuccessText = responseText.includes('Consentimiento registrado correctamente');
+  // Strict: only trust a redirect, the known success text, or an explicit frm_message without errors.
+  // "no frm_error" alone is NOT enough — Cloudflare/WP can return 200 with the original page unprocessed.
+  const isSuccess = submitRes.ok && (redirectedAway || hasSuccessText || (hasMessage && !hasError));
+  const reason = redirectedAway ? 'redirigió' : hasSuccessText ? 'texto de éxito' : hasMessage ? 'frm_message' : 'ninguno';
 
   if (isSuccess) {
-    console.log(`[consent/send] ✓ Enviado: ${player} (razón: ${reason})`);
+    console.log(`[consent/send] ✓ Enviado: ${player} (razón: ${reason}) | respuesta: ${responseSnippet}`);
   } else {
     console.warn(`[consent/send] ✗ Fallo: ${player}`);
     // Extract ALL field-level error messages (Formidable puts them in <p class="frm_error"> or similar)
@@ -133,14 +137,13 @@ export async function POST(request: Request) {
     }
     if (fieldErrors.length > 0) {
       console.warn(`[consent/send]   Errores de campo: ${fieldErrors.join(' | ')}`);
-    } else {
-      // Fallback: log 600 chars around first frm_error occurrence
-      const idx = responseText.indexOf('frm_error');
-      const snippet = idx !== -1
-        ? responseText.slice(Math.max(0, idx - 30), idx + 600).replace(/\s+/g, ' ')
-        : responseText.slice(0, 600).replace(/\s+/g, ' ');
-      console.warn(`[consent/send]   Respuesta (sin errores de campo identificados): ${snippet}`);
     }
+    // Always log response snippet so we can diagnose in Vercel logs
+    const idx = responseText.indexOf('frm_error');
+    const diagSnippet = idx !== -1
+      ? responseText.slice(Math.max(0, idx - 30), idx + 600).replace(/\s+/g, ' ')
+      : responseSnippet;
+    console.warn(`[consent/send]   Respuesta (status ${submitRes.status}, url: ${submitRes.url}): ${diagSnippet}`);
   }
 
   return NextResponse.json({
