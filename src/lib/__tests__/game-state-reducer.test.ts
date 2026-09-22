@@ -34,6 +34,12 @@ const getInitialState = (): GameState => {
       playedPeriods: [],
       playHornTrigger: 0,
     },
+    tournament: {
+      tournaments: [],
+      activeTournament: null,
+      selectedTournamentId: null,
+      selectedMatchCategory: '',
+    },
     _lastActionType: null,
   } as unknown as GameState;
   

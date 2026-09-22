@@ -46,7 +46,7 @@ describe('ClockDisplay Component', () => {
     expect(screen.getByText('PERIOD 1')).toBeInTheDocument();
   });
 
-  it('should show "Paused" when the clock is not running', () => {
+  it('should still show the time when the clock is not running', () => {
     const pausedState = {
       ...mockState,
       live: {
@@ -55,10 +55,11 @@ describe('ClockDisplay Component', () => {
       }
     };
     (useGameState as any).mockReturnValue({ state: pausedState });
-    
+
     render(<ClockDisplay />);
-    
-    expect(screen.getByText('Paused')).toBeInTheDocument();
+
+    // Clock paused: shows the frozen time, no special "Paused" indicator
+    expect(screen.getByText('10:00')).toBeInTheDocument();
   });
 
   it('should show the winner name when game is over', () => {
