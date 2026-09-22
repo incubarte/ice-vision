@@ -44,7 +44,7 @@ interface TeamsManagementTabProps {
 
 export function TeamsManagementTab({ tournamentId }: TeamsManagementTabProps = {}) {
   const { state, dispatch, isLoading } = useGameState();
-  const { tournaments, selectedTournamentId, activeTournament } = state.config;
+  const { tournaments, selectedTournamentId, activeTournament } = state.tournament;
   const router = useRouter();
   const { toast } = useToast();
 

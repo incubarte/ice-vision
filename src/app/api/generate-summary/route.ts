@@ -31,15 +31,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Tournament not found' }, { status: 404 });
     }
 
-    // Build full config with tournaments array (add id to tournament object)
-    const fullConfig = {
-      ...config,
-      tournaments: [{
-        id: tournamentId,
-        ...tournament
-      }]
-    };
-
     // Read shots metrics (live state already read above)
     const shotsMetrics = await readShotsMetrics();
 
@@ -69,16 +60,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Build state object for summary generation
+    // config on disk may still have selectedMatchCategory as a legacy field
+    const persistedSelectedMatchCategory = (config as Record<string, unknown>)?.selectedMatchCategory as string | undefined;
     const state: GameState = {
       live: mergedLiveState,
-      config: fullConfig
+      config: config as GameState['config'],
+      tournament: {
+        tournaments: [{ id: tournamentId, name: tournament.name || '', status: tournament.status || 'active' }],
+        activeTournament: {
+          id: tournamentId,
+          name: tournament.name || '',
+          status: tournament.status || 'active',
+          clubs: tournament.clubs || [],
+          teams: tournament.teams || [],
+          categories: tournament.categories || [],
+          matches: tournament.matches || [],
+          staff: tournament.staff,
+        },
+        selectedTournamentId: tournamentId,
+        selectedMatchCategory: persistedSelectedMatchCategory || '',
+      },
+      _initialConfigLoadComplete: true,
     };
 
     // Log debug info
     console.log('[Generate Summary API] Generating summary with:');
     console.log('  - Home team:', mergedLiveState.homeTeamName, mergedLiveState.homeTeamSubName || '(no subname)');
     console.log('  - Away team:', mergedLiveState.awayTeamName, mergedLiveState.awayTeamSubName || '(no subname)');
-    console.log('  - Selected category:', fullConfig.selectedMatchCategory);
+    console.log('  - Selected category:', state.tournament.selectedMatchCategory);
     console.log('  - Tournament teams count:', tournament.teams?.length || 0);
     console.log('  - Voice events count:', voiceEvents.length);
     console.log('  - Shots log (home/away):', mergedLiveState.shotsLog?.home?.length || 0, '/', mergedLiveState.shotsLog?.away?.length || 0);

@@ -4,7 +4,7 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useReducer, useEffect, useRef, useState, useCallback } from 'react';
-import type { GameState, GameAction, Team, ScoreboardLayoutSettings, FormatAndTimingsProfileData, PenaltyTypeDefinition, ReplaySettings } from '@/types';
+import type { GameState, GameAction, Team, ScoreboardLayoutSettings, FormatAndTimingsProfileData, PenaltyTypeDefinition, ReplaySettings, TournamentState } from '@/types';
 import { useToast as showToast } from '@/hooks/use-toast';
 import isEqual from 'lodash.isequal';
 import { updateConfigOnServer, updateGameStateOnServer, saveTournamentOnServer } from '@/app/actions';
@@ -44,7 +44,7 @@ export { BROADCAST_CHANNEL_NAME, SUMMARY_DATA_STORAGE_KEY, DEFAULT_HORN_SOUND_PA
 export { INITIAL_LAYOUT_SETTINGS, createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProfile };
 export { formatTime, getPeriodText, getActualPeriodText, getPeriodContextFromAbsoluteTime, centisecondsToDisplaySeconds, centisecondsToDisplayMinutes, getEndReasonText, getCategoryNameById };
 export { gameReducer, getInitialState };
-export type { GameState, Team, ScoreboardLayoutSettings, FormatAndTimingsProfileData, PenaltyTypeDefinition, ReplaySettings };
+export type { GameState, Team, ScoreboardLayoutSettings, FormatAndTimingsProfileData, PenaltyTypeDefinition, ReplaySettings, TournamentState };
 
 type GameStateContextType = {
   state: GameState;
@@ -144,7 +144,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
   // Effect to fetch full tournament data when selectedTournamentId changes
   const isFetchingTournamentRef = useRef(false);
   useEffect(() => {
-    const { selectedTournamentId, activeTournament } = state.config;
+    const { selectedTournamentId, activeTournament } = state.tournament;
     let cancelled = false;
 
     // Skip while initial data is still loading — tournaments array is empty until INITIALIZE_STATE
@@ -173,7 +173,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
           if (cancelled) return;
           if (!res.ok) {
             console.warn(`[GameState] Tournament ${selectedTournamentId} not found (${res.status}), clearing selectedTournamentId`);
-            dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { selectedTournamentId: null } });
+            dispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { tournamentId: null } });
             return;
           }
           const data = await res.json();
@@ -195,7 +195,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
       isFetchingTournamentRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.config.selectedTournamentId, isLoading]);
+  }, [state.tournament.selectedTournamentId, isLoading]);
 
 
   const prevStateRef = useRef<GameState>(state);
@@ -218,16 +218,17 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
           updateGameStateOnServer(state.live);
         }
         const hasConfigChanged = !isEqual(state.config, oldState.config);
-        if (hasConfigChanged) {
-          updateConfigOnServer(state.config);
+        const hasTournamentChanged = !isEqual(state.tournament, oldState.tournament);
+        if (hasConfigChanged || hasTournamentChanged) {
+          updateConfigOnServer(state.config, state.tournament);
         }
         // Logic to save active tournament if it changes
         if (state._lastActionType !== 'SAVE_MATCH_SUMMARY' &&
           state._lastActionType !== 'TRIGGER_SUMMARY_GENERATION') {
 
-          if (state.config.activeTournament && !isEqual(state.config.activeTournament, oldState.config.activeTournament)) {
-            console.log('[GameState] Active tournament changed, saving...', state.config.activeTournament.id);
-            saveTournamentOnServer(state.config.activeTournament);
+          if (state.tournament.activeTournament && !isEqual(state.tournament.activeTournament, oldState.tournament.activeTournament)) {
+            console.log('[GameState] Active tournament changed, saving...', state.tournament.activeTournament.id);
+            saveTournamentOnServer(state.tournament.activeTournament);
           }
         } else {
           console.log(`[GameState] Skipping saveTournamentOnServer because last action was ${state._lastActionType}`);

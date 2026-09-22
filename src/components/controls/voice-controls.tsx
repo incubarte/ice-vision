@@ -49,6 +49,7 @@ interface VoiceControlsProps {
 
 export interface VoiceControlsHandle {
   toggleRecording: () => void;
+  addRemoteShot: (team: Team, playerNumber: string, teamName: string, shotId: string) => void;
 }
 
 export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>(function VoiceControls({ onToggleRecording }, ref) {
@@ -138,7 +139,22 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
       } else {
         startContinuousRecording();
       }
-    }
+    },
+    addRemoteShot: (team: Team, playerNumber: string, teamName: string, shotId: string) => {
+      const matchTime = state.live ? {
+        periodText: getActualPeriodText(state.live.clock.currentPeriod, state.live.clock.periodDisplayOverride, state.config?.numberOfRegularPeriods ?? 3, state.live.shootout),
+        clockTimeCs: state.live.clock.currentTime,
+      } : undefined;
+      setMessages(prev => [...prev, {
+        id: `remote-shot-${Date.now()}-${Math.random()}`,
+        type: 'system' as const,
+        text: `📱 Tiro (remoto): ${teamName} - Jugador #${playerNumber}`,
+        timestamp: new Date(),
+        shotId,
+        matchTime,
+        event: { action: 'shot', data: { team, playerNumber } },
+      }]);
+    },
   }));
 
   const startContinuousRecording = async () => {

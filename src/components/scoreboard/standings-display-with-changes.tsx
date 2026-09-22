@@ -11,7 +11,8 @@ import { useStandingsWithChanges } from '@/hooks/use-standings-with-changes';
 
 export function StandingsDisplayWithChanges() {
   const { state } = useGameState();
-  const { activeTournament, selectedTournamentId, selectedMatchCategory, scoreboardLayout } = state.config;
+  const { activeTournament, selectedTournamentId, selectedMatchCategory } = state.tournament;
+  const { scoreboardLayout } = state.config;
   const { matchId, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName } = state.live;
 
   const currentTournament = useMemo(() => {

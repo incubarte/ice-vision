@@ -954,10 +954,13 @@ export default function ControlsPage() {
           if (!shotRoster.some(p => p.number === playerNumber)) {
             toast({ title: "Error (Remoto)", description: `Jugador #${playerNumber} no existe en el plantel.`, variant: "destructive" });
           } else {
-            dispatch({ type: 'ADD_PLAYER_SHOT', payload: { team, playerNumber } });
+            const shotId = safeUUID();
+            dispatch({ type: 'ADD_PLAYER_SHOT', payload: { team, playerNumber, id: shotId } });
+            const teamName = team === 'home' ? currentLive.homeTeamName : currentLive.awayTeamName;
+            voiceControlsRef.current?.addRemoteShot(team, playerNumber, teamName, shotId);
             toast({
               title: "Tiro Registrado (Remoto)",
-              description: `Tiro para el jugador #${playerNumber} del equipo ${team === 'home' ? currentLive.homeTeamName : currentLive.awayTeamName}.`,
+              description: `Tiro para el jugador #${playerNumber} del equipo ${teamName}.`,
               duration: 1500,
             });
           }

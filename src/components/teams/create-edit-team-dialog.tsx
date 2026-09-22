@@ -70,7 +70,7 @@ export function CreateEditTeamDialog({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { activeTournament, selectedTournamentId: globalSelectedTournamentId } = state.config;
+  const { activeTournament, selectedTournamentId: globalSelectedTournamentId } = state.tournament;
   const activeTournamentId = tournamentId || globalSelectedTournamentId;
   const selectedTournament = activeTournament;
   const availableCategories = selectedTournament?.categories || [];

@@ -55,7 +55,7 @@ export function AddPlayerForm({ teamId }: AddPlayerFormProps) {
             return;
         }
 
-        const currentTournament = state.config.activeTournament;
+        const currentTournament = state.tournament.activeTournament;
         const currentTeam = currentTournament?.teams.find(t => t.id === teamId);
 
         if (currentTeam && currentTeam.players.some(p => p.number === trimmedPlayerNumber)) {

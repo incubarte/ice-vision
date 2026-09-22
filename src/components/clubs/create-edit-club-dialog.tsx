@@ -35,7 +35,7 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!clubToEdit;
-  const clubs = state.config.activeTournament?.clubs || [];
+  const clubs = state.tournament.activeTournament?.clubs || [];
 
   useEffect(() => {
     if (isOpen) {
@@ -97,11 +97,11 @@ export function CreateEditClubDialog({ isOpen, onOpenChange, clubToEdit, tournam
     const passwordChanged = isEditing && trimmedPassword !== (clubToEdit?.password || 'IceVision');
 
     // If admin and password changed, must sync to cloud first
-    if (!isReadOnly && passwordChanged && state.config.activeTournament) {
+    if (!isReadOnly && passwordChanged && state.tournament.activeTournament) {
       setIsSaving(true);
       const updatedTournament = {
-        ...state.config.activeTournament,
-        clubs: (state.config.activeTournament.clubs ?? []).map(c =>
+        ...state.tournament.activeTournament,
+        clubs: (state.tournament.activeTournament.clubs ?? []).map(c =>
           c.id === clubToEdit!.id ? { ...c, name: trimmedName, logoDataUrl: logoDataUrl ?? c.logoDataUrl, password: trimmedPassword } : c
         ),
       };

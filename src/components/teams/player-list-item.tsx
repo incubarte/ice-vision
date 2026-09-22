@@ -52,7 +52,7 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
   const hasDuplicateNumber = allPlayers.filter(p => p.number && p.number.trim() === player.number?.trim()).length > 1;
 
   // Get tournament and team info from activeTournament
-  const tournament = state.config.activeTournament;
+  const tournament = state.tournament.activeTournament;
   const team = tournament?.teams.find(t => t.id === teamId);
 
   // Get current photo URL if exists
@@ -283,7 +283,7 @@ export function PlayerListItem({ player, teamId, onRemovePlayer, allPlayers = []
       }
 
       // Get team from active tournament
-      const currentTournament = state.config.activeTournament;
+      const currentTournament = state.tournament.activeTournament;
       const currentTeam = currentTournament?.teams?.some(tm => tm.id === teamId)
         ? currentTournament.teams.find(t => t.id === teamId)
         : undefined;

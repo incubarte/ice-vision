@@ -1,5 +1,14 @@
 import { analyzeSync, executeSync } from './sync-service';
+import { clearDirty } from './sync-dirty-tracker';
 import type { ConfigState } from '@/types';
+
+/**
+ * Files that should never be auto-synced (match-state files that change
+ * constantly during a game and are not needed for tournament data persistence).
+ * live.json      — clock/score state, changes every tick
+ * live-shotsMetrics.json — shots log & goalkeeper changes, changes on every shot
+ */
+const AUTO_SYNC_EXCLUDED = new Set(['live.json', 'live-shotsMetrics.json']);
 
 /**
  * Trigger a sync based on configuration
@@ -46,15 +55,17 @@ export async function triggerSync(
             };
         }
 
-        // 4. Execute sync
+        // 4. Execute sync (excluding live.json and other clock-driven files)
         const result = await executeSync(analysis, {
             strategy: 'local-wins',
-            trigger
+            trigger,
+            filterFiles: (f) => !AUTO_SYNC_EXCLUDED.has(f),
         });
 
         const filesSync = result.filesUploaded + result.filesDownloaded + result.conflictsResolved;
 
         if (result.success) {
+            clearDirty().catch(err => console.error('[Sync Trigger] Failed to clear dirty flag:', err));
             return {
                 executed: true,
                 message: `Sincronizado: ${filesSync} archivos`,

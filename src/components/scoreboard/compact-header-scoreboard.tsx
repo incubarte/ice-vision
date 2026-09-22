@@ -106,7 +106,7 @@ export function CompactHeaderScoreboard() {
   const { state } = useGameState();
   if (!state.config || !state.live) return null;
 
-  const { config, live } = state;
+  const { config, live, tournament } = state;
   const { scoreboardLayout, playersPerTeamOnIce } = config;
   const { penalties, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName, matchContext, shotsLog } = live;
 
@@ -204,9 +204,9 @@ export function CompactHeaderScoreboard() {
 
         {/* CENTER: Tournament logo */}
         <div className="flex-1 flex justify-center items-center opacity-30 pointer-events-none">
-          {config.selectedTournamentId && (
+          {tournament.selectedTournamentId && (
             <TournamentLogo
-              tournamentId={config.selectedTournamentId}
+              tournamentId={tournament.selectedTournamentId}
               size={Math.round(scoreSize * 28.8)}
               showFallback={false}
             />

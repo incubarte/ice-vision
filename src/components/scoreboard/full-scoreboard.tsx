@@ -71,10 +71,10 @@ export function FullScoreboard({ className }: { className?: string }) {
   const [wasShowingStandingsBeforeTransition, setWasShowingStandingsBeforeTransition] = useState(false);
   const { homeLogoDataUrl, awayLogoDataUrl } = useTeamLogos();
 
-  const { config, live } = state;
+  const { config, live, tournament } = state;
   const scoreboardLayout = config?.scoreboardLayout;
 
-  const { logo: tournamentLogo } = useTournamentLogo(config.selectedTournamentId);
+  const { logo: tournamentLogo } = useTournamentLogo(tournament.selectedTournamentId);
 
   const videoPreloaderRef = useRef<HTMLVideoElement>(null);
 
@@ -197,7 +197,7 @@ export function FullScoreboard({ className }: { className?: string }) {
       console.log('Was showing standings before transition:', wasShowingStandingsBeforeTransition);
 
       // Determinar si el partido actual es de playoffs
-      const currentMatchData = config.activeTournament
+      const currentMatchData = tournament.activeTournament
         ?.matches?.find(m => m.id === live.matchId);
       const isCurrentPlayoffMatch = currentMatchData?.phase === 'playoffs';
 
@@ -211,7 +211,7 @@ export function FullScoreboard({ className }: { className?: string }) {
               awayLogoDataUrl={awayLogoDataUrl}
               clockPosition="top"
               showClock={true}
-              tournamentLogoId={config.selectedTournamentId}
+              tournamentLogoId={tournament.selectedTournamentId}
             >
               <PlayoffBracketPreview
                 tournament={activeTournament}
@@ -230,7 +230,7 @@ export function FullScoreboard({ className }: { className?: string }) {
               awayLogoDataUrl={awayLogoDataUrl}
               clockPosition="top"
               showClock={true}
-              tournamentLogoId={config.selectedTournamentId}
+              tournamentLogoId={tournament.selectedTournamentId}
             >
               <StandingsDisplay />
             </WarmupDisplayStatic>
@@ -243,7 +243,7 @@ export function FullScoreboard({ className }: { className?: string }) {
             awayLogoDataUrl={awayLogoDataUrl}
             clockPosition="center"
             showClock={true}
-            tournamentLogoId={config.selectedTournamentId}
+            tournamentLogoId={tournament.selectedTournamentId}
           />
         </div>
       );
@@ -413,7 +413,7 @@ export function FullScoreboard({ className }: { className?: string }) {
 
   // Obtener datos del partido para verificar si es playoff
   const matchContext = live.matchContext;
-  const activeTournament = config.activeTournament;
+  const activeTournament = tournament.activeTournament;
   const isPlayoffMatch = matchContext?.matchPhase === 'playoffs';
 
   // Obtener tournament y teams para PlayoffBracketPreview (intentionally coupled - needs tournament data)
@@ -639,7 +639,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                         <WarmupDisplay
                           homeLogoDataUrl={homeLogoDataUrl}
                           awayLogoDataUrl={awayLogoDataUrl}
-                          tournamentLogoId={config.selectedTournamentId}
+                          tournamentLogoId={tournament.selectedTournamentId}
                         />
                         {shouldShowRosterPresentation && homeTeam && awayTeam && activeTournament && (
                           <RosterPresentation
@@ -658,7 +658,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                         homeLogoDataUrl={homeLogoDataUrl}
                         awayLogoDataUrl={awayLogoDataUrl}
                         clockPosition="top"
-                        tournamentLogoId={config.selectedTournamentId}
+                        tournamentLogoId={tournament.selectedTournamentId}
                       >
                         <div style={{ transform: 'scale(1.1)', transformOrigin: 'center center' }}>
                           <StandingsDisplay />
@@ -669,7 +669,7 @@ export function FullScoreboard({ className }: { className?: string }) {
                         homeLogoDataUrl={homeLogoDataUrl}
                         awayLogoDataUrl={awayLogoDataUrl}
                         clockPosition="top"
-                        tournamentLogoId={config.selectedTournamentId}
+                        tournamentLogoId={tournament.selectedTournamentId}
                       >
                         <PlayoffBracketPreview
                           tournament={activeTournament}

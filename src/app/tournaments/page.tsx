@@ -181,7 +181,7 @@ function CreateEditTournamentDialog({
       });
       return;
     }
-    const isCodeDuplicate = (state.config.tournaments || []).some(
+    const isCodeDuplicate = (state.tournament.tournaments || []).some(
       (t) => t.id !== tournamentToEdit?.id && t.code?.toLowerCase() === trimmedCode.toLowerCase()
     );
     if (isCodeDuplicate) {
@@ -193,7 +193,7 @@ function CreateEditTournamentDialog({
       return;
     }
 
-    const isDuplicate = (state.config.tournaments || []).some(
+    const isDuplicate = (state.tournament.tournaments || []).some(
       (t) => t.id !== tournamentToEdit?.id && t.name.toLowerCase() === trimmedName.toLowerCase()
     );
 
@@ -257,7 +257,7 @@ function CreateEditTournamentDialog({
       const newTournament = { name: trimmedName, code: trimmedCode, status: status || 'inactive' };
       dispatch({ type: "ADD_TOURNAMENT", payload: newTournament });
       // Get the tournament ID from the state after it's added
-      const tournaments = state.config.tournaments || [];
+      const tournaments = state.tournament.tournaments || [];
       const addedTournament = tournaments.find(t => t.name === trimmedName);
       if (addedTournament) {
         tournamentId = addedTournament.id;
@@ -497,7 +497,7 @@ export default function TournamentsPage() {
   const [pastCollapsed, setPastCollapsed] = useState(true);
 
   const { currentTournaments, pastTournaments } = useMemo(() => {
-    const allTournaments = state.config.tournaments || [];
+    const allTournaments = state.tournament.tournaments || [];
     const visible = isReadOnly
       ? allTournaments.filter(t => t.status === 'active' || t.status === 'finished')
       : allTournaments;
@@ -505,13 +505,13 @@ export default function TournamentsPage() {
       currentTournaments: visible.filter(t => t.status !== 'finished'),
       pastTournaments: visible.filter(t => t.status === 'finished'),
     };
-  }, [state.config.tournaments, isReadOnly]);
+  }, [state.tournament.tournaments, isReadOnly]);
 
 
   const handleEdit = async (tournament: TournamentMetadata) => {
     // If it's the active tournament, use the full hydrated data (includes categories)
-    if (state.config.activeTournament?.id === tournament.id) {
-      setTournamentToEdit(state.config.activeTournament);
+    if (state.tournament.activeTournament?.id === tournament.id) {
+      setTournamentToEdit(state.tournament.activeTournament);
       setIsCreateEditDialogOpen(true);
       return;
     }

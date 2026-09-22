@@ -49,7 +49,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
 
   // Sanctioned player IDs for this team today
   const sanctionedPlayerIds = useMemo(() => {
-    const tournament = state.config.activeTournament;
+    const tournament = state.tournament.activeTournament;
     const sanctions = tournament?.disciplinarySanctions;
     if (!sanctions?.length || !teamData?.id) return new Set<string>();
     const matchDate = tournament!.matches?.find(m => m.id === state.live.matchId)?.date?.split('T')[0]
@@ -60,7 +60,7 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
         .filter(s => s.teamId === teamData.id && isSanctionActive(s, allMatches, matchDate))
         .map(s => s.playerId)
     );
-  }, [state.config.activeTournament, state.live.matchId, teamData]);
+  }, [state.tournament.activeTournament, state.live.matchId, teamData]);
 
   // Pre-match data integration
   const tournamentId = matchContext?.tournamentId;
@@ -69,11 +69,11 @@ export function PlayersControlCard({ team, teamName }: PlayersControlCardProps) 
 
   const preMatchPassword = useMemo(() => {
     if (!teamId) return 'IceVision';
-    const teamRecord = (state.config.activeTournament?.teams ?? []).find(t => t.id === teamId);
+    const teamRecord = (state.tournament.activeTournament?.teams ?? []).find(t => t.id === teamId);
     if (!teamRecord?.clubId) return 'IceVision';
-    const club = (state.config.activeTournament?.clubs ?? []).find(c => c.id === teamRecord.clubId);
+    const club = (state.tournament.activeTournament?.clubs ?? []).find(c => c.id === teamRecord.clubId);
     return club?.password || 'IceVision';
-  }, [teamId, state.config.activeTournament]);
+  }, [teamId, state.tournament.activeTournament]);
 
   const [preMatchData, setPreMatchData] = useState<PreMatchData | null>(null);
   const [preMatchChecked, setPreMatchChecked] = useState(false);

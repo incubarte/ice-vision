@@ -77,10 +77,14 @@ export function useAutoSync(
             if (!hasChanges) return;
 
             // Step 2: execute (no conflicts — safe to auto-apply)
+            // Exclude match-state files that change constantly during a game
             const executeRes = await fetch('/api/sync/execute', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategy: 'local-wins' }),
+                body: JSON.stringify({
+                    strategy: 'local-wins',
+                    excludeFiles: ['live.json', 'live-shotsMetrics.json'],
+                }),
             });
 
             if (executeRes.ok) {

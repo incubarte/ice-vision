@@ -99,7 +99,7 @@ export function FixtureCalendarView({ tournamentId }: FixtureCalendarViewProps =
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const router = useRouter();
-  const { selectedTournamentId, tournaments, activeTournament } = state.config;
+  const { selectedTournamentId, tournaments, activeTournament } = state.tournament;
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentCenterDate, setCurrentCenterDate] = useState(startOfDay(new Date())); // Para vista mobile de 3 días
 

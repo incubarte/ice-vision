@@ -3,10 +3,15 @@ import { NextResponse } from 'next/server';
 import type { GameState, ConfigState, LiveState, TournamentsData, ShotsMetrics, Tournament } from '@/types';
 import { setGameState, setConfig, getGameState, getConfig, setTournaments, getTournaments, setShotsMetrics, getShotsMetrics } from '@/lib/server-side-store';
 import { readConfig, writeConfig, readLiveState, writeLiveState, readTournaments, writeTournaments, readShotsMetrics, writeShotsMetrics, readTournament } from '@/lib/data-access';
+import { checkAndTriggerStartupSync } from '@/lib/sync-dirty-tracker';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  // On first request after process start, recover any pending sync from a previous session
+  const origin = new URL(request.url).origin;
+  checkAndTriggerStartupSync(origin);
+
   try {
     const [config, liveState, shotsMetrics, tournamentsData] = await Promise.all([
         getConfig(),
@@ -16,11 +21,13 @@ export async function GET(request: Request) {
     ]);
 
     // Server-side hydration: If a tournament is selected, load its full data
+    const persistedSelectedTournamentId = (config as Record<string, unknown>)?.selectedTournamentId as string | null | undefined;
+    const persistedSelectedMatchCategory = (config as Record<string, unknown>)?.selectedMatchCategory as string | undefined;
     let activeTournament: Tournament | null = null;
-    if (config?.selectedTournamentId) {
-      const tournamentMeta = tournamentsData?.tournaments?.find(t => t.id === config.selectedTournamentId);
+    if (persistedSelectedTournamentId) {
+      const tournamentMeta = tournamentsData?.tournaments?.find(t => t.id === persistedSelectedTournamentId);
       if (tournamentMeta) {
-        const fullTournament = await readTournament(config.selectedTournamentId);
+        const fullTournament = await readTournament(persistedSelectedTournamentId);
         if (fullTournament) {
           activeTournament = {
             ...tournamentMeta,
@@ -42,11 +49,13 @@ export async function GET(request: Request) {
     } : undefined;
 
     const initialState: Partial<GameState> = {
-      config: config ? { 
-        ...config, 
+      config: config ? { ...config } : undefined,
+      tournament: {
         tournaments: tournamentsData?.tournaments || [],
-        activeTournament
-      } : undefined,
+        activeTournament,
+        selectedTournamentId: persistedSelectedTournamentId || null,
+        selectedMatchCategory: persistedSelectedMatchCategory || '',
+      },
       live: mergedLiveState,
       _initialConfigLoadComplete: false,
     }
@@ -69,18 +78,9 @@ export async function POST(request: Request) {
     const { config, live } = await request.json() as { config?: ConfigState; live?: LiveState };
 
     if (config) {
-        const { tournaments, ...baseConfig } = config;
-
-        // Save tournaments separately to tournaments.json
-        if (tournaments && tournaments.length > 0) {
-            const tournamentMetas = tournaments.map(t => ({ id: t.id, name: t.name, code: t.code, status: t.status }));
-            await writeTournaments({ tournaments: tournamentMetas });
-            setTournaments({ tournaments: tournamentMetas }); // Update in-memory cache
-        }
-
-        // Save config without tournaments to config.json
-        await writeConfig(baseConfig as ConfigState);
-        setConfig(config); // Update in-memory cache with full config (including tournaments)
+        // Save config to config.json
+        await writeConfig(config);
+        setConfig(config); // Update in-memory cache
     }
 
     if (live) {

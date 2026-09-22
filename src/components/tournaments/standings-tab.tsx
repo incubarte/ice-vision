@@ -963,7 +963,7 @@ interface StandingsTabProps {
 
 export function StandingsTab({ tournamentId }: StandingsTabProps = {}) {
     const { state } = useGameState();
-    const { tournaments, selectedTournamentId, activeTournament } = state.config;
+    const { tournaments, selectedTournamentId, activeTournament } = state.tournament;
 
     // Use tournamentId prop if provided, otherwise fall back to selectedTournamentId from state
     const activeTournamentId = tournamentId || selectedTournamentId;

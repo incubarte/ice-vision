@@ -42,7 +42,7 @@ export default function ManageTeamPage() {
   const { state, dispatch, isLoading } = useGameState();
   const { toast } = useToast();
   const { isReadOnly } = useAdminMode();
-  const { activeTournament, tournaments } = state.config;
+  const { activeTournament, tournaments } = state.tournament;
 
   const teamId = typeof params.teamId === 'string' ? params.teamId : undefined;
 
@@ -137,7 +137,7 @@ export default function ManageTeamPage() {
         <p className="text-muted-foreground mb-6">
           El equipo que estás buscando no existe o ha sido eliminado.
         </p>
-        <Button onClick={() => router.push(`/tournaments/${state.config.selectedTournamentId}`)}>
+        <Button onClick={() => router.push(`/tournaments/${state.tournament.selectedTournamentId}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Volver a la Gestión del Torneo
         </Button>
       </div>

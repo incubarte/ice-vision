@@ -36,7 +36,7 @@ export default function TournamentDetailPage() {
   // This keeps "browsing a tournament" decoupled from "setting the active scoreboard tournament".
   useEffect(() => {
     if (!tournamentId) return;
-    if (state.config.activeTournament?.id === tournamentId) return; // Already loaded
+    if (state.tournament.activeTournament?.id === tournamentId) return; // Already loaded
     fetch(`/api/tournaments/${tournamentId}`)
       .then(res => { if (!res.ok) throw new Error(`${res.status}`); return res.json(); })
       .then(data => {
@@ -59,8 +59,8 @@ export default function TournamentDetailPage() {
 
   const selectedTournament = useMemo(() => {
     if (!tournamentId) return null;
-    return (state.config.tournaments || []).find(t => t.id === tournamentId);
-  }, [state.config.tournaments, tournamentId]);
+    return (state.tournament.tournaments || []).find(t => t.id === tournamentId);
+  }, [state.tournament.tournaments, tournamentId]);
 
   useEffect(() => {
     const newTab = searchParams.get('tab');
@@ -101,7 +101,7 @@ export default function TournamentDetailPage() {
   // Wait for full tournament data (teams, matches, etc.) to finish loading.
   // After the initial load, the context fetches full data async — until it arrives,
   // activeTournament may be null or point to a different tournament.
-  if (state.config.activeTournament?.id !== tournamentId) {
+  if (state.tournament.activeTournament?.id !== tournamentId) {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-10rem)] text-center p-4">
         <HockeyPuckSpinner className="h-24 w-24 text-primary mb-4" />

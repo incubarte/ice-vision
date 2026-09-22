@@ -366,7 +366,7 @@ export const generateSummaryData = (state: GameState, voiceEvents?: VoiceGameEve
     }
 
     // Include sanctioned players
-    const tournament = state.config.activeTournament;
+    const tournament = state.tournament.activeTournament;
     const sanctions = tournament?.disciplinarySanctions;
     if (sanctions && sanctions.length > 0 && matchContext) {
         const matchDate = tournament!.matches.find(m => m.id === live.matchId)?.date?.split('T')[0]

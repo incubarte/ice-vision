@@ -70,9 +70,9 @@ export const useTeams = () => {
       // Fallback to activeTournament for backward compat
       const teamName = state.live[`${team}TeamName`];
       const teamSubName = state.live[`${team}TeamSubName`];
-      const category = state.config.selectedMatchCategory;
-      const tournament = state.config.activeTournament;
-      if (!tournament || tournament.id !== state.config.selectedTournamentId) return null;
+      const category = state.tournament.selectedMatchCategory;
+      const tournament = state.tournament.activeTournament;
+      if (!tournament || tournament.id !== state.tournament.selectedTournamentId) return null;
       return (tournament.teams || []).find(
         (t) =>
           t.name === teamName &&

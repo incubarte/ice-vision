@@ -1,11 +1,18 @@
 
 'use client';
 
-import type { GameState, ConfigState, LiveState, Tournament, RemoteCommand } from '@/types';
-export async function updateConfigOnServer(config: ConfigState) {
+import type { GameState, ConfigState, LiveState, Tournament, RemoteCommand, TournamentState } from '@/types';
+export async function updateConfigOnServer(config: ConfigState, tournament?: TournamentState) {
   try {
-    // Exclude full active tournament data from the main config save
-    const { activeTournament, ...configToSave } = config;
+    // Merge in the persisted tournament fields (selectedTournamentId, selectedMatchCategory)
+    // so config.json on disk continues to store them as before.
+    const configToSave = tournament
+      ? {
+          ...config,
+          selectedTournamentId: tournament.selectedTournamentId,
+          selectedMatchCategory: tournament.selectedMatchCategory,
+        }
+      : { ...config };
 
     const response = await fetch('/api/db', {
       method: 'POST',

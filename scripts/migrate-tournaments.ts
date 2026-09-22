@@ -36,7 +36,7 @@ async function migrateTournamentsToSeparateFile() {
         // 1. Read current config.json
         console.log('📖 Reading config.json...');
         const configData = await storageProvider.readFile('config.json');
-        const config = JSON.parse(configData) as ConfigState;
+        const config = JSON.parse(configData) as ConfigState & { tournaments?: TournamentsData['tournaments'] };
         console.log(`✅ Config loaded. Found ${config.tournaments?.length || 0} tournaments.\n`);
 
         // 2. Extract tournaments

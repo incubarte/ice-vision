@@ -90,11 +90,11 @@ export const exportGameSummaryPDF = (state: GameState) => {
         return "error_no_state.pdf";
     }
 
-    const { config, live } = state;
+    const { config, live, tournament: tournamentState } = state;
     const doc = new jsPDF();
     const teamTitle = `${live.homeTeamName} vs ${live.awayTeamName}`;
-    const tournament = config.activeTournament;
-    const categoryName = getCategoryNameById(config.selectedMatchCategory, tournament?.categories) || 'N/A';
+    const tournament = tournamentState.activeTournament;
+    const categoryName = getCategoryNameById(tournamentState.selectedMatchCategory, tournament?.categories) || 'N/A';
     
     const date = new Date();
     const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;

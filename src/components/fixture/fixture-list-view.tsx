@@ -141,7 +141,7 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { selectedTournamentId, tournaments, activeTournament } = state.config;
+  const { selectedTournamentId, tournaments, activeTournament } = state.tournament;
   const tournamentCode = activeTournament?.code ?? null;
 
   const { isReadOnly, adminSecret } = useAdminMode();

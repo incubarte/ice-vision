@@ -58,7 +58,7 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
         return;
       }
 
-      const tournament = state.config.activeTournament;
+      const tournament = state.tournament.activeTournament;
       if (!tournament || !tournament.matches?.some(m => m.id === state.live.matchId)) {
         setMediaUrl(null);
         setIsLoading(false);
@@ -114,7 +114,7 @@ export function PlayerPhotoDisplay({ celebration }: PlayerPhotoDisplayProps) {
         URL.revokeObjectURL(currentUrl);
       }
     };
-  }, [goal?.scorer?.playerNumber, goal?.team, state.live.matchId, state.live.matchContext, state.config.activeTournament]);
+  }, [goal?.scorer?.playerNumber, goal?.team, state.live.matchId, state.live.matchContext, state.tournament.activeTournament]);
 
   // Auto-play video when URL is set
   useEffect(() => {

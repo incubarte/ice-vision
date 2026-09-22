@@ -28,7 +28,7 @@ export const CategorySettingsCard = forwardRef<CategorySettingsCardRef, Category
   const { toast } = useToast();
   const { onDirtyChange } = props;
 
-  const { selectedTournamentId, activeTournament } = state.config;
+  const { selectedTournamentId, activeTournament } = state.tournament;
   const selectedTournament = activeTournament;
   const availableCategories = selectedTournament?.categories || [];
 

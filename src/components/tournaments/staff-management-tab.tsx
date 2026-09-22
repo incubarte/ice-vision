@@ -21,7 +21,7 @@ export function StaffManagementTab({ tournamentId }: StaffManagementTabProps) {
   const { toast } = useToast();
   const { isReadOnly } = useAdminMode();
 
-  const tournament = state.config.activeTournament;
+  const tournament = state.tournament.activeTournament;
   const staff = tournament?.staff || [];
 
   const [showAddForm, setShowAddForm] = useState(false);

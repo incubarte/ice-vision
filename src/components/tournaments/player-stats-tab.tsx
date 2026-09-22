@@ -79,7 +79,7 @@ interface PlayerStatsTabProps {
 
 export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
   const { state } = useGameState();
-  const { tournaments, selectedTournamentId, activeTournament } = state.config;
+  const { tournaments, selectedTournamentId, activeTournament } = state.tournament;
 
   const activeTournamentId = tournamentId || selectedTournamentId;
 

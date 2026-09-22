@@ -54,7 +54,7 @@ export function RemoteFileManager() {
         if (!summaryMatch) return null;
 
         const [, tournamentId, matchId] = summaryMatch;
-        const tournaments = state?.config?.tournaments || [];
+        const tournaments = state?.tournament?.tournaments || [];
 
         // Find the tournament
         let tournament = tournaments.find(t => t.id === tournamentId);
@@ -85,7 +85,7 @@ export function RemoteFileManager() {
         }
 
         return { isOutsideFixture: false, tournamentId, matchId };
-    }, [state?.config?.tournaments]);
+    }, [state?.tournament?.tournaments]);
 
     // Helper to extract player photo info from file path
     const extractPlayerPhotoInfo = useCallback((filePath: string) => {

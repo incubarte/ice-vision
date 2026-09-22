@@ -32,7 +32,7 @@ export function Header() {
   const router = useRouter();
   const { toast } = useToast();
   const { state, dispatch } = useGameState();
-  const { tournaments, selectedTournamentId } = state.config;
+  const { tournaments, selectedTournamentId } = state.tournament;
 
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
 

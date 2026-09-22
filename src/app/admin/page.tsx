@@ -427,7 +427,7 @@ function SyncAnalysisCard() {
         ];
 
         return allItems.some((item: any) => {
-            const matchInfo = extractMatchInfoFromPath(item.filePath, state?.config?.tournaments || []);
+            const matchInfo = extractMatchInfoFromPath(item.filePath, state?.tournament?.tournaments || []);
             return matchInfo?.isOutsideFixture;
         });
     };
@@ -459,7 +459,7 @@ function SyncAnalysisCard() {
             ];
 
             allItems.forEach((item: any) => {
-                const matchInfo = extractMatchInfoFromPath(item.filePath, state?.config?.tournaments || []);
+                const matchInfo = extractMatchInfoFromPath(item.filePath, state?.tournament?.tournaments || []);
                 if (matchInfo?.isOutsideFixture) {
                     newSet.delete(item.filePath);
                 }
@@ -488,7 +488,7 @@ function SyncAnalysisCard() {
         ];
 
         return allItems.some((item: any) => {
-            const photoInfo = extractPlayerPhotoInfo(item.filePath, state?.config?.tournaments || []);
+            const photoInfo = extractPlayerPhotoInfo(item.filePath, state?.tournament?.tournaments || []);
             return photoInfo?.isUnreferenced;
         });
     };
@@ -507,7 +507,7 @@ function SyncAnalysisCard() {
             ];
 
             allItems.forEach((item: any) => {
-                const photoInfo = extractPlayerPhotoInfo(item.filePath, state?.config?.tournaments || []);
+                const photoInfo = extractPlayerPhotoInfo(item.filePath, state?.tournament?.tournaments || []);
                 if (photoInfo?.isUnreferenced) {
                     newSet.delete(item.filePath);
                 }
@@ -598,14 +598,14 @@ function SyncAnalysisCard() {
             const data = await res.json();
 
             console.log('[Admin] Fresh data received, hydrating state...');
-            console.log('[Admin] Tournaments count:', data.config?.tournaments?.length || 0);
+            console.log('[Admin] Tournaments count:', data.tournament?.tournaments?.length || 0);
 
             // Hydrate the state with fresh data
             dispatch({ type: 'INITIALIZE_STATE', payload: data });
 
             toast({
                 title: "✅ Contexto Recargado",
-                description: `Datos actualizados. Torneos: ${data.config?.tournaments?.length || 0}`,
+                description: `Datos actualizados. Torneos: ${data.tournament?.tournaments?.length || 0}`,
                 className: "bg-green-600 text-white border-green-700",
             });
         } catch (error) {
@@ -1439,7 +1439,7 @@ function SyncAnalysisCard() {
                                         onToggleFile={toggleFileSelection}
                                         extractMatchInfo={extractMatchInfoFromPath}
                                         extractPlayerPhotoInfo={extractPlayerPhotoInfo}
-                                        tournaments={state?.config?.tournaments || []}
+                                        tournaments={state?.tournament?.tournaments || []}
                                         type="upload"
                                     />
                                 </div>
@@ -1458,7 +1458,7 @@ function SyncAnalysisCard() {
                                         onToggleFile={toggleFileSelection}
                                         extractMatchInfo={extractMatchInfoFromPath}
                                         extractPlayerPhotoInfo={extractPlayerPhotoInfo}
-                                        tournaments={state?.config?.tournaments || []}
+                                        tournaments={state?.tournament?.tournaments || []}
                                         type="download"
                                     />
                                 </div>
@@ -1482,7 +1482,7 @@ function SyncAnalysisCard() {
                                         files={plan.skippedPhotoDownloads.map((f: any) => ({ ...f, reason: 'photo-on-demand' }))}
                                         selectedFiles={selectedFiles}
                                         onToggleFile={toggleFileSelection}
-                                        tournaments={state?.config?.tournaments || []}
+                                        tournaments={state?.tournament?.tournaments || []}
                                         type="download"
                                     />
                                 </div>
@@ -1501,7 +1501,7 @@ function SyncAnalysisCard() {
                                         onToggleFile={toggleFileSelection}
                                         extractMatchInfo={extractMatchInfoFromPath}
                                         extractPlayerPhotoInfo={extractPlayerPhotoInfo}
-                                        tournaments={state?.config?.tournaments || []}
+                                        tournaments={state?.tournament?.tournaments || []}
                                         type="deleteLocal"
                                     />
                                 </div>
@@ -1520,7 +1520,7 @@ function SyncAnalysisCard() {
                                         onToggleFile={toggleFileSelection}
                                         extractMatchInfo={extractMatchInfoFromPath}
                                         extractPlayerPhotoInfo={extractPlayerPhotoInfo}
-                                        tournaments={state?.config?.tournaments || []}
+                                        tournaments={state?.tournament?.tournaments || []}
                                         type="deleteRemote"
                                     />
                                 </div>
@@ -1540,7 +1540,7 @@ function SyncAnalysisCard() {
                                         onFileClick={handleConflictClick}
                                         extractMatchInfo={extractMatchInfoFromPath}
                                         extractPlayerPhotoInfo={extractPlayerPhotoInfo}
-                                        tournaments={state?.config?.tournaments || []}
+                                        tournaments={state?.tournament?.tournaments || []}
                                         type="conflict"
                                     />
                                 </div>
@@ -2430,7 +2430,7 @@ export default function AdminPage() {
             {/* SYNC TAB */}
             <TabsContent value="sync" className="space-y-6 mt-6">
                 <SyncAnalysisCard />
-                <SyncHistoryCard tournaments={state?.config?.tournaments || []} />
+                <SyncHistoryCard tournaments={state?.tournament?.tournaments || []} />
                 <RemoteFileManager />
                 <SupabaseSyncCard />
             </TabsContent>

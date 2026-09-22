@@ -27,10 +27,10 @@ export function ClubsManagementTab({ tournamentId }: ClubsManagementTabProps) {
   const { state, dispatch } = useGameState();
   const { toast } = useToast();
   const { isAdminMode, isReadOnly } = useAdminMode();
-  const clubs = state.config.activeTournament?.clubs || [];
+  const clubs = state.tournament.activeTournament?.clubs || [];
 
   // Get tournament code for pre-match links (from meta list which always has code)
-  const tournamentCode = state.config.tournaments?.find(t => t.id === tournamentId)?.code;
+  const tournamentCode = state.tournament.tournaments?.find(t => t.id === tournamentId)?.code;
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [clubToEdit, setClubToEdit] = useState<ClubData | null>(null);
@@ -49,10 +49,10 @@ export function ClubsManagementTab({ tournamentId }: ClubsManagementTabProps) {
   }
 
   async function handleSavePassword(club: ClubData, newPassword: string) {
-    if (!state.config.activeTournament) return;
+    if (!state.tournament.activeTournament) return;
     const updatedTournament = {
-      ...state.config.activeTournament,
-      clubs: (state.config.activeTournament.clubs ?? []).map(c =>
+      ...state.tournament.activeTournament,
+      clubs: (state.tournament.activeTournament.clubs ?? []).map(c =>
         c.id === club.id ? { ...c, password: newPassword } : c
       ),
     };

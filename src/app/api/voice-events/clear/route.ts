@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'matchId is required' }, { status: 400 });
     }
 
-    // Read config to get selectedTournamentId
-    const config = await readConfig();
-    const tournamentId = config.selectedTournamentId;
+    // Read config to get selectedTournamentId (still persisted in config.json for now)
+    const config = await readConfig() as Record<string, unknown>;
+    const tournamentId = config?.selectedTournamentId as string | undefined;
 
     if (!tournamentId) {
       return NextResponse.json({ success: false, error: 'No tournament selected' }, { status: 400 });

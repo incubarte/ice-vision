@@ -16,10 +16,12 @@ export async function POST(request: Request) {
         const body = await request.json().catch(() => ({}));
         const strategy: ConflictStrategy = body.strategy || 'local-wins';
         const onlyFiles: string[] | undefined = body.onlyFiles; // Array of specific files to sync
+        const excludeFiles: string[] | undefined = body.excludeFiles; // Array of files to skip
 
         console.log('[Sync Execute] Starting sync execution...');
         console.log('[Sync Execute] Strategy:', strategy);
         console.log('[Sync Execute] Only files:', onlyFiles);
+        console.log('[Sync Execute] Exclude files:', excludeFiles);
 
         // 1. First analyze what needs to be synced
         const analysis = await analyzeSync();
@@ -47,9 +49,14 @@ export async function POST(request: Request) {
         }
 
         // 3. Execute sync with options
+        const excludeSet = excludeFiles?.length ? new Set(excludeFiles) : null;
         const result = await executeSync(analysis, {
             strategy,
-            filterFiles: onlyFiles ? (filePath) => onlyFiles.includes(filePath) : undefined
+            filterFiles: onlyFiles
+                ? (filePath) => onlyFiles.includes(filePath)
+                : excludeSet
+                    ? (filePath) => !excludeSet.has(filePath)
+                    : undefined,
         });
 
         console.log('[Sync Execute] Sync complete:', {

@@ -33,7 +33,7 @@ export function EndOfGameDisplay({
 
   // Obtener datos del partido para verificar si es playoff
   const matchContext = state.live.matchContext;
-  const activeTournament = state.config.activeTournament;
+  const activeTournament = state.tournament.activeTournament;
   const isPlayoffMatch = matchContext?.matchPhase === 'playoffs';
   const isSemifinal = matchContext?.matchPlayoffType === 'semifinal';
 

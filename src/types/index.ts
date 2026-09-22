@@ -615,15 +615,18 @@ export interface SyncLogFileEntry {
   snapshotId?: string; // timestamp of snapshot if conflict
 }
 
+export interface TournamentState {
+  tournaments: TournamentMetadata[];
+  activeTournament: Tournament | null;
+  selectedTournamentId: string | null;
+  selectedMatchCategory: string;
+}
+
 export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'name'>, ConfigFields {
   formatAndTimingsProfiles: FormatAndTimingsProfile[];
   selectedFormatAndTimingsProfileId: string | null;
   scoreboardLayout: ScoreboardLayoutSettings;
   selectedScoreboardLayoutProfileId: string | null;
-  tournaments: TournamentMetadata[]; // Still part of runtime state, but loaded from tournaments.json
-  activeTournament: Tournament | null; // Added for the full hydrated tournament
-  selectedTournamentId: string | null;
-  selectedMatchCategory: string;
 }
 
 export type PeriodDisplayOverrideType = 'Pre Warm-up' | 'Warm-up' | 'Break' | 'Pre-OT Break' | 'Time Out' | 'End of Game' | 'Shootout' | 'AwaitingDecision' | null;
@@ -956,6 +959,7 @@ export type GameAction =
 
 export interface GameState {
   config: ConfigState;
+  tournament: TournamentState;
   live: LiveState;
   _initialConfigLoadComplete: boolean;
   _lastActionOriginator?: string;

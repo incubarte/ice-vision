@@ -55,7 +55,7 @@ export function DisciplineTab({ tournamentId }: DisciplineTabProps) {
   const { state, dispatch } = useGameState();
   const { isAdminMode } = useAdminMode();
 
-  const tournament = state.config.activeTournament;
+  const tournament = state.tournament.activeTournament;
   const isHydrated = isTournamentHydrated(tournament);
   const allMatches = isHydrated ? tournament.matches : [];
 

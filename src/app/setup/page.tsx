@@ -104,7 +104,7 @@ function SetupPageContent() {
 
     const [activeTab, setActiveTab] = useState('teams');
     
-    const { selectedTournamentId, activeTournament } = state.config;
+    const { selectedTournamentId, activeTournament } = state.tournament;
     const selectedTournament = activeTournament?.id === selectedTournamentId ? activeTournament : null;
     
     const [isTournamentMatch, setIsTournamentMatch] = useState(true);
@@ -150,10 +150,10 @@ function SetupPageContent() {
     }, [selectedTournament, selectedMatchDate]);
 
      useEffect(() => {
-        setLocalCategoryId(state.config.selectedMatchCategory || availableCategories[0]?.id || '');
+        setLocalCategoryId(state.tournament.selectedMatchCategory || availableCategories[0]?.id || '');
         const currentProfile = state.config.formatAndTimingsProfiles.find(p => p.id === state.config.selectedFormatAndTimingsProfileId) || state.config;
         setTempFormatSettings(currentProfile);
-    }, [state.config.selectedTournamentId, state.config.selectedMatchCategory, state.config.formatAndTimingsProfiles, state.config.selectedFormatAndTimingsProfileId, availableCategories]);
+    }, [state.tournament.selectedTournamentId, state.tournament.selectedMatchCategory, state.config.formatAndTimingsProfiles, state.config.selectedFormatAndTimingsProfileId, availableCategories]);
 
     const handleLoadMatchConfig = useCallback((match: MatchData) => {
         // Al cargar un partido existente, siempre es de torneo

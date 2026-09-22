@@ -25,6 +25,7 @@ import type {
   Tournament,
   TournamentMetadata,
   ShootoutState,
+  TournamentState,
 } from '@/types';
 import isEqual from 'lodash.isequal';
 import { safeUUID } from '@/lib/utils';
@@ -182,10 +183,6 @@ export const getInitialState = (): GameState => {
       scoreboardLayout: INITIAL_LAYOUT_SETTINGS,
       scoreboardLayoutProfiles: [defaultInitialLayoutProfile],
       selectedScoreboardLayoutProfileId: defaultInitialLayoutProfile.id,
-      selectedMatchCategory: '',
-      tournaments: [],
-      activeTournament: null,
-      selectedTournamentId: null,
       tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
       replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,
       // Auto-sync defaults
@@ -194,6 +191,12 @@ export const getInitialState = (): GameState => {
       autoSyncResolveConflicts: false,
       autoSyncSkipDuringMatch: true,
       autoSyncAfterSummaryEdit: false,
+    },
+    tournament: {
+      tournaments: [],
+      activeTournament: null,
+      selectedTournamentId: null,
+      selectedMatchCategory: '',
     },
     live: {
       ...INITIAL_LIVE_DATA,
@@ -271,7 +274,7 @@ export const finalizeMatch = (state: GameState): GameState => {
         ...newState,
         _pendingSummaryGeneration: {
           matchId: newState.live.matchId,
-          tournamentId: state.config.selectedTournamentId as string
+          tournamentId: state.tournament.selectedTournamentId as string
         }
       };
     }
@@ -504,6 +507,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
       // Merge server config with initial state to ensure all properties exist
       const initialState = getInitialState();
+      const serverTournament = serverState.tournament || initialState.tournament;
       let finalState: GameState = {
         ...initialState,
         config: {
@@ -512,16 +516,20 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           // Ensure critical properties have defaults if missing
           tunnel: serverState.config.tunnel || initialState.config.tunnel,
           replays: serverState.config.replays || initialState.config.replays,
+        },
+        tournament: {
+          ...initialState.tournament,
+          ...serverTournament,
           // Ensure activeTournament is correctly set if provided from server (e.g., during sync)
-          activeTournament: serverState.config.activeTournament || state.config.activeTournament || null,
+          activeTournament: serverTournament.activeTournament || state.tournament.activeTournament || null,
         },
         _initialConfigLoadComplete: true,
       };
 
       // Auto-select first tournament if none is selected but tournaments exist
-      if (!finalState.config.selectedTournamentId && finalState.config.tournaments && finalState.config.tournaments.length > 0) {
-        console.log('[Reducer] No tournament selected, auto-selecting first tournament:', finalState.config.tournaments[0].id);
-        finalState.config.selectedTournamentId = finalState.config.tournaments[0].id;
+      if (!finalState.tournament.selectedTournamentId && finalState.tournament.tournaments && finalState.tournament.tournaments.length > 0) {
+        console.log('[Reducer] No tournament selected, auto-selecting first tournament:', finalState.tournament.tournaments[0].id);
+        finalState.tournament.selectedTournamentId = finalState.tournament.tournaments[0].id;
       }
 
       if (serverState.live && serverState.live.clock) {
@@ -545,7 +553,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
       // Ensure required fields have defaults before setting as active tournament
       // Use selectedTournamentId as fallback for id in case the API response omitted it
-      const hydratedId = tournamentData.id || state.config.selectedTournamentId || '';
+      const hydratedId = tournamentData.id || state.tournament.selectedTournamentId || '';
       const hydrated: Tournament = {
         id: hydratedId,
         name: tournamentData.name || '',
@@ -559,8 +567,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
 
       newState = {
         ...state,
-        config: {
-          ...state.config,
+        tournament: {
+          ...state.tournament,
           activeTournament: hydrated
         }
       };
@@ -1865,37 +1873,37 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       break;
     }
     case 'SET_CATEGORIES_FOR_TOURNAMENT': {
-      if (state.config.activeTournament?.id === action.payload.tournamentId) {
+      if (state.tournament.activeTournament?.id === action.payload.tournamentId) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
-            activeTournament: { ...state.config.activeTournament, categories: action.payload.categories }
+          tournament: {
+            ...state.tournament,
+            activeTournament: { ...state.tournament.activeTournament, categories: action.payload.categories }
           }
         };
       } else {
-        console.warn(`[Reducer] SET_CATEGORIES_FOR_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
+        console.warn(`[Reducer] SET_CATEGORIES_FOR_TOURNAMENT ignored: activeTournament (${state.tournament.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
       }
       break;
     }
     case 'ADD_CATEGORIES_TO_TOURNAMENT': {
-      if (state.config.activeTournament?.id === action.payload.tournamentId) {
+      if (state.tournament.activeTournament?.id === action.payload.tournamentId) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              categories: [...(state.config.activeTournament.categories || []), ...action.payload.categories]
+              ...state.tournament.activeTournament,
+              categories: [...(state.tournament.activeTournament.categories || []), ...action.payload.categories]
             }
           }
         };
       } else {
-        console.warn(`[Reducer] ADD_CATEGORIES_TO_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
+        console.warn(`[Reducer] ADD_CATEGORIES_TO_TOURNAMENT ignored: activeTournament (${state.tournament.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
       }
       break;
     }
-    case 'SET_SELECTED_MATCH_CATEGORY': newState = { ...state, config: { ...state.config, selectedMatchCategory: action.payload } }; toastMessage = { title: "Categoría del Partido Actualizada" }; break;
+    case 'SET_SELECTED_MATCH_CATEGORY': newState = { ...state, tournament: { ...state.tournament, selectedMatchCategory: action.payload } }; toastMessage = { title: "Categoría del Partido Actualizada" }; break;
     case 'UPDATE_TUNNEL_STATE': newState = { ...state, config: { ...state.config, tunnel: { ...state.config.tunnel, ...action.payload } } }; break;
     case 'ADD_TOURNAMENT': {
       const newTournament: TournamentMetadata = {
@@ -1904,90 +1912,90 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         code: action.payload.code,
         status: action.payload.status,
       };
-      newState = { ...state, config: { ...state.config, tournaments: [...(state.config.tournaments || []), newTournament] } };
+      newState = { ...state, tournament: { ...state.tournament, tournaments: [...(state.tournament.tournaments || []), newTournament] } };
       break;
     }
     case 'UPDATE_TOURNAMENT': {
-      const updatedTournaments = (state.config.tournaments || []).map(t => t.id === action.payload.id ? { ...t, ...action.payload } : t);
-      let updatedActiveTournament = state.config.activeTournament;
+      const updatedTournaments = (state.tournament.tournaments || []).map(t => t.id === action.payload.id ? { ...t, ...action.payload } : t);
+      let updatedActiveTournament = state.tournament.activeTournament;
       if (updatedActiveTournament?.id === action.payload.id) {
         updatedActiveTournament = { ...updatedActiveTournament, ...action.payload };
       }
-      newState = { ...state, config: { ...state.config, tournaments: updatedTournaments, activeTournament: updatedActiveTournament } };
+      newState = { ...state, tournament: { ...state.tournament, tournaments: updatedTournaments, activeTournament: updatedActiveTournament } };
       break;
     }
     case 'DELETE_TOURNAMENT': {
-      let updatedActiveTournament = state.config.activeTournament;
+      let updatedActiveTournament = state.tournament.activeTournament;
       if (updatedActiveTournament?.id === action.payload.id) {
         updatedActiveTournament = null;
       }
-      newState = { ...state, config: { ...state.config, tournaments: (state.config.tournaments || []).filter(t => t.id !== action.payload.id), activeTournament: updatedActiveTournament } };
+      newState = { ...state, tournament: { ...state.tournament, tournaments: (state.tournament.tournaments || []).filter(t => t.id !== action.payload.id), activeTournament: updatedActiveTournament } };
       break;
     }
     case 'SET_ACTIVE_TOURNAMENT': {
       // Use activeTournament for categories if it matches, otherwise reset category
-      const activeCategories = state.config.activeTournament?.id === action.payload.tournamentId
-        ? state.config.activeTournament.categories
+      const activeCategories = state.tournament.activeTournament?.id === action.payload.tournamentId
+        ? state.tournament.activeTournament.categories
         : [];
       const selectedCategory = (activeCategories || [])[0]?.id || '';
-      newState = { ...state, config: { ...state.config, selectedTournamentId: action.payload.tournamentId, selectedMatchCategory: selectedCategory } };
+      newState = { ...state, tournament: { ...state.tournament, selectedTournamentId: action.payload.tournamentId, selectedMatchCategory: selectedCategory } };
       break;
     }
     case 'ADD_MATCH_TO_TOURNAMENT': {
       const { tournamentId, match } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              matches: [...(state.config.activeTournament.matches || []), { ...match, id: match.id || safeUUID() }]
+              ...state.tournament.activeTournament,
+              matches: [...(state.tournament.activeTournament.matches || []), { ...match, id: match.id || safeUUID() }]
             }
           }
         };
       } else {
-        console.warn(`[Reducer] ADD_MATCH_TO_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${tournamentId})`);
+        console.warn(`[Reducer] ADD_MATCH_TO_TOURNAMENT ignored: activeTournament (${state.tournament.activeTournament?.id}) does not match target (${tournamentId})`);
       }
       break;
     }
     case 'UPDATE_MATCH_IN_TOURNAMENT': {
       const { tournamentId, match } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
-        const newMatches = (state.config.activeTournament.matches || []).map(m => m.id === match.id ? match : m);
+      if (state.tournament.activeTournament?.id === tournamentId) {
+        const newMatches = (state.tournament.activeTournament.matches || []).map(m => m.id === match.id ? match : m);
         newState = {
           ...state,
-          config: {
-            ...state.config,
-            activeTournament: { ...state.config.activeTournament, matches: newMatches }
+          tournament: {
+            ...state.tournament,
+            activeTournament: { ...state.tournament.activeTournament, matches: newMatches }
           }
         };
       } else {
-        console.warn(`[Reducer] UPDATE_MATCH_IN_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${tournamentId})`);
+        console.warn(`[Reducer] UPDATE_MATCH_IN_TOURNAMENT ignored: activeTournament (${state.tournament.activeTournament?.id}) does not match target (${tournamentId})`);
       }
       break;
     }
     case 'DELETE_MATCH_FROM_TOURNAMENT': {
       const { tournamentId, matchId } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
-        const newMatches = (state.config.activeTournament.matches || []).filter(m => m.id !== matchId);
+      if (state.tournament.activeTournament?.id === tournamentId) {
+        const newMatches = (state.tournament.activeTournament.matches || []).filter(m => m.id !== matchId);
         newState = {
           ...state,
-          config: {
-            ...state.config,
-            activeTournament: { ...state.config.activeTournament, matches: newMatches }
+          tournament: {
+            ...state.tournament,
+            activeTournament: { ...state.tournament.activeTournament, matches: newMatches }
           }
         };
         toastMessage = { title: "Partido Eliminado", description: "El partido y su resumen han sido movidos a la carpeta de eliminados." };
       } else {
-        console.warn(`[Reducer] DELETE_MATCH_FROM_TOURNAMENT ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${tournamentId})`);
+        console.warn(`[Reducer] DELETE_MATCH_FROM_TOURNAMENT ignored: activeTournament (${state.tournament.activeTournament?.id}) does not match target (${tournamentId})`);
       }
       break;
     }
     case 'CLEAN_MATCH_SUMMARY': {
       const { tournamentId, matchId } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
-        const newMatches = (state.config.activeTournament.matches || []).map(m => {
+      if (state.tournament.activeTournament?.id === tournamentId) {
+        const newMatches = (state.tournament.activeTournament.matches || []).map(m => {
           if (m.id === matchId) {
             const { summary, ...matchWithoutSummary } = m;
             return matchWithoutSummary;
@@ -1996,14 +2004,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         });
         newState = {
           ...state,
-          config: {
-            ...state.config,
-            activeTournament: { ...state.config.activeTournament, matches: newMatches }
+          tournament: {
+            ...state.tournament,
+            activeTournament: { ...state.tournament.activeTournament, matches: newMatches }
           }
         };
         toastMessage = { title: "Partido Limpiado", description: "El resumen del partido ha sido movido a la carpeta de eliminados." };
       } else {
-        console.warn(`[Reducer] CLEAN_MATCH_SUMMARY ignored: activeTournament (${state.config.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
+        console.warn(`[Reducer] CLEAN_MATCH_SUMMARY ignored: activeTournament (${state.tournament.activeTournament?.id}) does not match target (${action.payload.tournamentId})`);
       }
       break;
     }
@@ -2014,7 +2022,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         ...state,
         _pendingSummaryGeneration: {
           matchId: action.payload.matchId,
-          tournamentId: state.config.selectedTournamentId as string
+          tournamentId: state.tournament.selectedTournamentId as string
         }
       };
       break;
@@ -2027,13 +2035,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'UPDATE_MATCH_SUMMARY_IN_STATE': {
       const { matchId, summary } = action.payload;
-      const tournamentId = state.config.selectedTournamentId;
+      const tournamentId = state.tournament.selectedTournamentId;
       console.log('[GameState] UPDATE_MATCH_SUMMARY_IN_STATE - matchId:', matchId, 'tournamentId:', tournamentId);
-      
-      if (!tournamentId || state.config.activeTournament?.id !== tournamentId) break;
+
+      if (!tournamentId || state.tournament.activeTournament?.id !== tournamentId) break;
 
       let playoffMatchesUpdated = false;
-      const t = state.config.activeTournament;
+      const t = state.tournament.activeTournament;
       
       let newMatches = (t.matches || []).map(m => {
         if (m.id === matchId) {
@@ -2092,7 +2100,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       }
 
       const updatedActiveTournament = { ...t, matches: newMatches };
-      newState = { ...state, config: { ...state.config, activeTournament: updatedActiveTournament } };
+      newState = { ...state, tournament: { ...state.tournament, activeTournament: updatedActiveTournament } };
 
       if (playoffMatchesUpdated) {
         console.log('[GameState] Playoff matches updated, saving tournament immediately...');
@@ -2102,8 +2110,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'SAVE_MATCH_SUMMARY': {
       const { matchId, summary, adminSecret } = action.payload;
-      const tournamentId = state.config.selectedTournamentId;
-      if (!tournamentId || state.config.activeTournament?.id !== tournamentId) break;
+      const tournamentId = state.tournament.selectedTournamentId;
+      if (!tournamentId || state.tournament.activeTournament?.id !== tournamentId) break;
 
       fetch('/api/match-summary', {
         method: 'POST',
@@ -2123,20 +2131,20 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       })
       .catch(err => console.error('[GameState] Error saving summary:', err));
 
-      const t = state.config.activeTournament;
+      const t = state.tournament.activeTournament;
       const newMatches = (t.matches || []).map(m => m.id === matchId ? { ...m, summary } : m);
-      newState = { ...state, config: { ...state.config, activeTournament: { ...t, matches: newMatches } } };
+      newState = { ...state, tournament: { ...state.tournament, activeTournament: { ...t, matches: newMatches } } };
       break;
     }
     case 'ADD_TEAM_TO_TOURNAMENT': {
       const { tournamentId, team } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
-          ...state, config: {
-            ...state.config, 
+          ...state, tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              teams: [...(state.config.activeTournament.teams || []), { ...team, id: team.id || safeUUID() }]
+              ...state.tournament.activeTournament,
+              teams: [...(state.tournament.activeTournament.teams || []), { ...team, id: team.id || safeUUID() }]
             }
           }
         };
@@ -2145,13 +2153,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'DELETE_TEAMS_FROM_TOURNAMENT': {
       const { tournamentId, teamIds } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
-          ...state, config: {
-            ...state.config, 
+          ...state, tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              teams: state.config.activeTournament.teams.filter(team => !teamIds.includes(team.id))
+              ...state.tournament.activeTournament,
+              teams: state.tournament.activeTournament.teams.filter(team => !teamIds.includes(team.id))
             }
           }
         };
@@ -2160,14 +2168,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'UPDATE_TEAM_DETAILS': {
       const { teamId, ...updates } = action.payload;
-      if (state.config.activeTournament) {
+      if (state.tournament.activeTournament) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              teams: state.config.activeTournament.teams.map(team =>
+              ...state.tournament.activeTournament,
+              teams: state.tournament.activeTournament.teams.map(team =>
                 team.id === teamId ? { ...team, ...updates } : team
               ),
             },
@@ -2179,13 +2187,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'ADD_CLUB_TO_TOURNAMENT': {
       const { tournamentId, club } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
-          ...state, config: {
-            ...state.config,
+          ...state, tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              clubs: [...(state.config.activeTournament.clubs || []), { ...club, id: safeUUID() }]
+              ...state.tournament.activeTournament,
+              clubs: [...(state.tournament.activeTournament.clubs || []), { ...club, id: safeUUID() }]
             }
           }
         };
@@ -2194,19 +2202,19 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'UPDATE_CLUB_IN_TOURNAMENT': {
       const { tournamentId, clubId, name, logoDataUrl, password } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
-        const updatedClubs = (state.config.activeTournament.clubs || []).map(c =>
+      if (state.tournament.activeTournament?.id === tournamentId) {
+        const updatedClubs = (state.tournament.activeTournament.clubs || []).map(c =>
           c.id === clubId ? { ...c, name, logoDataUrl: logoDataUrl ?? c.logoDataUrl, ...(password !== undefined ? { password } : {}) } : c
         );
         // Cascade name and logo to all teams that belong to this club
-        const updatedTeams = state.config.activeTournament.teams.map(t =>
+        const updatedTeams = state.tournament.activeTournament.teams.map(t =>
           t.clubId === clubId ? { ...t, name, logoDataUrl: logoDataUrl ?? t.logoDataUrl } : t
         );
         newState = {
-          ...state, config: {
-            ...state.config,
+          ...state, tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
+              ...state.tournament.activeTournament,
               clubs: updatedClubs,
               teams: updatedTeams,
             }
@@ -2217,15 +2225,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'DELETE_CLUB_FROM_TOURNAMENT': {
       const { tournamentId, clubId } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
-          ...state, config: {
-            ...state.config,
+          ...state, tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              clubs: (state.config.activeTournament.clubs || []).filter(c => c.id !== clubId),
+              ...state.tournament.activeTournament,
+              clubs: (state.tournament.activeTournament.clubs || []).filter(c => c.id !== clubId),
               // Clear clubId from teams that belonged to this club (keep their name/logo)
-              teams: state.config.activeTournament.teams.map(t =>
+              teams: state.tournament.activeTournament.teams.map(t =>
                 t.clubId === clubId ? { ...t, clubId: undefined } : t
               ),
             }
@@ -2242,13 +2250,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = { ...state };
 
       // 1. Update activeTournament (if present)
-      if (newState.config.activeTournament) {
+      if (newState.tournament.activeTournament) {
         newState = {
-          ...newState, config: {
-            ...newState.config,
+          ...newState, tournament: {
+            ...newState.tournament,
             activeTournament: {
-              ...newState.config.activeTournament,
-              teams: newState.config.activeTournament.teams.map(team =>
+              ...newState.tournament.activeTournament,
+              teams: newState.tournament.activeTournament.teams.map(team =>
                 team.id === teamId
                   ? { ...team, players: [...(team.players || []), newPlayer] }
                   : team
@@ -2302,14 +2310,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'UPDATE_PLAYER_IN_TEAM': {
       const { teamId, playerId, updates } = action.payload;
-      if (state.config.activeTournament) {
+      if (state.tournament.activeTournament) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              teams: state.config.activeTournament.teams.map(team =>
+              ...state.tournament.activeTournament,
+              teams: state.tournament.activeTournament.teams.map(team =>
                 team.id === teamId
                   ? {
                     ...team,
@@ -2348,14 +2356,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'REMOVE_PLAYER_FROM_TEAM': {
       const { teamId, playerId } = action.payload;
-      if (state.config.activeTournament) {
+      if (state.tournament.activeTournament) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              teams: state.config.activeTournament.teams.map(team =>
+              ...state.tournament.activeTournament,
+              teams: state.tournament.activeTournament.teams.map(team =>
                 team.id === teamId
                   ? {
                     ...team,
@@ -2371,15 +2379,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'ADD_STAFF_TO_TOURNAMENT': {
       const { tournamentId, staff } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         const staffId = staff.id || safeUUID();
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              staff: [...(state.config.activeTournament.staff || []), { ...staff, id: staffId }]
+              ...state.tournament.activeTournament,
+              staff: [...(state.tournament.activeTournament.staff || []), { ...staff, id: staffId }]
             }
           },
         };
@@ -2392,14 +2400,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'UPDATE_STAFF_IN_TOURNAMENT': {
       const { tournamentId, staffId, updates } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              staff: (state.config.activeTournament.staff || []).map(s =>
+              ...state.tournament.activeTournament,
+              staff: (state.tournament.activeTournament.staff || []).map(s =>
                 s.id === staffId ? { ...s, ...updates } : s
               ),
             },
@@ -2411,14 +2419,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'REMOVE_STAFF_FROM_TOURNAMENT': {
       const { tournamentId, staffId } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              staff: (state.config.activeTournament.staff || []).filter(s => s.id !== staffId),
+              ...state.tournament.activeTournament,
+              staff: (state.tournament.activeTournament.staff || []).filter(s => s.id !== staffId),
             },
           },
         };
@@ -2428,16 +2436,16 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'ADD_SANCTION_TO_TOURNAMENT': {
       const { tournamentId, sanction } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         const newSanction = { ...sanction, id: safeUUID(), createdAt: new Date().toISOString() };
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
+              ...state.tournament.activeTournament,
               disciplinarySanctions: [
-                ...(state.config.activeTournament.disciplinarySanctions || []),
+                ...(state.tournament.activeTournament.disciplinarySanctions || []),
                 newSanction,
               ],
             },
@@ -2449,14 +2457,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'UPDATE_SANCTION_IN_TOURNAMENT': {
       const { tournamentId, sanctionId, updates } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              disciplinarySanctions: (state.config.activeTournament.disciplinarySanctions || []).map(s =>
+              ...state.tournament.activeTournament,
+              disciplinarySanctions: (state.tournament.activeTournament.disciplinarySanctions || []).map(s =>
                 s.id === sanctionId ? { ...s, ...updates } : s
               ),
             },
@@ -2468,14 +2476,14 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
     }
     case 'REMOVE_SANCTION_FROM_TOURNAMENT': {
       const { tournamentId, sanctionId } = action.payload;
-      if (state.config.activeTournament?.id === tournamentId) {
+      if (state.tournament.activeTournament?.id === tournamentId) {
         newState = {
           ...state,
-          config: {
-            ...state.config,
+          tournament: {
+            ...state.tournament,
             activeTournament: {
-              ...state.config.activeTournament,
-              disciplinarySanctions: (state.config.activeTournament.disciplinarySanctions || []).filter(s =>
+              ...state.tournament.activeTournament,
+              disciplinarySanctions: (state.tournament.activeTournament.disciplinarySanctions || []).filter(s =>
                 s.id !== sanctionId
               ),
             },
@@ -2673,10 +2681,13 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           rosterPresentationDuration: 30,
           rosterPresentationMinPhotoPercentage: 0.5,
           rosterPresentationShowIfOnlyOneTeam: true,
-          selectedMatchCategory: '', // Resets match category
           tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
           replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,
-        }
+        },
+        tournament: {
+          ...state.tournament,
+          selectedMatchCategory: '', // Resets match category
+        },
       };
       toastMessage = { title: "Configuración Restablecida", description: "Todas las configuraciones han vuelto a sus valores predeterminados." };
       break;

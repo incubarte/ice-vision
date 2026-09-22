@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import type { Tournament } from '@/types';
 import { readTournament, writeTournament, readTournaments } from '@/lib/data-access';
 import { createAdminStorageProvider } from '@/lib/storage';
+import { setDirty } from '@/lib/sync-dirty-tracker';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
@@ -58,6 +59,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
         const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
         await writeTournament(tournament, provider);
+
+        // Mark as pending sync (persists across restarts; cleared on successful sync)
+        if (!isAdminRequest) {
+            setDirty().catch(err => console.error('[Tournament] Failed to set dirty flag:', err));
+        }
 
         // In local mode, mirror clubs to the cloud when explicitly requested (e.g. password change).
         // Only writes teams.json (clubs/passwords), not the full fixture.

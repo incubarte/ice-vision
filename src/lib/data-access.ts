@@ -51,9 +51,8 @@ export async function readConfig(): Promise<Partial<ConfigState>> {
 }
 
 export async function writeConfig(config: ConfigState): Promise<void> {
-    // Don't write tournaments array to config.json - it's stored separately
-    const { tournaments, ...configWithoutTournaments } = config;
-    await storageProvider.writeFile('config.json', JSON.stringify(configWithoutTournaments, null, 2));
+    // Write config to config.json (tournaments are now in tournament state, not config)
+    await storageProvider.writeFile('config.json', JSON.stringify(config, null, 2));
 }
 
 export async function readTournaments(): Promise<Partial<TournamentsData>> {

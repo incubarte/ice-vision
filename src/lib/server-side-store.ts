@@ -102,18 +102,11 @@ export async function reloadCacheFromDisk() {
 systemEmitter.on('sync-complete', reloadCacheFromDisk);
 
 
-export async function getConfig(): Promise<ConfigState | null> {
+export async function getConfig(): Promise<(ConfigState & Record<string, unknown>) | null> {
   if (!storedConfig) {
     await reloadCacheFromDisk();
   }
-  // Merge config with tournaments from separate cache
-  if (storedConfig && storedTournaments) {
-    return {
-      ...storedConfig,
-      tournaments: storedTournaments.tournaments
-    };
-  }
-  return storedConfig;
+  return storedConfig as (ConfigState & Record<string, unknown>) | null;
 }
 
 export function setConfig(newConfig: ConfigState): void {

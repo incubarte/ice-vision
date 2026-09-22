@@ -20,7 +20,7 @@ interface TodayMatchesSectionProps {
 
 export const TodayMatchesSection: React.FC<TodayMatchesSectionProps> = ({ tournamentId }) => {
   const { state } = useGameState();
-  const { activeTournament, tournaments } = state.config;
+  const { activeTournament, tournaments } = state.tournament;
 
   const tournament = useMemo(() => {
     if (activeTournament && activeTournament.id === tournamentId) {
