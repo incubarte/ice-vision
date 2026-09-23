@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Home, Settings, Wrench, MonitorPlay, Loader2, Trophy, ChevronsUpDown, Video, Check, AlertTriangle } from 'lucide-react';
+import { Home, Settings, Wrench, MonitorPlay, Loader2, Trophy, ChevronsUpDown, Video, Check, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { FullscreenToggle } from './fullscreen-toggle';
@@ -24,6 +24,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TournamentLogo } from '../tournaments/tournament-logo';
+import { LOCAL_MODE, CLOUD_ADMIN_URL } from '@/lib/app-mode';
 
 const EXTERNAL_WINDOW_CONFIG_KEY = 'externalWindowConfig';
 
@@ -334,9 +335,16 @@ export function Header() {
                   <DropdownMenuItem disabled>No hay torneos activos</DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/tournaments')}>
-                  Administrar Torneos
-                </DropdownMenuItem>
+                {LOCAL_MODE ? (
+                  <DropdownMenuItem onClick={() => window.open(CLOUD_ADMIN_URL, '_blank')}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Administrar Torneos
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => router.push('/tournaments')}>
+                    Administrar Torneos
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 

@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useGameState } from '@/contexts/game-state-context';
 import { Button } from '@/components/ui/button';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
-import { ArrowLeft, Trophy, Info } from 'lucide-react';
+import { ArrowLeft, Trophy, Info, RefreshCw } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TeamsManagementTab } from '@/components/config/teams-management-tab';
 import { FixtureCalendarView } from '@/components/fixture/fixture-calendar-view';
@@ -19,12 +19,14 @@ import { DisciplineTab } from '@/components/tournaments/discipline-tab';
 import { ClubsManagementTab } from '@/components/clubs/clubs-management-tab';
 import { useTournamentLogo } from '@/hooks/use-tournament-logo';
 import Image from 'next/image';
+import { LOCAL_MODE } from '@/lib/app-mode';
+import { LocalModeNotice } from '@/components/local-mode-notice';
 
 export default function TournamentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { state, dispatch, isLoading: isGameStateLoading } = useGameState();
+  const { state, dispatch, isLoading: isGameStateLoading, refreshTournament } = useGameState();
 
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
   const showTeamsInReadOnly = process.env.NEXT_PUBLIC_SHOW_TEAMS_IN_READONLY === 'true';
@@ -50,7 +52,7 @@ export default function TournamentDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentId, dispatch]);
 
-  const initialTab = searchParams.get('tab') || (shouldShowTeams ? 'clubs' : 'fixture');
+  const initialTab = searchParams.get('tab') || (LOCAL_MODE ? 'standings' : (shouldShowTeams ? 'clubs' : 'fixture'));
   const initialFixtureView = searchParams.get('view') === 'list' ? 'list' : 'calendar';
 
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -66,7 +68,10 @@ export default function TournamentDetailPage() {
     const newTab = searchParams.get('tab');
     const validTabs = ['clubs', 'teamsAndCategories', 'staff', 'fixture', 'standings', 'playerStats'];
     if (newTab && validTabs.includes(newTab)) {
-      if (!shouldShowTeams && (newTab === 'clubs' || newTab === 'teamsAndCategories' || newTab === 'staff')) {
+      const localModeHiddenTabs = ['clubs', 'teamsAndCategories', 'discipline', 'playerStats'];
+      if (LOCAL_MODE && localModeHiddenTabs.includes(newTab)) {
+        setActiveTab('standings');
+      } else if (!shouldShowTeams && (newTab === 'clubs' || newTab === 'teamsAndCategories' || newTab === 'staff')) {
         setActiveTab('fixture');
       } else {
         setActiveTab(newTab);
@@ -113,9 +118,16 @@ export default function TournamentDetailPage() {
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
-      <Button variant="outline" onClick={() => router.push('/tournaments')}>
-        <ArrowLeft className="mr-2 h-4 w-4" /> Volver a Torneos
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="outline" onClick={() => router.push('/tournaments')}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Volver a Torneos
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => refreshTournament(true)} title="Actualizar datos del torneo">
+          <RefreshCw className="h-4 w-4 mr-1" /> Actualizar
+        </Button>
+      </div>
+
+      {LOCAL_MODE && <LocalModeNotice />}
 
       <div className="flex items-center gap-4">
         {logo ? (
@@ -132,25 +144,25 @@ export default function TournamentDetailPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full overflow-x-auto justify-start h-auto p-1 gap-1">
-          {shouldShowTeams && <TabsTrigger value="clubs" className="shrink-0 text-xs sm:text-sm">Clubes</TabsTrigger>}
-          {shouldShowTeams && <TabsTrigger value="teamsAndCategories" className="shrink-0 text-xs sm:text-sm">Equipos</TabsTrigger>}
+          {!LOCAL_MODE && shouldShowTeams && <TabsTrigger value="clubs" className="shrink-0 text-xs sm:text-sm">Clubes</TabsTrigger>}
+          {!LOCAL_MODE && shouldShowTeams && <TabsTrigger value="teamsAndCategories" className="shrink-0 text-xs sm:text-sm">Equipos</TabsTrigger>}
           {shouldShowTeams && <TabsTrigger value="staff" className="shrink-0 text-xs sm:text-sm">Staff</TabsTrigger>}
           <TabsTrigger value="fixture" className="shrink-0 text-xs sm:text-sm">Fixture</TabsTrigger>
           <TabsTrigger value="standings" className="shrink-0 text-xs sm:text-sm">
             <span className="sm:hidden">Posiciones</span>
             <span className="hidden sm:inline">Tabla de Posiciones</span>
           </TabsTrigger>
-          {state.config.showShotsData && <TabsTrigger value="playerStats" className="shrink-0 text-xs sm:text-sm">Estadísticas</TabsTrigger>}
-          <TabsTrigger value="discipline" className="shrink-0 text-xs sm:text-sm">Disciplina</TabsTrigger>
+          {!LOCAL_MODE && state.config.showShotsData && <TabsTrigger value="playerStats" className="shrink-0 text-xs sm:text-sm">Estadísticas</TabsTrigger>}
+          {!LOCAL_MODE && <TabsTrigger value="discipline" className="shrink-0 text-xs sm:text-sm">Disciplina</TabsTrigger>}
         </TabsList>
 
-        {shouldShowTeams && tournamentId && (
+        {!LOCAL_MODE && shouldShowTeams && tournamentId && (
           <TabsContent value="clubs" className="mt-6">
             <ClubsManagementTab tournamentId={tournamentId} />
           </TabsContent>
         )}
 
-        {shouldShowTeams && (
+        {!LOCAL_MODE && shouldShowTeams && (
           <TabsContent value="teamsAndCategories" className="mt-6">
             <TeamsManagementTab tournamentId={tournamentId} />
           </TabsContent>
@@ -184,7 +196,7 @@ export default function TournamentDetailPage() {
             <PlayerStatsTab tournamentId={tournamentId} />
           </TabsContent>
         )}
-        {tournamentId && (
+        {!LOCAL_MODE && tournamentId && (
           <TabsContent value="discipline" className="mt-6">
             <DisciplineTab tournamentId={tournamentId} />
           </TabsContent>

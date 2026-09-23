@@ -4,11 +4,53 @@ import type { Tournament } from '@/types';
 import { readTournament, writeTournament, readTournaments } from '@/lib/data-access';
 import { createAdminStorageProvider } from '@/lib/storage';
 import { setDirty } from '@/lib/sync-dirty-tracker';
+import { readTournamentCache, writeTournamentCache, isTournamentCacheFresh } from '@/lib/tournament-cache-store';
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+const CLOUD_ADMIN_URL = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
+
+    // In LOCAL_MODE the local disk is stale — use cache-first, proxy to cloud when stale.
+    if (LOCAL_MODE) {
+        const force = new URL(request.url).searchParams.get('force') === 'true';
+
+        if (!force && isTournamentCacheFresh(tournamentId)) {
+            const cached = readTournamentCache(tournamentId)!;
+            return NextResponse.json({ tournament: cached.tournament });
+        }
+
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const cloudRes = await fetch(`${CLOUD_ADMIN_URL}/api/tournaments/${tournamentId}`, {
+                cache: 'no-store',
+                signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (cloudRes.ok) {
+                const data = await cloudRes.json();
+                if (data.tournament) writeTournamentCache(data.tournament);
+                return NextResponse.json(data);
+            }
+            console.warn(`[tournament] Cloud returned ${cloudRes.status} for ${tournamentId}`);
+        } catch (err) {
+            console.warn(`[tournament] Cloud unreachable for ${tournamentId}:`, err instanceof Error ? err.message : err);
+        }
+
+        // Cloud failed — serve stale cache if available
+        const staleCache = readTournamentCache(tournamentId);
+        if (staleCache) return NextResponse.json({ tournament: staleCache.tournament });
+
+        return NextResponse.json(
+            { message: 'Cloud unavailable. Use tournament-cache fallback.' },
+            { status: 503 }
+        );
+    }
+
     try {
-        const tournamentDetails = await readTournament(tournamentId);
+        const tournamentDetails = await readTournament(tournamentId, { includeSummaries: true });
 
         if (!tournamentDetails) {
             // If tournament directory doesn't exist, we find its metadata and return a valid empty structure.

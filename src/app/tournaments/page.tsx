@@ -42,6 +42,8 @@ import type { Tournament, TournamentMetadata } from "@/types";
 import { cn } from "@/lib/utils";
 import { useRouter } from 'next/navigation';
 import { TournamentLogo } from "@/components/tournaments/tournament-logo";
+import { LOCAL_MODE } from '@/lib/app-mode';
+import { LocalModeNotice } from '@/components/local-mode-notice';
 
 
 const statusMap: Record<Tournament['status'], { text: string; className: string }> = {
@@ -495,6 +497,18 @@ export default function TournamentsPage() {
   const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true';
 
   const [pastCollapsed, setPastCollapsed] = useState(true);
+
+  if (LOCAL_MODE) {
+    return (
+      <div className="w-full max-w-4xl mx-auto space-y-8 py-10">
+        <div className="flex items-center gap-3">
+          <Trophy className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold text-primary-foreground">Gestión de Torneos</h1>
+        </div>
+        <LocalModeNotice />
+      </div>
+    );
+  }
 
   const { currentTournaments, pastTournaments } = useMemo(() => {
     const allTournaments = state.tournament.tournaments || [];

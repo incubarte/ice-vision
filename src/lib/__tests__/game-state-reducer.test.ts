@@ -40,6 +40,7 @@ const getInitialState = (): GameState => {
       selectedTournamentId: null,
       selectedMatchCategory: '',
     },
+    _pendingSyncs: [],
     _lastActionType: null,
   } as unknown as GameState;
   
@@ -67,7 +68,8 @@ describe('Game State Reducer - End of Game Flow', () => {
 
     expect(newState.live.clock.periodDisplayOverride).toBe('End of Game');
     expect(newState.live.clock.isClockRunning).toBe(false);
-    expect(newState._pendingSummaryGeneration?.matchId).toBe('test-match-123');
+    expect(newState._pendingSyncs).toHaveLength(1);
+    expect(newState._pendingSyncs[0].payload.type).toBe('SYNC_MATCH');
   });
 
   it('should transition to AwaitingDecision when tied at the end of last period with no OTs', () => {

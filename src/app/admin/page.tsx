@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, ShieldAlert, LogIn, SlidersHorizontal, Info, MessageSquare, CalendarCheck, Clapperboard, Download, Cloud, Loader2, RefreshCw, FileSearch, Bug, RefreshCcw, AlertTriangle, MoreVertical, Undo2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from "@/hooks/use-auth";
 import { HockeyPuckSpinner } from "@/components/ui/hockey-puck-spinner";
@@ -36,6 +37,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { FolderFileList } from "@/components/sync/folder-file-list";
 import { RemoteFileManager } from "@/components/sync/remote-file-manager";
+import { PendingSyncsCard } from "@/components/sync/pending-syncs-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -2040,6 +2042,58 @@ function SyncHistoryCard({ tournaments }: { tournaments: Tournament[] }) {
     );
 }
 
+function MigrateResultsCard() {
+    const { toast } = useToast();
+    const [isRunning, setIsRunning] = useState(false);
+    const [report, setReport] = useState<{ tournamentId: string; migrated: number; skipped: number }[] | null>(null);
+
+    const handleMigrate = async () => {
+        setIsRunning(true);
+        setReport(null);
+        try {
+            const res = await fetch('/api/migrate/derive-results', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                setReport(data.report);
+                toast({ title: 'Migración completada', description: `${data.totalMigrated} resultados escritos en fixture.json` });
+            } else {
+                toast({ title: 'Error en migración', description: data.error, variant: 'destructive' });
+            }
+        } catch (e) {
+            toast({ title: 'Error', description: String(e), variant: 'destructive' });
+        } finally {
+            setIsRunning(false);
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base">Migrar resultados a fixture.json</CardTitle>
+                <CardDescription>
+                    Lee los summaries de cada partido y escribe el resultado (score + tipo) directamente en fixture.json.
+                    Correr una vez para que la app local pueda mostrar standings sin descargar summaries.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <Button onClick={handleMigrate} disabled={isRunning} variant="outline" size="sm">
+                    {isRunning ? 'Migrando...' : 'Ejecutar migración'}
+                </Button>
+                {report && (
+                    <div className="text-xs text-muted-foreground space-y-1">
+                        {report.map(r => (
+                            <div key={r.tournamentId}>
+                                <span className="font-mono">{r.tournamentId.slice(0, 8)}…</span>
+                                {' — '}{r.migrated} migrados, {r.skipped} sin summary
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 function SupabaseSyncCard() {
     const { toast } = useToast();
     const [isSyncingConfig, setIsSyncingConfig] = useState(false);
@@ -2391,7 +2445,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="debug" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="debug" className="flex items-center gap-2">
                     <Bug className="h-4 w-4" />
                     Debug
@@ -2399,6 +2453,15 @@ export default function AdminPage() {
                 <TabsTrigger value="sync" className="flex items-center gap-2">
                     <RefreshCcw className="h-4 w-4" />
                     Sincronización
+                </TabsTrigger>
+                <TabsTrigger value="sync2" className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Sync 2.0
+                    {(state?._pendingSyncs?.length ?? 0) > 0 && (
+                        <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0">
+                            {state._pendingSyncs!.length}
+                        </Badge>
+                    )}
                 </TabsTrigger>
                 <TabsTrigger value="danger" className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
@@ -2433,6 +2496,12 @@ export default function AdminPage() {
                 <SyncHistoryCard tournaments={state?.tournament?.tournaments || []} />
                 <RemoteFileManager />
                 <SupabaseSyncCard />
+            </TabsContent>
+
+            {/* SYNC 2.0 TAB */}
+            <TabsContent value="sync2" className="space-y-6 mt-6">
+                <PendingSyncsCard />
+                <MigrateResultsCard />
             </TabsContent>
 
             {/* DANGER ZONE TAB */}

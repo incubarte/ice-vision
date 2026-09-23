@@ -50,6 +50,8 @@ type GameStateContextType = {
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
   isLoading: boolean;
+  triggerSync: () => Promise<void>;
+  refreshTournament: (force?: boolean) => Promise<void>;
 };
 
 const GameStateContext = createContext<GameStateContextType | undefined>(undefined);
@@ -143,59 +145,79 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
 
   // Effect to fetch full tournament data when selectedTournamentId changes
   const isFetchingTournamentRef = useRef(false);
-  useEffect(() => {
-    const { selectedTournamentId, activeTournament } = state.tournament;
-    let cancelled = false;
-
-    // Skip while initial data is still loading — tournaments array is empty until INITIALIZE_STATE
-    if (isLoading) return;
-
-    if (selectedTournamentId) {
-      // Check if the selected tournament is already the active one
-      if (activeTournament && activeTournament.id === selectedTournamentId) {
+  // Fetches the active tournament from the API and dispatches LOAD_TOURNAMENT_CONTEXT.
+  // Used both for initial load and periodic refresh.
+  const fetchActiveTournament = useCallback(async (tournamentId: string, force = false) => {
+    if (isFetchingTournamentRef.current) return;
+    isFetchingTournamentRef.current = true;
+    try {
+      const url = `/api/tournaments/${tournamentId}/lite${force ? '?force=true' : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        // 503 means cloud unavailable; route already tried stale cache and returned 503 only
+        // if no cache exists at all. Nothing more to do here.
+        console.warn(`[GameState] /lite returned ${res.status} for ${tournamentId}`);
+        dispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { tournamentId: null } });
         return;
       }
-
-      // Prevent concurrent fetches — the previous fetch (if any) will be cancelled by cleanup
-      if (isFetchingTournamentRef.current) return;
-
-      // NOTE: We intentionally do NOT pre-validate against the local tournaments array here.
-      // The local array can be stale (e.g., after a cloud sync), causing an infinite loop:
-      // context clears selectedTournamentId → tournament page re-dispatches it → repeat.
-      // Instead, we let the API call be the authority. If the tournament truly doesn't exist,
-      // the API returns 404 and we clear then.
-
-      console.log('[GameState] Selected tournament:', selectedTournamentId, 'Fetching details...');
-      isFetchingTournamentRef.current = true;
-      (async () => {
-        try {
-          const res = await fetch(`/api/tournaments/${selectedTournamentId}`);
-          if (cancelled) return;
-          if (!res.ok) {
-            console.warn(`[GameState] Tournament ${selectedTournamentId} not found (${res.status}), clearing selectedTournamentId`);
-            dispatch({ type: 'SET_ACTIVE_TOURNAMENT', payload: { tournamentId: null } });
-            return;
-          }
-          const data = await res.json();
-          if (cancelled) return;
-          if (data.tournament) {
-            dispatch({ type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: data.tournament } });
-          }
-        } catch (error) {
-          if (cancelled) return;
-          console.error("Error fetching tournament details:", error);
-        } finally {
-          if (!cancelled) isFetchingTournamentRef.current = false;
-        }
-      })();
-    }
-
-    return () => {
-      cancelled = true;
+      const data = await res.json();
+      if (data.tournament) {
+        dispatch({ type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: data.tournament } });
+        dispatch({ type: 'SET_OFFLINE_MODE', payload: false });
+        console.log(`[GameState] Tournament ${tournamentId} loaded${force ? ' (forced)' : ''}`);
+      }
+    } catch (error) {
+      console.error('[GameState] Error fetching tournament details:', error);
+    } finally {
       isFetchingTournamentRef.current = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }
+  }, [dispatch]);
+
+  // Initial load: fetch when selectedTournamentId changes and tournament isn't loaded yet
+  useEffect(() => {
+    const { selectedTournamentId, activeTournament } = state.tournament;
+    if (isLoading) return;
+    if (!selectedTournamentId) return;
+    if (activeTournament && activeTournament.id === selectedTournamentId) return;
+    fetchActiveTournament(selectedTournamentId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.tournament.selectedTournamentId, isLoading]);
+
+  // Periodic refresh: re-fetch active tournament data every 5 minutes + on coming back online.
+  // This keeps fixture results and standings in sync with the cloud without a page reload.
+  const refreshTournament = useCallback(async (force = false) => {
+    const { selectedTournamentId } = state.tournament;
+    if (!selectedTournamentId || isLoading) return;
+    // Don't overwrite local pending changes with cloud data — wait for the queue to flush.
+    // The manual "Actualizar" button passes force=true to bypass this.
+    const hasPending = (state._pendingSyncs || []).length > 0;
+    if (hasPending && !force) return;
+    await fetchActiveTournament(selectedTournamentId, force);
+  }, [state.tournament.selectedTournamentId, state._pendingSyncs, isLoading, fetchActiveTournament]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const doRefresh = () => refreshTournament();
+    const interval = setInterval(doRefresh, 5 * 60 * 1000);
+    window.addEventListener('online', doRefresh);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', doRefresh);
+    };
+  }, [refreshTournament, isLoading]);
+
+  // When the pending sync queue is fully drained, immediately refresh from cloud.
+  const prevPendingCountRef = useRef(0);
+  useEffect(() => {
+    const currentCount = (state._pendingSyncs || []).length;
+    const { selectedTournamentId } = state.tournament;
+    if (prevPendingCountRef.current > 0 && currentCount === 0 && selectedTournamentId && !isLoading) {
+      console.log('[GameState] Pending syncs drained — refreshing tournament from cloud');
+      fetchActiveTournament(selectedTournamentId);
+    }
+    prevPendingCountRef.current = currentCount;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state._pendingSyncs?.length]);
 
 
   const prevStateRef = useRef<GameState>(state);
@@ -223,9 +245,8 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
           updateConfigOnServer(state.config, state.tournament);
         }
         // Logic to save active tournament if it changes
-        if (state._lastActionType !== 'SAVE_MATCH_SUMMARY' &&
-          state._lastActionType !== 'TRIGGER_SUMMARY_GENERATION') {
-
+        const skipTournamentSave = state._lastActionType === 'SAVE_MATCH_SUMMARY';
+        if (!skipTournamentSave) {
           if (state.tournament.activeTournament && !isEqual(state.tournament.activeTournament, oldState.tournament.activeTournament)) {
             console.log('[GameState] Active tournament changed, saving...', state.tournament.activeTournament.id);
             saveTournamentOnServer(state.tournament.activeTournament);
@@ -249,45 +270,167 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(timerId);
   }, [state.live?.clock, isPageVisible, isLoading, state.config.tickIntervalMs]);
 
-  // Handle summary generation when triggered
-  useEffect(() => {
-    if (state._pendingSummaryGeneration) {
-      const { matchId, tournamentId } = state._pendingSummaryGeneration;
+  // Note: Summary generation has moved to the cloud service via SYNC_MATCH pending sync.
 
-      if (!matchId || !tournamentId) return;
+  const isSyncingRef = useRef(false);
 
-      console.log(`[GameState] Triggering summary generation on server for match ${matchId}`);
+  function readAdminSecretFromStorage(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('adminAccess');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed.expiresAt > Date.now()) return parsed.secret;
+      return null;
+    } catch { return null; }
+  }
 
-      // Call server API to generate summary (live state passed directly to avoid race condition
-      // where live.json might not be persisted to disk yet when the API reads it)
-      fetch('/api/generate-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId, liveState: state.live })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            console.log(`[GameState] Summary generated on server for match ${matchId} with ${data.voiceEventsCount} voice events`);
+  const processPendingSyncs = useCallback(async () => {
+    if (isSyncingRef.current) return;
+    const pending = state._pendingSyncs;
+    if (!pending || pending.length === 0) return;
 
-            // Update state with the generated summary
-            dispatch({
-              type: 'UPDATE_MATCH_SUMMARY_IN_STATE',
-              payload: { matchId, summary: data.summary }
+    isSyncingRef.current = true;
+    console.log(`[Sync] Processing ${pending.length} pending sync(s)...`);
+
+    try {
+      // Process in order (preserves ADD_PLAYER before SAVE_SUMMARY dependency)
+      for (const sync of pending) {
+        try {
+          if (sync.payload.type === 'ADD_PLAYER') {
+            const { tournamentId } = sync.payload;
+            const tournament = state.tournament.activeTournament;
+            if (!tournament || tournament.id !== tournamentId) continue;
+            const result = await saveTournamentOnServer(tournament);
+            if (result?.success === false) throw new Error(result.message || 'Save failed');
+          } else if (sync.payload.type === 'SAVE_SUMMARY') {
+            const { matchId, tournamentId, summary } = sync.payload;
+            const adminSecret = readAdminSecretFromStorage();
+            const res = await fetch('/api/match-summary', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+              },
+              body: JSON.stringify({ tournamentId, matchId, summary }),
             });
-          } else {
-            console.error('[GameState] Failed to generate summary:', data.error);
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data?.error || `HTTP ${res.status}`);
+            }
+          } else if (sync.payload.type === 'SYNC_MATCH') {
+            const { matchId, tournamentId, result, liveSnapshot } = sync.payload;
+            const adminSecret = readAdminSecretFromStorage();
+            const cloudUrl = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
+            const res = await fetch(`${cloudUrl}/api/sync/match`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+              },
+              body: JSON.stringify({ matchId, tournamentId, result, liveSnapshot }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data?.error || `HTTP ${res.status}`);
+            }
+          } else if (sync.payload.type === 'SYNC_STAFF') {
+            const { tournamentId, staff } = sync.payload;
+            const adminSecret = readAdminSecretFromStorage();
+            const cloudUrl = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
+            const res = await fetch(`${cloudUrl}/api/sync/staff`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+              },
+              body: JSON.stringify({ tournamentId, staff }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data?.error || `HTTP ${res.status}`);
+            }
+          } else if (sync.payload.type === 'ADD_MATCH') {
+            const { tournamentId, match } = sync.payload;
+            const adminSecret = readAdminSecretFromStorage();
+            const cloudUrl = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
+            const res = await fetch(`${cloudUrl}/api/sync/add-match`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+              },
+              body: JSON.stringify({ tournamentId, match }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data?.error || `HTTP ${res.status}`);
+            }
+          } else if (sync.payload.type === 'SYNC_TEAM_PLAYERS') {
+            const { tournamentId, teamId, players } = sync.payload;
+            const adminSecret = readAdminSecretFromStorage();
+            const cloudUrl = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
+            const res = await fetch(`${cloudUrl}/api/sync/team-players`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
+              },
+              body: JSON.stringify({ tournamentId, teamId, players }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data?.error || `HTTP ${res.status}`);
+            }
           }
-        })
-        .catch(err => console.error('[GameState] Error generating summary:', err));
-
-      // Clear the pending flag
-      dispatch({ type: 'CLEAR_PENDING_SUMMARY_GENERATION' });
+          dispatch({ type: 'RESOLVE_SYNC', payload: { id: sync.id } });
+          console.log(`[Sync] Resolved sync ${sync.id} (${sync.payload.type})`);
+        } catch (err) {
+          const error = err instanceof Error ? err.message : 'Unknown error';
+          console.warn(`[Sync] Failed sync ${sync.id}:`, error);
+          dispatch({ type: 'SYNC_ATTEMPT_FAILED', payload: { id: sync.id, error } });
+        }
+      }
+    } finally {
+      isSyncingRef.current = false;
     }
-  }, [state._pendingSummaryGeneration]);
+  }, [state._pendingSyncs, state.tournament.activeTournament, dispatch]);
+
+  // Persist pending syncs to disk whenever the queue changes.
+  // Also trigger immediate processing when new items are added while online —
+  // isSyncingRef prevents overlapping runs so this is safe to call eagerly.
+  const prevSyncCountRef = useRef(0);
+  useEffect(() => {
+    if (isLoading) return;
+    const current = state._pendingSyncs || [];
+    fetch('/api/pending-syncs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(current),
+    }).catch(err => console.error('[Sync] Failed to persist pending syncs:', err));
+
+    if (current.length > prevSyncCountRef.current && typeof navigator !== 'undefined' && navigator.onLine) {
+      processPendingSyncs();
+    }
+    prevSyncCountRef.current = current.length;
+  }, [state._pendingSyncs, isLoading, processPendingSyncs]);
+
+  // Auto-retry: every 3 minutes + when browser goes online
+  useEffect(() => {
+    const interval = setInterval(processPendingSyncs, 3 * 60 * 1000);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', processPendingSyncs);
+    }
+    return () => {
+      clearInterval(interval);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', processPendingSyncs);
+      }
+    };
+  }, [processPendingSyncs]);
 
   return (
-    <GameStateContext.Provider value={{ state, dispatch, isLoading }}>
+    <GameStateContext.Provider value={{ state, dispatch, isLoading, triggerSync: processPendingSyncs, refreshTournament }}>
       {children}
       <GameStateObserver />
     </GameStateContext.Provider>

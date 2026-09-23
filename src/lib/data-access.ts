@@ -1,4 +1,5 @@
-import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics, PreMatchData } from '@/types';
+import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics, PreMatchData, MatchResult } from '@/types';
+import { calculateScoreFromSummary } from '@/lib/match-helpers';
 import { storageProvider } from './storage';
 import { FileNotFoundError, StorageProvider } from './storage/providers';
 import { updateManifestEntry } from './sync-manifest';
@@ -104,7 +105,7 @@ export async function readTournament(
     tournamentId: string,
     options: { includeSummaries?: boolean } = {}
 ): Promise<Partial<Tournament> | null> {
-    const { includeSummaries = true } = options;
+    const { includeSummaries = false } = options;
     const tournamentPrefix = `tournaments/${tournamentId}/`;
     const teamsKey = `${tournamentPrefix}teams.json`;
     const fixtureKey = `${tournamentPrefix}fixture.json`;
@@ -123,13 +124,25 @@ export async function readTournament(
             const matchSummaryPromises = partialTournament.matches.map(async (match: MatchData) => {
                 const summaryKey = `${tournamentPrefix}summaries/${match.id}.json`;
                 const summary = await readJsonFile<GameSummary>(summaryKey);
-                // Migración: agregar campo 'phase' a partidos existentes sin este campo
-                const migratedMatch = {
+                // Migrate: derive result from summary if result doesn't exist yet
+                let result = match.result;
+                if (!result && summary) {
+                    try {
+                        const scores = calculateScoreFromSummary(summary);
+                        result = {
+                            homeScore: scores.home,
+                            awayScore: scores.away,
+                            resultType: 'regulation' as const,
+                            finishedAt: (summary as any)?.endedAt || new Date().toISOString(),
+                        };
+                    } catch { /* ignore */ }
+                }
+                // Strip summary — local app doesn't need it; result field carries what's needed
+                const { summary: _summary, ...matchWithoutSummary } = {
                     ...match,
                     phase: match.phase || 'clasificacion' as const,
-                    summary: summary || undefined
                 };
-                return migratedMatch;
+                return { ...matchWithoutSummary, ...(result ? { result } : {}) };
             });
             partialTournament.matches = await Promise.all(matchSummaryPromises);
         } else if (partialTournament.matches) {

@@ -376,12 +376,13 @@ export function FixtureCalendarView({ tournamentId }: FixtureCalendarViewProps =
                 <div className="space-y-1 pr-1">
                   {matchesForDay.map(match => {
                     const { home: homeName, away: awayName } = getMatchupDisplay(match, selectedTournament?.teams);
-                    const hasSummary = !!match.summary;
                     const isPlayoff = match.phase === 'playoffs';
                     const isFinal = isPlayoff && match.playoffType === 'final';
                     const isSemifinal = isPlayoff && match.playoffType === 'semifinal';
                     const is3erPuesto = isPlayoff && match.playoffType === '3er-puesto';
-                    const scores = hasSummary ? calculateScoreFromSummary(match.summary) : null;
+                    const scores = match.result
+                        ? { home: match.result.homeScore, away: match.result.awayScore }
+                        : match.summary ? calculateScoreFromSummary(match.summary) : null;
 
                     const isHighlighted = filteredMatchIds ? filteredMatchIds.has(match.id) : true;
 
@@ -498,14 +499,19 @@ export function FixtureCalendarView({ tournamentId }: FixtureCalendarViewProps =
                 </div>
               </div>
 
-              {selectedMatch.summary && (() => {
-                const scores = calculateScoreFromSummary(selectedMatch.summary);
+              {(selectedMatch.result || selectedMatch.summary) && (() => {
+                const scores = selectedMatch.result
+                    ? { home: selectedMatch.result.homeScore, away: selectedMatch.result.awayScore }
+                    : calculateScoreFromSummary(selectedMatch.summary!);
+                const resultType = selectedMatch.result?.resultType;
                 return (
                   <div className="space-y-1">
                     <div className="text-sm text-muted-foreground">Resultado</div>
                     <div className="font-medium text-lg">
                       {scores.home} - {scores.away}
-                      {selectedMatch.overTimeOrShootouts && (
+                      {resultType === 'overtime' && <span className="text-sm text-blue-500 ml-2">(OT)</span>}
+                      {resultType === 'shootout' && <span className="text-sm text-purple-500 ml-2">(PEN)</span>}
+                      {!resultType && selectedMatch.overTimeOrShootouts && (
                         <span className="text-sm text-muted-foreground ml-2">({selectedMatch.overTimeOrShootouts})</span>
                       )}
                     </div>

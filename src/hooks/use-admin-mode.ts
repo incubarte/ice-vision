@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { LOCAL_MODE } from '@/lib/app-mode';
 
 const STORAGE_KEY = 'adminAccess';
 
@@ -32,6 +33,8 @@ export function useAdminMode() {
     }, []);
 
     const isAdminMode = !!adminSecret;
+    // LOCAL_MODE is the local scoreboard app — editing is always allowed there.
+    // isReadOnly only applies when the app is explicitly put in read-only display mode.
     const isReadOnly = process.env.NEXT_PUBLIC_READ_ONLY === 'true' && !isAdminMode;
 
     return { isAdminMode, isReadOnly, adminSecret };

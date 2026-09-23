@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import type { TeamData, MatchData, MatchContext } from '@/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, CalendarCheck, ArrowLeft, AlertTriangle, Calendar as CalendarIcon } from 'lucide-react';
+import { Check, ChevronsUpDown, CalendarCheck, ArrowLeft, AlertTriangle, Calendar as CalendarIcon, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -308,6 +308,7 @@ function SetupPageContent() {
                     awayCoach: awayTeam.coach,
                     awayAssistant1: awayTeam.assistant1,
                     awayAssistant2: awayTeam.assistant2,
+                    offlineMode: state.tournament.offlineMode ?? false,
                 };
                 dispatch({ type: 'UPDATE_LIVE_STATE', payload: { matchContext } });
             }
@@ -390,11 +391,28 @@ function SetupPageContent() {
                         </div>
                         
                         <Separator />
-                        
+
                         <div className="space-y-4">
                              <h3 className="text-lg font-semibold flex items-center gap-2">
                                 Configurar Partido Manualmente
                             </h3>
+                            {state.tournament.offlineMode && (
+                                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+                                    <WifiOff className="h-4 w-4 mt-0.5 shrink-0 text-amber-500" />
+                                    <span className="text-amber-700 dark:text-amber-400">
+                                        <strong>Modo offline:</strong> usando datos del torneo guardados localmente.
+                                        Se recomienda conectarse a internet para asegurar que los datos estén actualizados.
+                                    </span>
+                                </div>
+                            )}
+                            {isTournamentMatch && state.tournament.offlineMode && (
+                                <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+                                    <WifiOff className="h-4 w-4 mt-0.5 shrink-0 text-amber-500" />
+                                    <span className="text-amber-700 dark:text-amber-400">
+                                        Sin conexión. El partido se creará localmente y se sincronizará con la nube cuando vuelva internet.
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex items-center space-x-2 pt-2">
                                 <Switch id="is-tournament-match-switch" checked={isTournamentMatch} onCheckedChange={setIsTournamentMatch} />
                                 <Label htmlFor="is-tournament-match-switch">Es un Partido de Torneo</Label>

@@ -57,6 +57,15 @@ export type PlayoffMatchup = '1vs2' | '1vs3' | '1vs4' | '2vs3' | '2vs4' | '3vs4'
 export type Playoff58MatchType = 'semifinal' | 'final' | '3er-puesto';
 export type Playoff58Matchup = '5vs8' | '6vs7'; // Para semifinales del mini-torneo 5°-8°
 
+export type MatchResultType = 'regulation' | 'overtime' | 'shootout';
+
+export interface MatchResult {
+  homeScore: number;
+  awayScore: number;
+  resultType: MatchResultType;
+  finishedAt: string; // ISO string
+}
+
 export interface MatchData {
   id: string;
   date: string; // ISO string
@@ -65,6 +74,7 @@ export interface MatchData {
   awayTeamId?: string; // Opcional para playoffs - ID del equipo real
   playersPerTeam: number;
   summary?: GameSummary;
+  result?: MatchResult;
   phase: MatchPhase; // Clasificación, Playoffs, Playoffs 5-8, o Relegation
   playoffType?: PlayoffMatchType; // Solo para partidos de playoffs (ganadores)
   playoffMatchup?: PlayoffMatchup; // Solo para semifinales ganadores (ej: '1vs4')
@@ -615,11 +625,83 @@ export interface SyncLogFileEntry {
   snapshotId?: string; // timestamp of snapshot if conflict
 }
 
+export type PendingSyncType = 'ADD_PLAYER' | 'SAVE_SUMMARY' | 'SYNC_MATCH' | 'ADD_MATCH' | 'SYNC_STAFF' | 'SYNC_TEAM_PLAYERS';
+
+export interface PendingSyncAddPlayer {
+  type: 'ADD_PLAYER';
+  tournamentId: string;
+  teamId: string;
+  player: PlayerData;
+}
+
+export interface PendingSyncSyncTeamPlayers {
+  type: 'SYNC_TEAM_PLAYERS';
+  tournamentId: string;
+  teamId: string;
+  players: PlayerData[];
+}
+
+export interface PendingSyncSaveSummary {
+  type: 'SAVE_SUMMARY';
+  matchId: string;
+  tournamentId: string;
+  summary: GameSummary;
+}
+
+export interface PendingSyncSyncMatch {
+  type: 'SYNC_MATCH';
+  matchId: string;
+  tournamentId: string;
+  result: MatchResult;
+  liveSnapshot: {
+    matchId: string;
+    homeTeamName: string;
+    awayTeamName: string;
+    homeTeamSubName?: string;
+    awayTeamSubName?: string;
+    score: LiveState['score'];
+    goalsLog: LiveState['goals'];
+    penaltiesLog: LiveState['penaltiesLog'];
+    shotsLog: LiveState['shotsLog'];
+    goalkeeperChangesLog: LiveState['goalkeeperChangesLog'];
+    attendance: LiveState['attendance'];
+    shootout: LiveState['shootout'];
+    playedPeriods: LiveState['playedPeriods'];
+    assignedStaff?: LiveState['assignedStaff'];
+    matchContext: LiveState['matchContext'];
+    expulsions?: MatchExpulsion[];
+  };
+}
+
+export interface PendingSyncAddMatch {
+  type: 'ADD_MATCH';
+  tournamentId: string;
+  match: MatchData;
+}
+
+export interface PendingSyncSyncStaff {
+  type: 'SYNC_STAFF';
+  tournamentId: string;
+  staff: StaffMember[];
+}
+
+export type PendingSyncPayload = PendingSyncAddPlayer | PendingSyncSaveSummary | PendingSyncSyncMatch | PendingSyncAddMatch | PendingSyncSyncStaff | PendingSyncSyncTeamPlayers;
+
+export interface PendingSync {
+  id: string;
+  createdAt: string;     // ISO string
+  attempts: number;
+  lastAttemptAt?: string;
+  lastError?: string;
+  payload: PendingSyncPayload;
+}
+
 export interface TournamentState {
   tournaments: TournamentMetadata[];
   activeTournament: Tournament | null;
   selectedTournamentId: string | null;
   selectedMatchCategory: string;
+  offlineMode?: boolean;        // true when activeTournament loaded from cache
 }
 
 export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'name'>, ConfigFields {
@@ -748,6 +830,7 @@ export interface MatchContext {
   awayCoach?: string;
   awayAssistant1?: string;
   awayAssistant2?: string;
+  offlineMode?: boolean;  // true when match was set up using cached tournament data
 }
 
 // This is the model for live, in-game data
@@ -954,6 +1037,11 @@ export type GameAction =
   | { type: 'SET_ACTIVE_GOALKEEPER'; payload: { team: Team; playerNumber: string | null } }
   | { type: 'TRIGGER_SUMMARY_GENERATION'; payload: { matchId: string; tournamentId: string } }
   | { type: 'CLEAR_PENDING_SUMMARY_GENERATION' }
+  | { type: 'LOAD_PENDING_SYNCS'; payload: PendingSync[] }
+  | { type: 'ADD_PENDING_SYNC'; payload: PendingSync }
+  | { type: 'RESOLVE_SYNC'; payload: { id: string } }
+  | { type: 'SYNC_ATTEMPT_FAILED'; payload: { id: string; error: string } }
+  | { type: 'SET_OFFLINE_MODE'; payload: boolean }
   | { type: 'UPDATE_MATCH_SUMMARY_IN_STATE'; payload: { matchId: string; summary: GameSummary } };
 
 
@@ -971,6 +1059,7 @@ export interface GameState {
     variant?: "default" | "destructive";
   } | null;
   _pendingSummaryGeneration?: { matchId: string; tournamentId: string } | null;
+  _pendingSyncs: PendingSync[];
 }
 
 

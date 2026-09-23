@@ -494,15 +494,20 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
               sortedMatches.map(match => {
                 const { home: homeName, away: awayName } = getMatchupDisplay(match, selectedTournament?.teams);
 
-                // Calculate score from summary (single source of truth)
-                const score = match.summary
+                // Score: prefer match.result (always present after migration/new matches),
+                // fall back to summary for legacy matches that haven't been migrated yet.
+                const score = match.result
+                    ? `${match.result.homeScore} - ${match.result.awayScore}`
+                    : match.summary
                     ? (() => {
                         const { home, away } = calculateScoreFromSummary(match.summary);
                         return `${home} - ${away}`;
                       })()
                     : '-';
 
-                const wentToOTOrSO = match.summary ? hasOvertimeOrShootout(match.summary) : false;
+                const wentToOTOrSO = match.result
+                    ? match.result.resultType !== 'regulation'
+                    : match.summary ? hasOvertimeOrShootout(match.summary) : false;
                 const isPlayoff = match.phase === 'playoffs';
                 const isFinal = isPlayoff && match.playoffType === 'final';
                 const is3erPuesto = isPlayoff && match.playoffType === '3er-puesto';
@@ -556,7 +561,11 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
                     <TableCell>{homeName}</TableCell>
                     <TableCell>{awayName}</TableCell>
                     <TableCell className="text-center font-mono font-bold">{score}</TableCell>
-                    <TableCell className="text-center">{wentToOTOrSO && <CheckIcon className="h-4 w-4 mx-auto text-green-500"/>}</TableCell>
+                    <TableCell className="text-center">
+                      {match.result?.resultType === 'overtime' && <span className="text-xs font-semibold text-blue-500">OT</span>}
+                      {match.result?.resultType === 'shootout' && <span className="text-xs font-semibold text-purple-500">PEN</span>}
+                      {!match.result && wentToOTOrSO && <CheckIcon className="h-4 w-4 mx-auto text-green-500"/>}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
                         {tournamentCode && match.homeTeamId && !match.homeTeamId.startsWith('position-') && (

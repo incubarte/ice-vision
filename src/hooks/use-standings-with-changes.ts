@@ -1,8 +1,23 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { Tournament } from '@/types';
+import type { Tournament, MatchData, MatchResultType } from '@/types';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
+
+function getMatchScore(match: MatchData): { home: number; away: number; wentToOTOrSO: boolean } | null {
+  if (match.result) {
+    return {
+      home: match.result.homeScore,
+      away: match.result.awayScore,
+      wentToOTOrSO: match.result.resultType !== 'regulation',
+    };
+  }
+  if (match.summary) {
+    const scores = calculateScoreFromSummary(match.summary);
+    return { home: scores.home, away: scores.away, wentToOTOrSO: hasOvertimeOrShootout(match.summary) };
+  }
+  return null;
+}
 
 interface TeamStats {
   id: string;
@@ -33,7 +48,7 @@ function calculateStandings(
 
   const finishedMatches = (tournament.matches || [])
     .filter(m =>
-      m.summary &&
+      (m.result || m.summary) &&
       m.categoryId === categoryId &&
       m.phase === 'clasificacion'
     )
@@ -51,12 +66,12 @@ function calculateStandings(
     finishedMatches
       .filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id)
       .forEach(match => {
-        if (!match.summary) return;
+        const score = getMatchScore(match);
+        if (!score) return;
 
         teamStats.pj++;
 
-        const { home: homeGoals, away: awayGoals } = calculateScoreFromSummary(match.summary);
-        const wentToOTOrSO = hasOvertimeOrShootout(match.summary);
+        const { home: homeGoals, away: awayGoals, wentToOTOrSO } = score;
         const isHome = match.homeTeamId === team.id;
 
         teamStats.gf += isHome ? homeGoals : awayGoals;

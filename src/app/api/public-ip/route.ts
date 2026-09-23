@@ -4,30 +4,39 @@ import { getRemoteAccessPassword } from '@/lib/server-side-store';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  try {
-    // To get the server's public IP, we need to make a request to an external service
-    // that can see the IP from which the request originates.
-    const ipResponse = await fetch('https://api64.ipify.org?format=json', { cache: 'no-store' });
+const IPIFY_SERVICES = [
+  'https://api64.ipify.org?format=json',
+  'https://api.ipify.org?format=json',
+];
 
-    if (!ipResponse.ok) {
-      throw new Error(`External IP service failed with status: ${ipResponse.status}`);
+async function fetchPublicIp(): Promise<string | null> {
+  for (const url of IPIFY_SERVICES) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data.ip) return data.ip;
+    } catch {
+      // try next service
     }
-
-    const data = await ipResponse.json();
-    const publicIp = data.ip;
-
-    if (!publicIp) {
-      return NextResponse.json({ error: 'No se pudo determinar la IP pública del servidor.' }, { status: 500 });
-    }
-
-    // Also return the password
-    const password = getRemoteAccessPassword();
-
-    return NextResponse.json({ ip: publicIp, password: password });
-  } catch (error) {
-    console.error("Error fetching server's public IP:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    return NextResponse.json({ error: `Error interno del servidor al obtener la IP: ${errorMessage}` }, { status: 500 });
   }
+  return null;
+}
+
+export async function GET(request: Request) {
+  const publicIp = await fetchPublicIp();
+
+  if (!publicIp) {
+    // Offline or all external services unreachable — not a server error
+    return NextResponse.json(
+      { error: 'Sin conexión a internet. No se puede determinar la IP pública.' },
+      { status: 503 }
+    );
+  }
+
+  const password = getRemoteAccessPassword();
+  return NextResponse.json({ ip: publicIp, password });
 }

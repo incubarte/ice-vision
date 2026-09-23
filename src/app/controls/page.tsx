@@ -1279,8 +1279,29 @@ export default function ControlsPage() {
   const isMatchFromFixture = !!state.live.matchId;
   const isWarmupOrPreWarmup = state.live.clock.periodDisplayOverride === 'Warm-up' || state.live.clock.periodDisplayOverride === 'Pre Warm-up';
 
+  const stuckSyncs = (state._pendingSyncs || []).filter(s => s.attempts >= 3);
+  const showSyncErrorBanner = stuckSyncs.length > 0 && !state.tournament.offlineMode;
+
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8">
+      {showSyncErrorBanner && (
+        <div className="p-5 rounded-lg bg-red-600 text-white border-2 border-red-400 shadow-lg">
+          <div className="flex items-start gap-4">
+            <AlertTriangle className="h-8 w-8 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xl font-bold">¡Problema de sincronización!</p>
+              <p className="mt-1 text-red-100">
+                Hay {stuckSyncs.length} operación{stuckSyncs.length > 1 ? 'es' : ''} que no se {stuckSyncs.length > 1 ? 'pudieron' : 'pudo'} enviar al servidor
+                ({stuckSyncs.map(s => s.payload.type).join(', ')}).
+                Los datos locales podrían no estar en la nube.
+              </p>
+              <p className="mt-2 font-semibold text-white">
+                Comunicarse con el administrador del sistema antes de continuar.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {showStoppedTimeAlert && (
         <div className="my-4 p-4 text-center bg-yellow-500 text-yellow-900 font-bold rounded-lg animate-pulse">
           ¡ATENCIÓN! Se debe frenar el reloj mientras el puck no está en juego!

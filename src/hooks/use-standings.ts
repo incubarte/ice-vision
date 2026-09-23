@@ -2,9 +2,26 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { Tournament, TeamData, CategoryData, MatchPhase } from '@/types';
+import type { Tournament, TeamData, CategoryData, MatchPhase, MatchData, MatchResultType } from '@/types';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 import { getTeamDisplayName } from '@/lib/utils';
+
+function getMatchScore(match: MatchData): { home: number; away: number; resultType: MatchResultType; wentToOTOrSO: boolean } | null {
+  if (match.result) {
+    return {
+      home: match.result.homeScore,
+      away: match.result.awayScore,
+      resultType: match.result.resultType,
+      wentToOTOrSO: match.result.resultType !== 'regulation',
+    };
+  }
+  if (match.summary) {
+    const scores = calculateScoreFromSummary(match.summary);
+    const wentToOTOrSO = hasOvertimeOrShootout(match.summary);
+    return { home: scores.home, away: scores.away, resultType: 'regulation', wentToOTOrSO };
+  }
+  return null;
+}
 
 export interface TeamStats {
   id: string;
@@ -28,7 +45,7 @@ function computeStandings(
   phase: MatchPhase
 ): (TeamStats & { rank: number })[] {
   const finishedMatches = (tournament.matches || []).filter(m =>
-    m.summary &&
+    (m.result || m.summary) &&
     m.categoryId === categoryId &&
     m.phase === phase
   );
@@ -52,10 +69,10 @@ function computeStandings(
     finishedMatches
       .filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id)
       .forEach(match => {
-        if (!match.summary) return;
+        const score = getMatchScore(match);
+        if (!score) return;
         teamStats.pj++;
-        const { home: homeGoals, away: awayGoals } = calculateScoreFromSummary(match.summary);
-        const wentToOTOrSO = hasOvertimeOrShootout(match.summary);
+        const { home: homeGoals, away: awayGoals, wentToOTOrSO } = score;
         const isHome = match.homeTeamId === team.id;
         teamStats.gf += isHome ? homeGoals : awayGoals;
         teamStats.gc += isHome ? awayGoals : homeGoals;
@@ -108,7 +125,7 @@ export function useStandings(tournament: Tournament | null | undefined, category
 
     // Solo considerar partidos de fase de clasificación para la tabla de posiciones
     const finishedMatches = (tournament.matches || []).filter(m =>
-      m.summary &&
+      (m.result || m.summary) &&
       m.categoryId === categoryId &&
       m.phase === 'clasificacion'
     );
@@ -124,14 +141,14 @@ export function useStandings(tournament: Tournament | null | undefined, category
         finishedMatches
           .filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id)
           .forEach(match => {
-            if (!match.summary) return; // Should not happen due to filter, but for type safety
+            const score = getMatchScore(match);
+            if (!score) return;
 
             teamStats.pj++;
 
-            const { home: homeGoals, away: awayGoals } = calculateScoreFromSummary(match.summary);
-            const wentToOTOrSO = hasOvertimeOrShootout(match.summary);
+            const { home: homeGoals, away: awayGoals, wentToOTOrSO } = score;
             const isHome = match.homeTeamId === team.id;
-            
+
             teamStats.gf += isHome ? homeGoals : awayGoals;
             teamStats.gc += isHome ? awayGoals : homeGoals;
 
@@ -142,7 +159,7 @@ export function useStandings(tournament: Tournament | null | undefined, category
                 if (wentToOTOrSO) teamStats.pp_ot++; else teamStats.pp++;
               }
             } else if (awayGoals > homeGoals) { // Away team won
-              if (!isHome) { 
+              if (!isHome) {
                 if (wentToOTOrSO) teamStats.pg_ot++; else teamStats.pg++;
               } else { // Home team lost
                 if (wentToOTOrSO) teamStats.pp_ot++; else teamStats.pp++;
