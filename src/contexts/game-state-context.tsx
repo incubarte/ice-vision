@@ -173,8 +173,12 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [dispatch]);
 
-  // Initial load: fetch when selectedTournamentId changes and tournament isn't loaded yet
+  // Initial load: fetch when selectedTournamentId changes and tournament isn't loaded yet.
+  // Skipped in read-only mode — tournament browsing is fully demand-driven there
+  // (each /tournaments/[id] page fetches its own data). selectedTournamentId is a
+  // scoreboard concept and has no meaning in the viewer/cloud deployment.
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return;
     const { selectedTournamentId, activeTournament } = state.tournament;
     if (isLoading) return;
     if (!selectedTournamentId) return;
@@ -186,6 +190,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
   // Periodic refresh: re-fetch active tournament data every 5 minutes + on coming back online.
   // This keeps fixture results and standings in sync with the cloud without a page reload.
   const refreshTournament = useCallback(async (force = false) => {
+    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return; // demand-driven in RO
     const { selectedTournamentId } = state.tournament;
     if (!selectedTournamentId || isLoading) return;
     // Don't overwrite local pending changes with cloud data — wait for the queue to flush.
