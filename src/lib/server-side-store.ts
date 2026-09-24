@@ -137,12 +137,20 @@ export async function updateTunnelState(updates: Partial<TunnelState>) {
   }
 }
 
+// Short-lived in-memory TTL for supabase_ro reads — avoids hitting Supabase on every request
+// while still keeping the scoreboard display fresh (max 2s stale).
+const SUPABASE_READ_TTL_MS = 2000;
+let lastGameStateFetchMs = 0;
+let lastShotsMetricsFetchMs = 0;
+
 export async function getGameState(): Promise<LiveGameState | null> {
-  // In read-only mode (supabase_ro), always fetch fresh data from Supabase
-  // to ensure we get the latest live.json updates
   if (isSupabaseMode()) {
-    const liveState = await readLiveState();
-    storedGameState = liveState as LiveGameState;
+    const now = Date.now();
+    if (!storedGameState || now - lastGameStateFetchMs > SUPABASE_READ_TTL_MS) {
+      const liveState = await readLiveState();
+      storedGameState = liveState as LiveGameState;
+      lastGameStateFetchMs = now;
+    }
     return storedGameState;
   }
 
@@ -159,10 +167,13 @@ export function setGameState(newGameState: LiveGameState): void {
 }
 
 export async function getShotsMetrics(): Promise<ShotsMetrics | null> {
-  // In read-only mode (supabase_ro), always fetch fresh data from Supabase
   if (isSupabaseMode()) {
-    const metrics = await readShotsMetrics();
-    storedShotsMetrics = metrics as ShotsMetrics;
+    const now = Date.now();
+    if (!storedShotsMetrics || now - lastShotsMetricsFetchMs > SUPABASE_READ_TTL_MS) {
+      const metrics = await readShotsMetrics();
+      storedShotsMetrics = metrics as ShotsMetrics;
+      lastShotsMetricsFetchMs = now;
+    }
     return storedShotsMetrics;
   }
 
