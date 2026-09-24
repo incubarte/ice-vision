@@ -231,12 +231,16 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
       try {
         channelRef.current?.postMessage(state);
 
-        const hasLiveChanged = !isEqual(state.live, oldState.live);
+        // Exclude tick-only clock fields from the persistence check — they change every 200ms
+        // while the clock runs but carry no durable state (they're recalculated on every render).
+        // Only persist when score, penalties, goals, shots, or structural clock state actually change.
+        const stripTickFields = (live: typeof state.live) => {
+          const { clock, ...rest } = live;
+          const { _liveAbsoluteElapsedTimeCs, clockStartTimeMs, ...durableClock } = clock || {};
+          return { ...rest, clock: durableClock };
+        };
+        const hasLiveChanged = !isEqual(stripTickFields(state.live), stripTickFields(oldState.live));
         if (hasLiveChanged) {
-          console.log('[DEBUG] 🎯 Live state changed, persisting to server...', {
-            homeShots: state.live.shotsLog.home.length,
-            awayShots: state.live.shotsLog.away.length
-          });
           updateGameStateOnServer(state.live);
         }
         const hasConfigChanged = !isEqual(state.config, oldState.config);
