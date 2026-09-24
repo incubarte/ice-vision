@@ -90,7 +90,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     // Non-LOCAL_MODE: read from storageProvider (Supabase in cloud deployments)
     try {
-        const tournamentDetails = await readTournament(tournamentId, { includeSummaries: true });
+        const tournamentDetails = await readTournament(tournamentId, { includeSummaries: false });
 
         if (!tournamentDetails) {
             const tournamentsData = await readTournaments();
