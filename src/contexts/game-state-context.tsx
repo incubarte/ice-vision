@@ -195,15 +195,14 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     await fetchActiveTournament(selectedTournamentId, force);
   }, [state.tournament.selectedTournamentId, state._pendingSyncs, isLoading, fetchActiveTournament]);
 
+  // Refresh on reconnect only — no automatic polling.
+  // Demand-driven: tournament data is refreshed when navigating to the tournament
+  // section or starting a match. The API cache (5 min TTL) handles stale reads.
   useEffect(() => {
     if (isLoading) return;
     const doRefresh = () => refreshTournament();
-    const interval = setInterval(doRefresh, 5 * 60 * 1000);
     window.addEventListener('online', doRefresh);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('online', doRefresh);
-    };
+    return () => window.removeEventListener('online', doRefresh);
   }, [refreshTournament, isLoading]);
 
   // When the pending sync queue is fully drained, immediately refresh from cloud.

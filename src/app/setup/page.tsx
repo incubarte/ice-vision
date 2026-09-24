@@ -97,7 +97,7 @@ const TeamSelector = ({
 };
 
 function SetupPageContent() {
-    const { state, dispatch } = useGameState();
+    const { state, dispatch, refreshTournament } = useGameState();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
@@ -149,11 +149,18 @@ function SetupPageContent() {
         setTodaysMatches(matchesForDate);
     }, [selectedTournament, selectedMatchDate]);
 
-     useEffect(() => {
+    useEffect(() => {
         setLocalCategoryId(state.tournament.selectedMatchCategory || availableCategories[0]?.id || '');
         const currentProfile = state.config.formatAndTimingsProfiles.find(p => p.id === state.config.selectedFormatAndTimingsProfileId) || state.config;
         setTempFormatSettings(currentProfile);
     }, [state.tournament.selectedTournamentId, state.tournament.selectedMatchCategory, state.config.formatAndTimingsProfiles, state.config.selectedFormatAndTimingsProfileId, availableCategories]);
+
+    // Refresh tournament data when opening setup — ensures fixture is up to date
+    // before selecting a match. The API cache (5 min TTL) prevents unnecessary cloud calls.
+    useEffect(() => {
+        if (selectedTournamentId) refreshTournament();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleLoadMatchConfig = useCallback((match: MatchData) => {
         // Al cargar un partido existente, siempre es de torneo
