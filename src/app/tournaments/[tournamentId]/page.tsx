@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useGameState } from '@/contexts/game-state-context';
 import { Button } from '@/components/ui/button';
@@ -34,19 +34,30 @@ export default function TournamentDetailPage() {
 
   const tournamentId = typeof params.tournamentId === 'string' ? params.tournamentId : undefined;
 
+  const [isFetchingTournament, setIsFetchingTournament] = useState(false);
+  const [fetchTournamentError, setFetchTournamentError] = useState<string | null>(null);
+
   // Fetch full tournament data directly (teams, matches, summaries) without touching selectedTournamentId.
   // This keeps "browsing a tournament" decoupled from "setting the active scoreboard tournament".
   useEffect(() => {
     if (!tournamentId) return;
     if (state.tournament.activeTournament?.id === tournamentId) return; // Already loaded
+    setIsFetchingTournament(true);
+    setFetchTournamentError(null);
     fetch(`/api/tournaments/${tournamentId}`)
       .then(res => { if (!res.ok) throw new Error(`${res.status}`); return res.json(); })
       .then(data => {
         if (data.tournament) {
           dispatch({ type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: data.tournament } });
+        } else {
+          setFetchTournamentError('not_found');
         }
       })
-      .catch(err => console.error('[TournamentPage] Failed to load tournament data:', err));
+      .catch(err => {
+        console.error('[TournamentPage] Failed to load tournament data:', err);
+        setFetchTournamentError(err.message || 'error');
+      })
+      .finally(() => setIsFetchingTournament(false));
   // Re-run only when the URL param changes. activeTournament is checked at runtime to skip
   // unnecessary fetches but is not a trigger — adding it would cause re-fetch loops.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,10 +70,6 @@ export default function TournamentDetailPage() {
 
   const { logo } = useTournamentLogo(tournamentId);
 
-  const selectedTournament = useMemo(() => {
-    if (!tournamentId) return null;
-    return (state.tournament.tournaments || []).find(t => t.id === tournamentId);
-  }, [state.tournament.tournaments, tournamentId]);
 
   useEffect(() => {
     const newTab = searchParams.get('tab');
@@ -79,7 +86,10 @@ export default function TournamentDetailPage() {
     }
   }, [searchParams, shouldShowTeams]);
 
-  if (isGameStateLoading) {
+  const activeTournament = state.tournament.activeTournament;
+  const isLoadingThisTournament = isGameStateLoading || isFetchingTournament || activeTournament?.id !== tournamentId;
+
+  if (isLoadingThisTournament && !fetchTournamentError) {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-10rem)] text-center p-4">
         <HockeyPuckSpinner className="h-24 w-24 text-primary mb-4" />
@@ -88,7 +98,8 @@ export default function TournamentDetailPage() {
     );
   }
 
-  if (!selectedTournament) {
+  // Show error only after fetch completes and tournament was not found
+  if (fetchTournamentError || !activeTournament) {
     return (
       <div className="text-center py-10">
         <Info className="mx-auto h-12 w-12 text-destructive mb-4" />
@@ -99,18 +110,6 @@ export default function TournamentDetailPage() {
         <Button onClick={() => router.push('/tournaments')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Volver a la lista de Torneos
         </Button>
-      </div>
-    );
-  }
-
-  // Wait for full tournament data (teams, matches, etc.) to finish loading.
-  // After the initial load, the context fetches full data async — until it arrives,
-  // activeTournament may be null or point to a different tournament.
-  if (state.tournament.activeTournament?.id !== tournamentId) {
-    return (
-      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-10rem)] text-center p-4">
-        <HockeyPuckSpinner className="h-24 w-24 text-primary mb-4" />
-        <p className="text-xl text-foreground">Cargando datos del torneo...</p>
       </div>
     );
   }
@@ -135,7 +134,7 @@ export default function TournamentDetailPage() {
         ) : (
           <Trophy className="h-[120px] w-[120px] text-amber-400" />
         )}
-        <h1 className="text-4xl font-bold text-primary-foreground">{selectedTournament.name}</h1>
+        <h1 className="text-4xl font-bold text-primary-foreground">{activeTournament.name}</h1>
       </div>
 
       <div className="border-b" />

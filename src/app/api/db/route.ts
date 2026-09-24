@@ -13,6 +13,31 @@ export async function GET(request: Request) {
   const origin = new URL(request.url).origin;
   checkAndTriggerStartupSync(origin);
 
+  // In read-only (cloud/viewer) mode: only return the tournaments list.
+  // Live state, shots metrics, active tournament, and pending syncs are irrelevant here —
+  // the client will lazy-load the specific tournament it navigates to.
+  if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') {
+    try {
+      const tournamentsData = await getTournaments();
+      const initialState: Partial<GameState> = {
+        tournament: {
+          tournaments: tournamentsData?.tournaments || [],
+          activeTournament: null,
+          selectedTournamentId: null,
+          selectedMatchCategory: '',
+        },
+        _initialConfigLoadComplete: false,
+        _pendingSyncs: [],
+      };
+      return NextResponse.json(initialState);
+    } catch (error) {
+      if (error instanceof Error) {
+        return NextResponse.json({ message: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ message: 'An unknown server error occurred on the server.' }, { status: 500 });
+    }
+  }
+
   try {
     const [config, liveState, shotsMetrics, tournamentsData] = await Promise.all([
         getConfig(),
