@@ -13,18 +13,27 @@ export async function GET(request: Request) {
   const origin = new URL(request.url).origin;
   checkAndTriggerStartupSync(origin);
 
-  // In read-only (cloud/viewer) mode: only return the tournaments list.
-  // Live state, shots metrics, active tournament, and pending syncs are irrelevant here —
+  // In read-only (cloud/viewer) mode: only return config + tournaments list.
+  // Skip live state, shots metrics, active tournament, and pending syncs —
   // the client will lazy-load the specific tournament it navigates to.
+  // We must include config so INITIALIZE_STATE in the reducer doesn't bail early.
+  // We also pass selectedTournamentId explicitly to suppress the reducer's auto-select
+  // (which would otherwise trigger a fetchActiveTournament on every page load).
   if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') {
     try {
-      const tournamentsData = await getTournaments();
+      const [config, tournamentsData] = await Promise.all([getConfig(), getTournaments()]);
+      // selectedTournamentId comes from config — if set, the context will fetch /lite
+      // (lightweight, no summaries) for that tournament. activeTournament is always
+      // skipped here so the full readTournament + summaries cascade never runs.
+      const persistedSelectedTournamentId = (config as Record<string, unknown>)?.selectedTournamentId as string | null | undefined;
+      const persistedSelectedMatchCategory = (config as Record<string, unknown>)?.selectedMatchCategory as string | undefined;
       const initialState: Partial<GameState> = {
+        config: config ? { ...config } : undefined,
         tournament: {
           tournaments: tournamentsData?.tournaments || [],
           activeTournament: null,
-          selectedTournamentId: null,
-          selectedMatchCategory: '',
+          selectedTournamentId: persistedSelectedTournamentId || null,
+          selectedMatchCategory: persistedSelectedMatchCategory || '',
         },
         _initialConfigLoadComplete: false,
         _pendingSyncs: [],
