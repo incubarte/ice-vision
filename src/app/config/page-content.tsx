@@ -69,6 +69,7 @@ const SoundSettingsCard = dynamic(() => import('@/components/config/sound-settin
 const PenaltyCountdownSoundCard = dynamic(() => import('@/components/config/penalty-countdown-sound-card').then(mod => mod.PenaltyCountdownSoundCard), { loading: loadingComponent });
 const TeamSettingsCard = dynamic(() => import('@/components/config/team-settings-card').then(mod => mod.TeamSettingsCard), { loading: loadingComponent });
 const LayoutSettingsCard = dynamic(() => import('@/components/config/layout-settings-card').then(mod => mod.LayoutSettingsCard), { loading: loadingComponent });
+const ScoreboardPreviewPanel = dynamic(() => import('@/components/config/scoreboard-preview-panel').then(mod => mod.ScoreboardPreviewPanel), { loading: loadingComponent });
 const DebugSettingsCard = dynamic(() => import('@/components/config/debug-settings-card').then(mod => mod.DebugSettingsCard), { loading: loadingComponent });
 const ReplaySettingsCard = dynamic(() => import('@/components/config/replay-settings-card').then(mod => mod.ReplaySettingsCard), { loading: loadingComponent });
 
@@ -785,6 +786,7 @@ export default function ConfigPage() {
                 Crea y selecciona diferentes perfiles para guardar conjuntos de configuraciones de diseño del scoreboard.
               </p>
             </div>
+            <ScoreboardPreviewPanel />
             <LayoutSettingsCard ref={layoutSettingsRef} initialValues={selectedLayoutProfile} />
             <Separator />
             <DebugSettingsCard ref={debugSettingsRef} onDirtyChange={setIsDebugDirty} />
