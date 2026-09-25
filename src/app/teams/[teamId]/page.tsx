@@ -467,6 +467,7 @@ export default function ManageTeamPage() {
 
         <TabsContent value="matches" className="space-y-6 mt-6">
           <FixtureListView
+            tournamentId={tournament.id}
             teamFilter={team.id}
             hideFilters={false}
             hideTitle={true}
