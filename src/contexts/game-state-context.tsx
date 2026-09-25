@@ -396,11 +396,12 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [state._pendingSyncs, state.tournament.activeTournament, dispatch]);
 
-  // Persist pending syncs to disk whenever the queue changes.
-  // Also trigger immediate processing when new items are added while online —
-  // isSyncingRef prevents overlapping runs so this is safe to call eagerly.
+  // Persist pending syncs to disk and process them.
+  // Skipped entirely in RO mode — pending syncs are a local scoreboard concept
+  // (offline queue for uploading changes). The viewer never generates syncs.
   const prevSyncCountRef = useRef(0);
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return;
     if (isLoading) return;
     const current = state._pendingSyncs || [];
     fetch('/api/pending-syncs', {
@@ -417,6 +418,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
 
   // Auto-retry: every 3 minutes + when browser goes online
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return;
     const interval = setInterval(processPendingSyncs, 3 * 60 * 1000);
     if (typeof window !== 'undefined') {
       window.addEventListener('online', processPendingSyncs);
