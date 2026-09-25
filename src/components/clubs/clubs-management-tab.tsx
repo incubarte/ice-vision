@@ -111,7 +111,7 @@ export function ClubsManagementTab({ tournamentId }: ClubsManagementTabProps) {
                 <span className="flex-1 font-medium">{club.name}</span>
                 {tournamentCode && (
                   <Button variant="ghost" size="icon" title="Planilla pre-partido" asChild>
-                    <Link href={`/pre-match/${tournamentCode}/${encodeURIComponent(club.name)}`} target="_blank">
+                    <Link href={`/pre-match/${tournamentCode}/${encodeURIComponent(club.name)}`} target="_blank" prefetch={false}>
                       <ClipboardList className="h-4 w-4" />
                     </Link>
                   </Button>

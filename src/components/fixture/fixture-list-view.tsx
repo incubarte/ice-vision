@@ -569,7 +569,7 @@ export function FixtureListView({ teamFilter, hideFilters = false, hideTitle = f
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
                         {tournamentCode && match.homeTeamId && !match.homeTeamId.startsWith('position-') && (
-                          <Link href={`/pre-match/match/${tournamentCode}/${match.id}`} target="_blank">
+                          <Link href={`/pre-match/match/${tournamentCode}/${match.id}`} target="_blank" prefetch={false}>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600" title="Pre-partido">
                               <ClipboardList className="h-4 w-4" />
                             </Button>
