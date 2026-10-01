@@ -625,7 +625,7 @@ export interface SyncLogFileEntry {
   snapshotId?: string; // timestamp of snapshot if conflict
 }
 
-export type PendingSyncType = 'ADD_PLAYER' | 'SAVE_SUMMARY' | 'SYNC_MATCH' | 'ADD_MATCH' | 'SYNC_STAFF' | 'SYNC_TEAM_PLAYERS';
+export type PendingSyncType = 'ADD_PLAYER' | 'SAVE_SUMMARY' | 'SYNC_MATCH' | 'ADD_MATCH' | 'DELETE_MATCH' | 'SYNC_STAFF' | 'SYNC_TEAM_PLAYERS';
 
 export interface PendingSyncAddPlayer {
   type: 'ADD_PLAYER';
@@ -679,13 +679,19 @@ export interface PendingSyncAddMatch {
   match: MatchData;
 }
 
+export interface PendingSyncDeleteMatch {
+  type: 'DELETE_MATCH';
+  tournamentId: string;
+  matchId: string;
+}
+
 export interface PendingSyncSyncStaff {
   type: 'SYNC_STAFF';
   tournamentId: string;
   staff: StaffMember[];
 }
 
-export type PendingSyncPayload = PendingSyncAddPlayer | PendingSyncSaveSummary | PendingSyncSyncMatch | PendingSyncAddMatch | PendingSyncSyncStaff | PendingSyncSyncTeamPlayers;
+export type PendingSyncPayload = PendingSyncAddPlayer | PendingSyncSaveSummary | PendingSyncSyncMatch | PendingSyncAddMatch | PendingSyncDeleteMatch | PendingSyncSyncStaff | PendingSyncSyncTeamPlayers;
 
 export interface PendingSync {
   id: string;

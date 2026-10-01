@@ -9,6 +9,7 @@ const ALLOWED_PATHS = new Set([
   '/api/sync/staff',
   '/api/sync/team-players',
   '/api/sync/add-match',
+  '/api/sync/delete-match',
 ]);
 
 /**

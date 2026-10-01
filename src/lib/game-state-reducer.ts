@@ -2129,8 +2129,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const { tournamentId, matchId } = action.payload;
       if (state.tournament.activeTournament?.id === tournamentId) {
         const newMatches = (state.tournament.activeTournament.matches || []).filter(m => m.id !== matchId);
+        const syncEntry: import('@/types').PendingSync = {
+          id: safeUUID(),
+          createdAt: new Date().toISOString(),
+          attempts: 0,
+          payload: { type: 'DELETE_MATCH', tournamentId, matchId },
+        };
         newState = {
           ...state,
+          _pendingSyncs: [...(state._pendingSyncs || []), syncEntry],
           tournament: {
             ...state.tournament,
             activeTournament: { ...state.tournament.activeTournament, matches: newMatches }

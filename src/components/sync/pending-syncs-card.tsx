@@ -4,7 +4,7 @@ import { useGameState } from '@/contexts/game-state-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, Clock, RefreshCw, User, FileText, Trophy, Users, Calendar } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, RefreshCw, User, FileText, Trophy, Users, Calendar, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -13,6 +13,7 @@ const TYPE_LABEL: Record<string, string> = {
   SAVE_SUMMARY: 'Resumen',
   SYNC_MATCH: 'Resultado partido',
   ADD_MATCH: 'Agregar partido',
+  DELETE_MATCH: 'Eliminar partido',
   SYNC_STAFF: 'Staff',
   SYNC_TEAM_PLAYERS: 'Jugadores equipo',
 };
@@ -22,6 +23,7 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
   SAVE_SUMMARY: <FileText className="h-4 w-4" />,
   SYNC_MATCH: <Trophy className="h-4 w-4" />,
   ADD_MATCH: <Calendar className="h-4 w-4" />,
+  DELETE_MATCH: <Trash2 className="h-4 w-4" />,
   SYNC_STAFF: <Users className="h-4 w-4" />,
   SYNC_TEAM_PLAYERS: <Users className="h-4 w-4" />,
 };

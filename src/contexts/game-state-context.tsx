@@ -362,6 +362,18 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
               const data = await res.json().catch(() => ({}));
               throw new Error(data?.error || `HTTP ${res.status}`);
             }
+          } else if (sync.payload.type === 'DELETE_MATCH') {
+            const { tournamentId, matchId } = sync.payload;
+            const adminSecret = readAdminSecretFromStorage();
+            const res = await fetch('/api/cloud-relay', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: '/api/sync/delete-match', payload: { tournamentId, matchId }, adminSecret }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data?.error || `HTTP ${res.status}`);
+            }
           } else if (sync.payload.type === 'SYNC_TEAM_PLAYERS') {
             const { tournamentId, teamId, players } = sync.payload;
             const adminSecret = readAdminSecretFromStorage();
