@@ -1293,6 +1293,9 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
         }
 
         // 7. Execute conflicts (based on decisions)
+        // One timestamp for all conflict backups in this execution run
+        const conflictBackupDir = `mergeConflictsBackup/${new Date().toISOString().replace(/:/g, '-').split('.')[0]}`;
+
         for (const conflict of plan.conflicts) {
             if (!conflict.decision) {
                 console.warn(`[Sync] Skipping conflict without decision: ${conflict.filePath}`);
@@ -1354,6 +1357,30 @@ export async function executeSyncPlan(options: SyncOptions = {}): Promise<SyncRe
 
             try {
                 if (conflict.decision === 'local-wins') {
+                    // Backup remote version before overwriting
+                    const { data: remoteBackupData } = await supabase.storage
+                        .from(bucket)
+                        .download(conflict.filePath);
+
+                    if (remoteBackupData) {
+                        const backupPath = `${conflictBackupDir}/${conflict.filePath}`;
+                        let remoteContent: string | Buffer;
+                        if (isBinaryFile(conflict.filePath)) {
+                            remoteContent = Buffer.from(await remoteBackupData.arrayBuffer());
+                        } else {
+                            remoteContent = await remoteBackupData.text();
+                        }
+                        const preparedBackup = prepareContentForUpload(remoteContent, conflict.filePath);
+                        const { error: backupError } = await supabase.storage
+                            .from(bucket)
+                            .upload(backupPath, preparedBackup, { upsert: true, contentType: getContentType(conflict.filePath) });
+                        if (backupError) {
+                            console.warn(`[Sync] Could not backup remote conflict file to ${backupPath}:`, backupError.message);
+                        } else {
+                            console.log(`[Sync] Remote version backed up to ${backupPath}`);
+                        }
+                    }
+
                     // Upload local version
                     const content = await readLocalFile(conflict.filePath);
                     const preparedContent = prepareContentForUpload(content, conflict.filePath);
