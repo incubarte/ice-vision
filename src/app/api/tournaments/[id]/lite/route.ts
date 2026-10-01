@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
+import type { Tournament } from '@/types';
 import { readTournament, readTournaments, readMatchResultsFromSummaries } from '@/lib/data-access';
 import { readTournamentCache, writeTournamentCache, isTournamentCacheFresh } from '@/lib/tournament-cache-store';
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
-const CLOUD_ADMIN_URL = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
 
 /**
  * Lightweight tournament endpoint — teams, clubs, categories, matches (with results).
  * No summaries, no staff.
  *
- * LOCAL_MODE:  cache-first proxy. Serves local cache if < 5 min old (no cloud call).
- *              If stale or missing, fetches cloud, updates cache, returns fresh data.
+ * LOCAL_MODE:  local-first. Serves from cache if < 5 min old (no disk read).
+ *              If stale or forced, reads from local filesystem (STORAGE_PROVIDER=local),
+ *              updates cache, and returns fresh data. No cloud call — local disk is truth.
  *              Pass ?force=true to bypass the cache (e.g. manual "Actualizar" button).
- *              Returns 503 when cloud is unreachable and cache is also absent.
  *
  * Cloud/non-LOCAL_MODE: reads from storageProvider directly (Supabase).
  */
@@ -26,66 +26,56 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         if (!force && isTournamentCacheFresh(tournamentId)) {
             const cached = readTournamentCache(tournamentId)!;
             console.log(`[lite] Serving from cache (age: ${Math.round((Date.now() - new Date(cached.cachedAt).getTime()) / 1000)}s)`);
-            return NextResponse.json({ tournament: cached.tournament });
+            return NextResponse.json({ tournament: cached.tournament, matchResults: cached.matchResults ?? {} });
         }
 
-        // Fetch from cloud, update cache
+        // LOCAL_MODE: read from local filesystem (source of truth).
+        // STORAGE_PROVIDER=local means readTournament/readTournaments/readMatchResultsFromSummaries
+        // all read from local disk — no cloud call needed.
         try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 8000);
+            const [tournamentDetails, tournamentsData, matchResults] = await Promise.all([
+                readTournament(tournamentId, { includeSummaries: false }),
+                readTournaments(),
+                readMatchResultsFromSummaries(tournamentId),
+            ]);
 
-            // Try /lite first, fall back to full endpoint for older deployments that don't have it
-            let cloudRes = await fetch(`${CLOUD_ADMIN_URL}/api/tournaments/${tournamentId}/lite`, {
-                cache: 'no-store',
-                signal: controller.signal,
-            });
-            clearTimeout(timeout);
-
-            if (cloudRes.status === 404) {
-                // /lite not deployed yet on the cloud — use the full endpoint and strip summaries
-                const controller2 = new AbortController();
-                const timeout2 = setTimeout(() => controller2.abort(), 8000);
-                cloudRes = await fetch(`${CLOUD_ADMIN_URL}/api/tournaments/${tournamentId}`, {
-                    cache: 'no-store',
-                    signal: controller2.signal,
-                });
-                clearTimeout(timeout2);
-
-                if (cloudRes.ok) {
-                    const data = await cloudRes.json();
-                    if (data.tournament) {
-                        data.tournament.matches = (data.tournament.matches || []).map(
-                            ({ summary: _s, ...m }: any) => m
-                        );
-                        delete data.tournament.staff;
-                        writeTournamentCache(data.tournament);
-                    }
-                    return NextResponse.json(data);
+            if (!tournamentDetails) {
+                const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
+                if (!tournamentMeta) {
+                    return NextResponse.json({ message: `Tournament ${tournamentId} not found` }, { status: 404 });
                 }
+                return NextResponse.json({ tournament: { ...tournamentMeta, id: tournamentId, teams: [], categories: [], clubs: [], matches: [] }, matchResults: {} });
             }
 
-            if (cloudRes.ok) {
-                const data = await cloudRes.json();
-                if (data.tournament) writeTournamentCache(data.tournament);
-                return NextResponse.json(data);
-            }
+            const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
+            const tournament = {
+                ...tournamentMeta,
+                id: tournamentId,
+                clubs: tournamentDetails.clubs || [],
+                teams: tournamentDetails.teams || [],
+                categories: tournamentDetails.categories || [],
+                matches: tournamentDetails.matches || [],
+            };
 
-            console.warn(`[lite] Cloud returned ${cloudRes.status} for ${tournamentId}`);
+            // Keep cache warm so display windows (scoreboard) get fresh data without disk reads
+            writeTournamentCache(tournament as Tournament, matchResults);
+
+            return NextResponse.json({ tournament, matchResults });
         } catch (err) {
-            console.warn(`[lite] Cloud unreachable for ${tournamentId}:`, err instanceof Error ? err.message : err);
-        }
+            console.error(`[lite] Local read failed for ${tournamentId}:`, err instanceof Error ? err.message : err);
 
-        // Cloud failed — try stale cache before giving up
-        const staleCache = readTournamentCache(tournamentId);
-        if (staleCache) {
-            console.warn(`[lite] Using stale cache (age: ${Math.round((Date.now() - new Date(staleCache.cachedAt).getTime()) / 1000)}s)`);
-            return NextResponse.json({ tournament: staleCache.tournament });
-        }
+            // Fall back to stale cache if local read fails
+            const staleCache = readTournamentCache(tournamentId);
+            if (staleCache) {
+                console.warn(`[lite] Using stale cache (age: ${Math.round((Date.now() - new Date(staleCache.cachedAt).getTime()) / 1000)}s)`);
+                return NextResponse.json({ tournament: staleCache.tournament, matchResults: staleCache.matchResults ?? {} });
+            }
 
-        return NextResponse.json(
-            { message: 'Cloud unavailable. Use tournament-cache fallback.' },
-            { status: 503 }
-        );
+            return NextResponse.json(
+                { message: 'Local read failed and no cache available.' },
+                { status: 503 }
+            );
+        }
     }
 
     // Non-LOCAL_MODE: read from storageProvider (Supabase in cloud deployments)

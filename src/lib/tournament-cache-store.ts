@@ -1,12 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import type { Tournament } from '@/types';
+import type { Tournament, MatchResult } from '@/types';
 
 export const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface TournamentCache {
   cachedAt: string;
   tournament: Tournament;
+  matchResults?: Record<string, MatchResult>;
 }
 
 function getCachePath(tournamentId: string): string {
@@ -32,11 +33,11 @@ export function isTournamentCacheFresh(tournamentId: string): boolean {
   return Date.now() - new Date(cache.cachedAt).getTime() < CACHE_TTL_MS;
 }
 
-export function writeTournamentCache(tournament: Tournament): void {
+export function writeTournamentCache(tournament: Tournament, matchResults?: Record<string, MatchResult>): void {
   try {
     const filePath = getCachePath(tournament.id);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    const cache: TournamentCache = { cachedAt: new Date().toISOString(), tournament };
+    const cache: TournamentCache = { cachedAt: new Date().toISOString(), tournament, matchResults };
     fs.writeFileSync(filePath, JSON.stringify(cache, null, 2), 'utf-8');
   } catch (err) {
     console.error('[TournamentCache] Failed to write:', err);

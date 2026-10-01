@@ -7,12 +7,12 @@ import { setDirty } from '@/lib/sync-dirty-tracker';
 import { readTournamentCache, writeTournamentCache, isTournamentCacheFresh } from '@/lib/tournament-cache-store';
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
-const CLOUD_ADMIN_URL = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
 
-    // In LOCAL_MODE the local disk is stale — use cache-first, proxy to cloud when stale.
+    // LOCAL_MODE: read from local filesystem (source of truth — STORAGE_PROVIDER=local).
+    // The full endpoint includes summaries for admin/display use; no cloud proxy needed.
     if (LOCAL_MODE) {
         const force = new URL(request.url).searchParams.get('force') === 'true';
 
@@ -22,31 +22,26 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
 
         try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 8000);
-            const cloudRes = await fetch(`${CLOUD_ADMIN_URL}/api/tournaments/${tournamentId}`, {
-                cache: 'no-store',
-                signal: controller.signal,
-            });
-            clearTimeout(timeout);
-            if (cloudRes.ok) {
-                const data = await cloudRes.json();
-                if (data.tournament) writeTournamentCache(data.tournament);
-                return NextResponse.json(data);
+            const tournamentDetails = await readTournament(tournamentId, { includeSummaries: true });
+            const tournamentsData = await readTournaments();
+            const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
+
+            if (!tournamentDetails) {
+                if (!tournamentMeta) {
+                    return NextResponse.json({ message: `Tournament metadata with id ${tournamentId} not found` }, { status: 404 });
+                }
+                return NextResponse.json({ tournament: { ...tournamentMeta, id: tournamentId, teams: [], categories: [], matches: [] } });
             }
-            console.warn(`[tournament] Cloud returned ${cloudRes.status} for ${tournamentId}`);
+
+            const fullTournament = { ...tournamentMeta, ...tournamentDetails, id: tournamentId };
+            writeTournamentCache(fullTournament);
+            return NextResponse.json({ tournament: fullTournament });
         } catch (err) {
-            console.warn(`[tournament] Cloud unreachable for ${tournamentId}:`, err instanceof Error ? err.message : err);
+            console.error(`[tournament] Local read failed for ${tournamentId}:`, err instanceof Error ? err.message : err);
+            const staleCache = readTournamentCache(tournamentId);
+            if (staleCache) return NextResponse.json({ tournament: staleCache.tournament });
+            return NextResponse.json({ message: 'Local read failed and no cache available.' }, { status: 503 });
         }
-
-        // Cloud failed — serve stale cache if available
-        const staleCache = readTournamentCache(tournamentId);
-        if (staleCache) return NextResponse.json({ tournament: staleCache.tournament });
-
-        return NextResponse.json(
-            { message: 'Cloud unavailable. Use tournament-cache fallback.' },
-            { status: 503 }
-        );
     }
 
     try {
