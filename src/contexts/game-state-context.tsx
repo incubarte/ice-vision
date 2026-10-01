@@ -382,8 +382,24 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [processPendingSyncs]);
 
+  // Track whether a match is currently running — used by the periodic sync to skip
+  // uploads during a live game. Using a ref avoids recreating the interval on every tick.
+  const isMatchRunningRef = useRef(false);
+  useEffect(() => {
+    const live = state.live;
+    if (!live?.clock) { isMatchRunningRef.current = false; return; }
+    const { isClockRunning, currentPeriod, periodDisplayOverride } = live.clock;
+    isMatchRunningRef.current =
+      isClockRunning ||
+      (currentPeriod > 0 &&
+        periodDisplayOverride !== 'Warm-up' &&
+        periodDisplayOverride !== 'AwaitingDecision' &&
+        periodDisplayOverride !== 'End of Game');
+  }, [state.live]);
+
   // Periodic manifest sync: every syncIntervalMinutes + on reconnect, fire sync-trigger.
   // Writes only mark the dirty flag; this timer is what actually uploads to Supabase.
+  // Skipped while a match is running — syncs when the match ends or the timer fires after.
   // The server-side semaphore in triggerSync prevents concurrent runs.
   const syncIntervalMinutes = state.config.syncIntervalMinutes ?? 3;
   useEffect(() => {
@@ -391,6 +407,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     if (!process.env.NEXT_PUBLIC_LOCAL_MODE) return;
 
     const runSync = () => {
+      if (isMatchRunningRef.current) {
+        console.log('[PeriodicSync] Skipping — match in progress');
+        return;
+      }
       fetch('/api/sync-trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

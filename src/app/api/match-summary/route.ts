@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeSingleMatchSummary } from '@/lib/data-access';
+import { writeSingleMatchSummary, readConfig } from '@/lib/data-access';
 import { createAdminStorageProvider } from '@/lib/storage';
 import { setDirty } from '@/lib/sync-dirty-tracker';
+import { triggerSync } from '@/lib/sync-trigger';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,11 @@ export async function POST(request: NextRequest) {
 
     if (!isAdminRequest) {
       setDirty().catch(err => console.error('[match-summary] Failed to set dirty flag:', err));
+      // Trigger sync immediately — don't wait for the periodic timer.
+      // Fire-and-forget; semaphore in triggerSync prevents concurrent runs.
+      readConfig()
+        .then(config => triggerSync(config as any, 'after-summary-edit'))
+        .catch(err => console.error('[match-summary] Sync trigger failed:', err));
     }
 
     return NextResponse.json({
