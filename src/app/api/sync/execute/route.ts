@@ -1,5 +1,22 @@
 import { NextResponse } from 'next/server';
-import { analyzeSync, executeSync, ConflictStrategy } from '@/lib/sync-service';
+import { analyzeSync, executeSync, ConflictStrategy, type SyncAnalysis } from '@/lib/sync-service';
+import type { SyncPlan } from '@/types';
+
+function planToAnalysis(plan: SyncPlan): SyncAnalysis {
+    return {
+        toUpload:   plan.toUpload.map(i => ({ filePath: i.filePath, action: 'upload'   as const, reason: 'local newer' })),
+        toDownload: plan.toDownload.map(i => ({ filePath: i.filePath, action: 'download' as const, reason: 'remote newer' })),
+        conflicts:  plan.conflicts.map(i => ({ filePath: i.filePath, action: 'conflict' as const, reason: 'both modified' })),
+        unchanged:  [],
+        summary: {
+            totalFiles:    plan.summary.uploadCount + plan.summary.downloadCount + plan.summary.conflictCount + plan.summary.unchangedCount,
+            uploadCount:   plan.summary.uploadCount,
+            downloadCount: plan.summary.downloadCount,
+            conflictCount: plan.summary.conflictCount,
+            unchangedCount: plan.summary.unchangedCount,
+        },
+    };
+}
 import { systemEmitter } from '@/lib/server-side-store';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +67,7 @@ export async function POST(request: Request) {
 
         // 3. Execute sync with options
         const excludeSet = excludeFiles?.length ? new Set(excludeFiles) : null;
-        const result = await executeSync(analysis, {
+        const result = await executeSync(planToAnalysis(analysis), {
             strategy,
             filterFiles: onlyFiles
                 ? (filePath) => onlyFiles.includes(filePath)

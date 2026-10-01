@@ -29,6 +29,7 @@ import {
   centisecondsToDisplayMinutes,
   getEndReasonText,
   getCategoryNameById,
+  secondsToMinutes,
 } from '@/lib/game-helpers';
 
 // Import reducer, initial state, and helpers from the pure (non-React) module
@@ -42,7 +43,7 @@ import {
 // Re-export for backward compatibility — consumers import these from the context
 export { BROADCAST_CHANNEL_NAME, SUMMARY_DATA_STORAGE_KEY, DEFAULT_HORN_SOUND_PATH, DEFAULT_PENALTY_BEEP_PATH };
 export { INITIAL_LAYOUT_SETTINGS, createDefaultFormatAndTimingsProfile, createDefaultScoreboardLayoutProfile };
-export { formatTime, getPeriodText, getActualPeriodText, getPeriodContextFromAbsoluteTime, centisecondsToDisplaySeconds, centisecondsToDisplayMinutes, getEndReasonText, getCategoryNameById };
+export { formatTime, getPeriodText, getActualPeriodText, getPeriodContextFromAbsoluteTime, centisecondsToDisplaySeconds, centisecondsToDisplayMinutes, getEndReasonText, getCategoryNameById, secondsToMinutes };
 export { gameReducer, getInitialState };
 export type { GameState, Team, ScoreboardLayoutSettings, FormatAndTimingsProfileData, PenaltyTypeDefinition, ReplaySettings, TournamentState };
 

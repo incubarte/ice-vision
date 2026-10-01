@@ -161,3 +161,8 @@ export const getCategoryNameById = (
   const category = availableCategories.find(cat => cat && typeof cat === 'object' && cat.id === categoryId);
   return category ? category.name : undefined;
 };
+
+/** Convert seconds to whole minutes (rounds down). */
+export function secondsToMinutes(seconds: number): number {
+  return Math.floor(seconds / 60);
+}

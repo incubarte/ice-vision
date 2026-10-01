@@ -13,7 +13,7 @@ import { headers } from 'next/headers';
 export async function POST(request: Request) {
   try {
     const { action, requestId, userAgent, verificationNumber } = await request.json();
-    const reqHeaders = headers();
+    const reqHeaders = await headers();
     const clientIp = (reqHeaders.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim();
 
     switch (action) {

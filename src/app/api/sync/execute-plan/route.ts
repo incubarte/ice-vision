@@ -24,7 +24,6 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({
-            success: result.success,
             ...result,
             message: result.success
                 ? `Successfully synced ${result.filesUploaded + result.filesDownloaded + result.conflictsResolved} files`

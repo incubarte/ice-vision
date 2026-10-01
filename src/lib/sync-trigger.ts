@@ -1,6 +1,23 @@
-import { analyzeSync, executeSync } from './sync-service';
+import { analyzeSync, executeSync, type SyncAnalysis } from './sync-service';
 import { clearDirty } from './sync-dirty-tracker';
-import type { ConfigState } from '@/types';
+import type { ConfigState, SyncPlan } from '@/types';
+
+/** Convert a SyncPlan (from analyzeSync) to the SyncAnalysis shape that executeSync expects. */
+function planToAnalysis(plan: SyncPlan): SyncAnalysis {
+    return {
+        toUpload:   plan.toUpload.map(i => ({ filePath: i.filePath, action: 'upload'   as const, reason: 'local newer' })),
+        toDownload: plan.toDownload.map(i => ({ filePath: i.filePath, action: 'download' as const, reason: 'remote newer' })),
+        conflicts:  plan.conflicts.map(i => ({ filePath: i.filePath, action: 'conflict' as const, reason: 'both modified' })),
+        unchanged:  [],
+        summary: {
+            totalFiles:    plan.summary.uploadCount + plan.summary.downloadCount + plan.summary.conflictCount + plan.summary.unchangedCount,
+            uploadCount:   plan.summary.uploadCount,
+            downloadCount: plan.summary.downloadCount,
+            conflictCount: plan.summary.conflictCount,
+            unchangedCount: plan.summary.unchangedCount,
+        },
+    };
+}
 
 /**
  * Files that should never be auto-synced (match-state files that change
@@ -47,7 +64,7 @@ export async function triggerSync(
         }
 
         // 3. Execute — local always wins, conflicts auto-resolved
-        const result = await executeSync(analysis, {
+        const result = await executeSync(planToAnalysis(analysis), {
             strategy: 'local-wins',
             trigger,
             filterFiles: (f) => !AUTO_SYNC_EXCLUDED.has(f),
