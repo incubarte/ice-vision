@@ -226,11 +226,25 @@ export async function writeRawSummaryFiles(
     }
 ): Promise<void> {
     const rawPrefix = `tournaments/${tournamentId}/summaries/raw/${matchId}`;
+    const liveKey = `${rawPrefix}/live.json`;
+    const shotsKey = `${rawPrefix}/shots-metrics.json`;
+    const voiceKey = `${rawPrefix}/voice-events.json`;
+
+    const liveContent = JSON.stringify(files.liveState, null, 2);
+    const shotsContent = JSON.stringify(files.shotsMetrics, null, 2);
+    const voiceContent = JSON.stringify(files.voiceEvents, null, 2);
 
     await Promise.all([
-        storageProvider.writeFile(`${rawPrefix}/live.json`, JSON.stringify(files.liveState, null, 2)),
-        storageProvider.writeFile(`${rawPrefix}/shots-metrics.json`, JSON.stringify(files.shotsMetrics, null, 2)),
-        storageProvider.writeFile(`${rawPrefix}/voice-events.json`, JSON.stringify(files.voiceEvents, null, 2)),
+        storageProvider.writeFile(liveKey, liveContent),
+        storageProvider.writeFile(shotsKey, shotsContent),
+        storageProvider.writeFile(voiceKey, voiceContent),
+    ]);
+
+    // Update manifest so periodic sync picks these up
+    await Promise.all([
+        updateManifestEntry(liveKey, liveContent),
+        updateManifestEntry(shotsKey, shotsContent),
+        updateManifestEntry(voiceKey, voiceContent),
     ]);
 
     console.log(`[Data Access] Saved raw summary files for match ${matchId}`);

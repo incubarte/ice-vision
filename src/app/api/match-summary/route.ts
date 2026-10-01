@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeSingleMatchSummary } from '@/lib/data-access';
 import { createAdminStorageProvider } from '@/lib/storage';
+import { setDirty } from '@/lib/sync-dirty-tracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,10 @@ export async function POST(request: NextRequest) {
     // Admin requests use a dedicated rw provider; normal writes use the default provider
     const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
     await writeSingleMatchSummary(tournamentId, matchId, summary, provider);
+
+    if (!isAdminRequest) {
+      setDirty().catch(err => console.error('[match-summary] Failed to set dirty flag:', err));
+    }
 
     return NextResponse.json({
       success: true,

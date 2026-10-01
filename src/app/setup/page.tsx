@@ -155,10 +155,10 @@ function SetupPageContent() {
         setTempFormatSettings(currentProfile);
     }, [state.tournament.selectedTournamentId, state.tournament.selectedMatchCategory, state.config.formatAndTimingsProfiles, state.config.selectedFormatAndTimingsProfileId, availableCategories]);
 
-    // Refresh tournament data when opening setup — ensures fixture is up to date
-    // before selecting a match. The API cache (5 min TTL) prevents unnecessary cloud calls.
+    // Sync + refresh when opening setup — in LOCAL_MODE this downloads any cloud changes
+    // first so the fixture is current before the user selects a match to play.
     useEffect(() => {
-        if (selectedTournamentId) refreshTournament();
+        if (selectedTournamentId) refreshTournament(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

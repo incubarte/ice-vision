@@ -190,22 +190,34 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.tournament.selectedTournamentId, isLoading]);
 
-  // Periodic refresh: re-fetch active tournament data every 5 minutes + on coming back online.
-  // This keeps fixture results and standings in sync with the cloud without a page reload.
+  // Refresh tournament state from local disk (LOCAL_MODE) or Supabase (cloud).
+  // force=true: in LOCAL_MODE, triggers a full manifest sync first (download cloud → local)
+  //             so the local disk is up-to-date before reading it.
+  //             Used by: "Actualizar" button, setup page before starting a match.
   const refreshTournament = useCallback(async (force = false) => {
-    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return; // demand-driven in RO
+    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return;
     const { selectedTournamentId } = state.tournament;
     if (!selectedTournamentId || isLoading) return;
-    // Don't overwrite local pending changes with cloud data — wait for the queue to flush.
-    // The manual "Actualizar" button passes force=true to bypass this.
     const hasPending = (state._pendingSyncs || []).length > 0;
     if (hasPending && !force) return;
+
+    // In LOCAL_MODE with force: sync with Supabase first so local disk is current.
+    if (force && process.env.NEXT_PUBLIC_LOCAL_MODE === 'true') {
+      try {
+        await fetch('/api/sync-trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger: 'after-summary-edit' }),
+        });
+      } catch (err) {
+        console.warn('[refreshTournament] sync-trigger failed:', err);
+      }
+    }
+
     await fetchActiveTournament(selectedTournamentId, force);
   }, [state.tournament.selectedTournamentId, state._pendingSyncs, isLoading, fetchActiveTournament]);
 
-  // Refresh on reconnect only — no automatic polling.
-  // Demand-driven: tournament data is refreshed when navigating to the tournament
-  // section or starting a match. The API cache (5 min TTL) handles stale reads.
+  // Refresh on reconnect: re-read tournament from local disk (and sync if LOCAL_MODE).
   useEffect(() => {
     if (isLoading) return;
     const doRefresh = () => refreshTournament();
