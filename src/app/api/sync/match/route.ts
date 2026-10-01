@@ -87,9 +87,9 @@ export async function POST(request: NextRequest) {
       } as GameState['live'],
       config: defaultSettings as unknown as GameState['config'],
       tournament: {
-        tournaments: [{ id: tournament.id!, name: tournament.name || '', status: tournament.status || 'active' }],
+        tournaments: [{ id: tournamentId, name: tournament.name || '', status: tournament.status || 'active' }],
         activeTournament: {
-          id: tournament.id!,
+          id: tournamentId,
           name: tournament.name || '',
           status: tournament.status || 'active',
           clubs: tournament.clubs || [],
@@ -159,8 +159,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Save tournament with updated matches
+    // Use tournamentId from the request body: readTournament() does not set 'id'
+    // (teams.json / fixture.json don't store it), so tournament.id is undefined at runtime.
     const updatedTournament: Tournament = {
-      id: tournament.id!,
+      id: tournamentId,
       name: tournament.name || '',
       status: tournament.status || 'active',
       clubs: tournament.clubs || [],

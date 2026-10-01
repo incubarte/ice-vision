@@ -40,7 +40,10 @@ export async function POST(request: NextRequest) {
       : [...existingMatches, match];
 
     const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
-    await writeTournament({ ...tournament, matches: updatedMatches } as any, provider);
+    // Explicitly pass tournamentId: readTournament() does not include 'id' in its return value
+    // (teams.json and fixture.json don't store the id), so tournament.id would be undefined
+    // and writeTournament would write to 'tournaments/undefined/…'.
+    await writeTournament({ ...tournament, id: tournamentId, matches: updatedMatches } as any, provider);
 
     // Verify the write actually persisted before claiming success.
     const verifyTournament = await readTournament(tournamentId);
