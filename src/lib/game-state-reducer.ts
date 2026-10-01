@@ -301,41 +301,6 @@ export const finalizeMatch = (state: GameState): GameState => {
       };
     }
 
-    if (newState.live.matchId) {
-      const syncEntry: PendingSync = {
-        id: safeUUID(),
-        createdAt: new Date().toISOString(),
-        attempts: 0,
-        payload: {
-          type: 'SYNC_MATCH' as const,
-          matchId: newState.live.matchId,
-          tournamentId: state.live.matchContext?.tournamentId || '',
-          result: matchResult,
-          liveSnapshot: {
-            matchId: state.live.matchId!, // non-null: guarded by if (newState.live.matchId)
-            homeTeamName: state.live.homeTeamName,
-            awayTeamName: state.live.awayTeamName,
-            homeTeamSubName: state.live.homeTeamSubName,
-            awayTeamSubName: state.live.awayTeamSubName,
-            score: state.live.score,
-            goalsLog: state.live.goals,
-            penaltiesLog: state.live.penaltiesLog,
-            shotsLog: state.live.shotsLog,
-            goalkeeperChangesLog: state.live.goalkeeperChangesLog,
-            attendance: state.live.attendance,
-            shootout: state.live.shootout,
-            playedPeriods: state.live.playedPeriods,
-            assignedStaff: state.live.assignedStaff,
-            matchContext: state.live.matchContext,
-            expulsions: state.live.matchExpulsions,
-          },
-        },
-      };
-      return {
-        ...newState,
-        _pendingSyncs: [...(newState._pendingSyncs || []), syncEntry],
-      };
-    }
     return newState;
   }
 
@@ -352,42 +317,6 @@ export const finalizeMatch = (state: GameState): GameState => {
         ...newState.tournament,
         activeTournament: { ...newState.tournament.activeTournament, matches: updatedMatches },
       },
-    };
-  }
-
-  if (newState.live.matchId) {
-    const syncEntry: PendingSync = {
-      id: safeUUID(),
-      createdAt: new Date().toISOString(),
-      attempts: 0,
-      payload: {
-        type: 'SYNC_MATCH' as const,
-        matchId: newState.live.matchId,
-        tournamentId: newState.live.matchContext?.tournamentId || '',
-        result: matchResult,
-        liveSnapshot: {
-          matchId: state.live.matchId!, // non-null: guarded by if (newState.live.matchId)
-          homeTeamName: state.live.homeTeamName,
-          awayTeamName: state.live.awayTeamName,
-          homeTeamSubName: state.live.homeTeamSubName,
-          awayTeamSubName: state.live.awayTeamSubName,
-          score: state.live.score,
-          goalsLog: state.live.goals,
-          penaltiesLog: state.live.penaltiesLog,
-          shotsLog: state.live.shotsLog,
-          goalkeeperChangesLog: state.live.goalkeeperChangesLog,
-          attendance: state.live.attendance,
-          shootout: state.live.shootout,
-          playedPeriods: state.live.playedPeriods,
-          assignedStaff: state.live.assignedStaff,
-          matchContext: state.live.matchContext,
-          expulsions: state.live.matchExpulsions,
-        },
-      },
-    };
-    return {
-      ...newState,
-      _pendingSyncs: [...(newState._pendingSyncs || []), syncEntry],
     };
   }
 
@@ -674,16 +603,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         const p = sync.payload as any;
         if (p.tournamentId !== hydratedId) continue;
 
-        if (p.type === 'ADD_MATCH') {
-          if (p.match && !hydrated.matches.some((m: any) => m.id === p.match.id)) {
-            hydrated.matches = [...hydrated.matches, p.match];
-          }
-        } else if (p.type === 'SYNC_MATCH') {
-          // Apply the result to the existing match
-          hydrated.matches = hydrated.matches.map((m: any) =>
-            m.id === p.matchId ? { ...m, result: p.result } : m
-          );
-        } else if (p.type === 'ADD_PLAYER') {
+        if (p.type === 'ADD_PLAYER') {
           // Legacy: add the player to the correct team if not already present
           hydrated.teams = hydrated.teams.map((t: any) => {
             if (t.id !== p.teamId) return t;
@@ -691,13 +611,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
             if (already) return t;
             return { ...t, players: [...(t.players || []), p.player] };
           });
-        } else if (p.type === 'SYNC_TEAM_PLAYERS') {
-          // Replace the full player roster for this team
-          hydrated.teams = hydrated.teams.map((t: any) =>
-            t.id === p.teamId ? { ...t, players: p.players } : t
-          );
-        } else if (p.type === 'SYNC_STAFF') {
-          hydrated.staff = p.staff;
         }
       }
 
@@ -2081,15 +1994,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const { tournamentId, match } = action.payload;
       if (state.tournament.activeTournament?.id === tournamentId) {
         const matchWithId = { ...match, id: match.id || safeUUID() };
-        const syncEntry: import('@/types').PendingSync = {
-          id: safeUUID(),
-          createdAt: new Date().toISOString(),
-          attempts: 0,
-          payload: { type: 'ADD_MATCH', tournamentId, match: matchWithId },
-        };
         newState = {
           ...state,
-          _pendingSyncs: [...(state._pendingSyncs || []), syncEntry],
           tournament: {
             ...state.tournament,
             activeTournament: {
@@ -2113,12 +2019,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
             ...state.tournament,
             activeTournament: { ...state.tournament.activeTournament, matches: newMatches }
           },
-          // Upsert via ADD_MATCH endpoint (handles both create and update by match.id).
-          // Dedup: replace any existing ADD_MATCH for the same matchId so edits collapse to one sync.
-          _pendingSyncs: [
-            ...(state._pendingSyncs || []).filter(s => !(s.payload.type === 'ADD_MATCH' && (s.payload as any).match?.id === match.id)),
-            { id: safeUUID(), createdAt: new Date().toISOString(), attempts: 0, payload: { type: 'ADD_MATCH' as const, tournamentId, match } },
-          ],
         };
       } else {
         console.warn(`[Reducer] UPDATE_MATCH_IN_TOURNAMENT ignored: activeTournament (${state.tournament.activeTournament?.id}) does not match target (${tournamentId})`);
@@ -2129,15 +2029,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const { tournamentId, matchId } = action.payload;
       if (state.tournament.activeTournament?.id === tournamentId) {
         const newMatches = (state.tournament.activeTournament.matches || []).filter(m => m.id !== matchId);
-        const syncEntry: import('@/types').PendingSync = {
-          id: safeUUID(),
-          createdAt: new Date().toISOString(),
-          attempts: 0,
-          payload: { type: 'DELETE_MATCH', tournamentId, matchId },
-        };
         newState = {
           ...state,
-          _pendingSyncs: [...(state._pendingSyncs || []), syncEntry],
           tournament: {
             ...state.tournament,
             activeTournament: { ...state.tournament.activeTournament, matches: newMatches }
@@ -2460,19 +2353,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         }
       }
 
-      // Queue SYNC_TEAM_PLAYERS (last-write-wins, deduplicated per team)
-      if (newState.tournament.activeTournament?.id) {
-        const tournamentId = newState.tournament.activeTournament.id;
-        const updatedPlayers = (newState.tournament.activeTournament.teams.find(t => t.id === teamId)?.players) || [];
-        newState = {
-          ...newState,
-          _pendingSyncs: [
-            ...(newState._pendingSyncs || []).filter(s => !(s.payload.type === 'SYNC_TEAM_PLAYERS' && (s.payload as any).teamId === teamId)),
-            { id: safeUUID(), createdAt: new Date().toISOString(), attempts: 0, payload: { type: 'SYNC_TEAM_PLAYERS' as const, tournamentId, teamId, players: updatedPlayers } },
-          ],
-        };
-      }
-
       toastMessage = { title: "Jugador Añadido", description: `Jugador ${player.number ? `#${player.number} ` : ''}${player.name} añadido.` };
       break;
     }
@@ -2545,17 +2425,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           }
         }
 
-        if (newState.tournament.activeTournament?.id) {
-          const tournamentId = newState.tournament.activeTournament.id;
-          const updatedPlayers = newState.tournament.activeTournament.teams.find(t => t.id === teamId)?.players || [];
-          newState = {
-            ...newState,
-            _pendingSyncs: [
-              ...(newState._pendingSyncs || []).filter(s => !(s.payload.type === 'SYNC_TEAM_PLAYERS' && (s.payload as any).teamId === teamId)),
-              { id: safeUUID(), createdAt: new Date().toISOString(), attempts: 0, payload: { type: 'SYNC_TEAM_PLAYERS' as const, tournamentId, teamId, players: updatedPlayers } },
-            ],
-          };
-        }
       }
       break;
     }
@@ -2577,17 +2446,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           },
         };
 
-        if (newState.tournament.activeTournament?.id) {
-          const tournamentId = newState.tournament.activeTournament.id;
-          const updatedPlayers = newState.tournament.activeTournament.teams.find(t => t.id === teamId)?.players || [];
-          newState = {
-            ...newState,
-            _pendingSyncs: [
-              ...(newState._pendingSyncs || []).filter(s => !(s.payload.type === 'SYNC_TEAM_PLAYERS' && (s.payload as any).teamId === teamId)),
-              { id: safeUUID(), createdAt: new Date().toISOString(), attempts: 0, payload: { type: 'SYNC_TEAM_PLAYERS' as const, tournamentId, teamId, players: updatedPlayers } },
-            ],
-          };
-        }
       }
       break;
     }
@@ -2596,18 +2454,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (state.tournament.activeTournament?.id === tournamentId) {
         const staffId = staff.id || safeUUID();
         const updatedStaff = [...(state.tournament.activeTournament.staff || []), { ...staff, id: staffId }];
-        const staffSyncEntry: PendingSync = {
-          id: safeUUID(),
-          createdAt: new Date().toISOString(),
-          attempts: 0,
-          payload: { type: 'SYNC_STAFF' as const, tournamentId, staff: updatedStaff },
-        };
         newState = {
           ...state,
-          _pendingSyncs: [
-            ...(state._pendingSyncs || []).filter(s => !(s.payload.type === 'SYNC_STAFF' && (s.payload as any).tournamentId === tournamentId)),
-            staffSyncEntry,
-          ],
           tournament: {
             ...state.tournament,
             activeTournament: {
@@ -2629,18 +2477,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         const updatedStaff = (state.tournament.activeTournament.staff || []).map(s =>
           s.id === staffId ? { ...s, ...updates } : s
         );
-        const staffSyncEntry: PendingSync = {
-          id: safeUUID(),
-          createdAt: new Date().toISOString(),
-          attempts: 0,
-          payload: { type: 'SYNC_STAFF' as const, tournamentId, staff: updatedStaff },
-        };
         newState = {
           ...state,
-          _pendingSyncs: [
-            ...(state._pendingSyncs || []).filter(s => !(s.payload.type === 'SYNC_STAFF' && (s.payload as any).tournamentId === tournamentId)),
-            staffSyncEntry,
-          ],
           tournament: {
             ...state.tournament,
             activeTournament: {
@@ -2657,18 +2495,8 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const { tournamentId, staffId } = action.payload;
       if (state.tournament.activeTournament?.id === tournamentId) {
         const updatedStaff = (state.tournament.activeTournament.staff || []).filter(s => s.id !== staffId);
-        const staffSyncEntry: PendingSync = {
-          id: safeUUID(),
-          createdAt: new Date().toISOString(),
-          attempts: 0,
-          payload: { type: 'SYNC_STAFF' as const, tournamentId, staff: updatedStaff },
-        };
         newState = {
           ...state,
-          _pendingSyncs: [
-            ...(state._pendingSyncs || []).filter(s => !(s.payload.type === 'SYNC_STAFF' && (s.payload as any).tournamentId === tournamentId)),
-            staffSyncEntry,
-          ],
           tournament: {
             ...state.tournament,
             activeTournament: {

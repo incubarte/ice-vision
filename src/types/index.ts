@@ -625,20 +625,13 @@ export interface SyncLogFileEntry {
   snapshotId?: string; // timestamp of snapshot if conflict
 }
 
-export type PendingSyncType = 'ADD_PLAYER' | 'SAVE_SUMMARY' | 'SYNC_MATCH' | 'ADD_MATCH' | 'DELETE_MATCH' | 'SYNC_STAFF' | 'SYNC_TEAM_PLAYERS';
+export type PendingSyncType = 'ADD_PLAYER' | 'SAVE_SUMMARY';
 
 export interface PendingSyncAddPlayer {
   type: 'ADD_PLAYER';
   tournamentId: string;
   teamId: string;
   player: PlayerData;
-}
-
-export interface PendingSyncSyncTeamPlayers {
-  type: 'SYNC_TEAM_PLAYERS';
-  tournamentId: string;
-  teamId: string;
-  players: PlayerData[];
 }
 
 export interface PendingSyncSaveSummary {
@@ -648,50 +641,7 @@ export interface PendingSyncSaveSummary {
   summary: GameSummary;
 }
 
-export interface PendingSyncSyncMatch {
-  type: 'SYNC_MATCH';
-  matchId: string;
-  tournamentId: string;
-  result: MatchResult;
-  liveSnapshot: {
-    matchId: string;
-    homeTeamName: string;
-    awayTeamName: string;
-    homeTeamSubName?: string;
-    awayTeamSubName?: string;
-    score: LiveState['score'];
-    goalsLog: LiveState['goals'];
-    penaltiesLog: LiveState['penaltiesLog'];
-    shotsLog: LiveState['shotsLog'];
-    goalkeeperChangesLog: LiveState['goalkeeperChangesLog'];
-    attendance: LiveState['attendance'];
-    shootout: LiveState['shootout'];
-    playedPeriods: LiveState['playedPeriods'];
-    assignedStaff?: LiveState['assignedStaff'];
-    matchContext: LiveState['matchContext'];
-    expulsions?: MatchExpulsion[];
-  };
-}
-
-export interface PendingSyncAddMatch {
-  type: 'ADD_MATCH';
-  tournamentId: string;
-  match: MatchData;
-}
-
-export interface PendingSyncDeleteMatch {
-  type: 'DELETE_MATCH';
-  tournamentId: string;
-  matchId: string;
-}
-
-export interface PendingSyncSyncStaff {
-  type: 'SYNC_STAFF';
-  tournamentId: string;
-  staff: StaffMember[];
-}
-
-export type PendingSyncPayload = PendingSyncAddPlayer | PendingSyncSaveSummary | PendingSyncSyncMatch | PendingSyncAddMatch | PendingSyncDeleteMatch | PendingSyncSyncStaff | PendingSyncSyncTeamPlayers;
+export type PendingSyncPayload = PendingSyncAddPlayer | PendingSyncSaveSummary;
 
 export interface PendingSync {
   id: string;

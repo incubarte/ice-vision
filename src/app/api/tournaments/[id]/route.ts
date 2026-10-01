@@ -102,6 +102,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
         await writeTournament(tournament, provider);
 
+        // Keep the local cache in sync so that fetchActiveTournament (cache-first in LOCAL_MODE)
+        // returns up-to-date data and doesn't overwrite local state with a stale snapshot.
+        writeTournamentCache(tournament);
+
         // Mark as pending sync (persists across restarts; cleared on successful sync)
         if (!isAdminRequest) {
             setDirty().catch(err => console.error('[Tournament] Failed to set dirty flag:', err));

@@ -37,8 +37,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { FolderFileList } from "@/components/sync/folder-file-list";
 import { RemoteFileManager } from "@/components/sync/remote-file-manager";
-import { PendingSyncsCard } from "@/components/sync/pending-syncs-card";
-import { SyncKeyCard } from "@/components/sync/sync-key-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -2052,10 +2050,9 @@ function MigrateResultsCard() {
         setIsRunning(true);
         setReport(null);
         try {
-            const syncKey = localStorage.getItem('cloudSyncKey');
             const adminRaw = localStorage.getItem('adminAccess');
-            let adminSecret = syncKey;
-            if (!adminSecret && adminRaw) {
+            let adminSecret: string | null = null;
+            if (adminRaw) {
                 try { const p = JSON.parse(adminRaw); if (p.expiresAt > Date.now()) adminSecret = p.secret; } catch { /* ignore */ }
             }
             const res = await fetch('/api/migrate/derive-results', {
@@ -2455,7 +2452,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="debug" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="debug" className="flex items-center gap-2">
                     <Bug className="h-4 w-4" />
                     Debug
@@ -2463,15 +2460,6 @@ export default function AdminPage() {
                 <TabsTrigger value="sync" className="flex items-center gap-2">
                     <RefreshCcw className="h-4 w-4" />
                     Sincronización
-                </TabsTrigger>
-                <TabsTrigger value="sync2" className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Sync 2.0
-                    {(state?._pendingSyncs?.length ?? 0) > 0 && (
-                        <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0">
-                            {state._pendingSyncs!.length}
-                        </Badge>
-                    )}
                 </TabsTrigger>
                 <TabsTrigger value="danger" className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
@@ -2506,13 +2494,6 @@ export default function AdminPage() {
                 <SyncHistoryCard tournaments={state?.tournament?.tournaments || []} />
                 <RemoteFileManager />
                 <SupabaseSyncCard />
-            </TabsContent>
-
-            {/* SYNC 2.0 TAB */}
-            <TabsContent value="sync2" className="space-y-6 mt-6">
-                <SyncKeyCard />
-                <PendingSyncsCard />
-                <MigrateResultsCard />
             </TabsContent>
 
             {/* DANGER ZONE TAB */}
