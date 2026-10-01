@@ -10,6 +10,10 @@ import type { ConfigState } from '@/types';
  */
 const AUTO_SYNC_EXCLUDED = new Set(['live.json', 'live-shotsMetrics.json']);
 
+// Module-level semaphore — prevents concurrent sync runs regardless of how many
+// requests arrive (periodic timer, startup recovery, manual trigger all share this).
+let syncInProgress = false;
+
 /**
  * Trigger a sync based on configuration
  * Returns true if sync was executed, false if skipped
@@ -19,6 +23,12 @@ export async function triggerSync(
     trigger: 'after-summary-edit',
     isMatchInProgress?: boolean
 ): Promise<{ executed: boolean; message: string; filesSync: number }> {
+    if (syncInProgress) {
+        console.log('[Sync Trigger] Already running — skipping');
+        return { executed: false, message: 'Sync ya en curso', filesSync: 0 };
+    }
+
+    syncInProgress = true;
     try {
         // Check if this trigger is enabled
         if (trigger === 'after-summary-edit' && !config.autoSyncAfterSummaryEdit) {
@@ -86,6 +96,8 @@ export async function triggerSync(
             message: `Error: ${error instanceof Error ? error.message : 'Unknown'}`,
             filesSync: 0
         };
+    } finally {
+        syncInProgress = false;
     }
 }
 

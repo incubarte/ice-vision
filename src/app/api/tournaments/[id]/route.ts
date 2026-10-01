@@ -61,7 +61,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
         await writeTournament(tournament, provider);
 
-        // Mark as pending sync (persists across restarts; cleared on successful sync)
+        // Mark as dirty so the periodic sync picks it up.
+        // Do NOT trigger sync immediately — writes batch up and sync every N minutes.
         if (!isAdminRequest) {
             setDirty().catch(err => console.error('[Tournament] Failed to set dirty flag:', err));
         }
@@ -71,15 +72,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (!isAdminRequest && mirrorClubsToCloud && process.env.STORAGE_PROVIDER === 'local' && process.env.SUPABASE_SERVICE_KEY) {
             writeTournament(tournament, createAdminStorageProvider())
                 .catch(err => console.error('[Tournament] Cloud clubs mirror failed:', err));
-        }
-
-        // Trigger sync if configured (fire and forget - don't wait)
-        if (process.env.STORAGE_PROVIDER !== 'supabase_rw') {
-            fetch(`${request.url.split('/api/')[0]}/api/sync-trigger`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trigger: 'after-summary-edit' })
-            }).catch(err => console.error('[Tournament] Sync trigger failed:', err));
         }
 
         return NextResponse.json({ success: true, message: `Tournament ${tournamentId} saved successfully.` });
