@@ -4,45 +4,9 @@ import type { Tournament } from '@/types';
 import { readTournament, writeTournament, readTournaments } from '@/lib/data-access';
 import { createAdminStorageProvider } from '@/lib/storage';
 import { setDirty } from '@/lib/sync-dirty-tracker';
-import { readTournamentCache, writeTournamentCache, isTournamentCacheFresh } from '@/lib/tournament-cache-store';
 
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
-
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id: tournamentId } = await params;
-
-    // LOCAL_MODE: read from local filesystem (source of truth — STORAGE_PROVIDER=local).
-    // The full endpoint includes summaries for admin/display use; no cloud proxy needed.
-    if (LOCAL_MODE) {
-        const force = new URL(request.url).searchParams.get('force') === 'true';
-
-        if (!force && isTournamentCacheFresh(tournamentId)) {
-            const cached = readTournamentCache(tournamentId)!;
-            return NextResponse.json({ tournament: cached.tournament });
-        }
-
-        try {
-            const tournamentDetails = await readTournament(tournamentId, { includeSummaries: true });
-            const tournamentsData = await readTournaments();
-            const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
-
-            if (!tournamentDetails) {
-                if (!tournamentMeta) {
-                    return NextResponse.json({ message: `Tournament metadata with id ${tournamentId} not found` }, { status: 404 });
-                }
-                return NextResponse.json({ tournament: { ...tournamentMeta, id: tournamentId, teams: [], categories: [], matches: [] } });
-            }
-
-            const fullTournament = { ...tournamentMeta, ...tournamentDetails, id: tournamentId };
-            writeTournamentCache(fullTournament);
-            return NextResponse.json({ tournament: fullTournament });
-        } catch (err) {
-            console.error(`[tournament] Local read failed for ${tournamentId}:`, err instanceof Error ? err.message : err);
-            const staleCache = readTournamentCache(tournamentId);
-            if (staleCache) return NextResponse.json({ tournament: staleCache.tournament });
-            return NextResponse.json({ message: 'Local read failed and no cache available.' }, { status: 503 });
-        }
-    }
 
     try {
         const tournamentDetails = await readTournament(tournamentId, { includeSummaries: true });
@@ -61,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
         const tournamentsData = await readTournaments();
         const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
-        
+
         const fullTournament = {
             ...tournamentMeta,
             ...tournamentDetails,
@@ -96,10 +60,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
         const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
         await writeTournament(tournament, provider);
-
-        // Keep the local cache in sync so that fetchActiveTournament (cache-first in LOCAL_MODE)
-        // returns up-to-date data and doesn't overwrite local state with a stale snapshot.
-        writeTournamentCache(tournament);
 
         // Mark as pending sync (persists across restarts; cleared on successful sync)
         if (!isAdminRequest) {
