@@ -303,13 +303,9 @@ function SyncAnalysisCard() {
     const [showComparison, setShowComparison] = useState(false);
     const [showMetadata, setShowMetadata] = useState(false);
 
-    // Auto-sync configuration states
-    const [autoAnalysisEnabled, setAutoAnalysisEnabled] = useState((state.config.autoSyncAnalysisIntervalMinutes || 0) > 0);
-    const [autoAnalysisInterval, setAutoAnalysisInterval] = useState(state.config.autoSyncAnalysisIntervalMinutes || 5);
-    const [autoSyncEnabled, setAutoSyncEnabled] = useState(state.config.autoSyncEnabled || false);
-    const [autoResolveConflicts, setAutoResolveConflicts] = useState(state.config.autoSyncResolveConflicts || false);
-    const [skipSyncDuringMatch, setSkipSyncDuringMatch] = useState(state.config.autoSyncSkipDuringMatch ?? true);
-    const [syncAfterSummaryEdit, setSyncAfterSummaryEdit] = useState(state.config.autoSyncAfterSummaryEdit || false);
+    // Sync configuration states
+    const [syncEnabled, setSyncEnabled] = useState(state.config.syncEnabled ?? true);
+    const [syncIntervalMinutes, setSyncIntervalMinutes] = useState(state.config.syncIntervalMinutes ?? 3);
 
     // File selection states (for checkboxes)
     const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
@@ -322,50 +318,16 @@ function SyncAnalysisCard() {
         total: number;
     } | null>(null);
 
-    // Handlers for auto-sync config changes
-    const handleAutoAnalysisEnabledChange = (checked: boolean) => {
-        setAutoAnalysisEnabled(checked);
-        // When enabling, use the interval value; when disabling, set to 0
-        const intervalValue = checked ? autoAnalysisInterval : 0;
-        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncAnalysisIntervalMinutes: intervalValue } });
-
-        // If disabling, also disable dependent features
-        if (!checked) {
-            setAutoSyncEnabled(false);
-            setSkipSyncDuringMatch(true);
-            dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: {
-                autoSyncEnabled: false,
-                autoSyncSkipDuringMatch: true
-            }});
-        }
+    // Sync config handlers
+    const handleSyncEnabledChange = (checked: boolean) => {
+        setSyncEnabled(checked);
+        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { syncEnabled: checked } });
     };
 
-    const handleAutoAnalysisIntervalChange = (value: number) => {
-        setAutoAnalysisInterval(value);
-        // Only update if auto-analysis is enabled
-        if (autoAnalysisEnabled) {
-            dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncAnalysisIntervalMinutes: value } });
-        }
-    };
-
-    const handleAutoSyncEnabledChange = (checked: boolean) => {
-        setAutoSyncEnabled(checked);
-        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncEnabled: checked } });
-    };
-
-    const handleAutoResolveConflictsChange = (checked: boolean) => {
-        setAutoResolveConflicts(checked);
-        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncResolveConflicts: checked } });
-    };
-
-    const handleSkipSyncDuringMatchChange = (checked: boolean) => {
-        setSkipSyncDuringMatch(checked);
-        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncSkipDuringMatch: checked } });
-    };
-
-    const handleSyncAfterSummaryEditChange = (checked: boolean) => {
-        setSyncAfterSummaryEdit(checked);
-        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { autoSyncAfterSummaryEdit: checked } });
+    const handleSyncIntervalChange = (value: number) => {
+        const clamped = Math.max(1, value);
+        setSyncIntervalMinutes(clamped);
+        dispatch({ type: 'UPDATE_CONFIG_FIELDS', payload: { syncIntervalMinutes: clamped } });
     };
 
     // Load existing plan on mount
@@ -1022,115 +984,41 @@ function SyncAnalysisCard() {
                 <div className="bg-muted/50 p-4 rounded-lg border space-y-4">
                     <h4 className="font-semibold text-sm">⚙️ Configuración de Sync Automático</h4>
 
-                    {/* Activar análisis automático */}
+                    {/* Sync habilitado */}
                     <div className="flex items-center justify-between space-x-2">
                         <div className="space-y-0.5 flex-1">
-                            <Label htmlFor="auto-analysis-enabled" className="text-xs">
-                                Análisis Automático
+                            <Label htmlFor="sync-enabled" className="text-xs">
+                                Sync Automático
                             </Label>
                             <p className="text-xs text-muted-foreground">
-                                Analizar diferencias automáticamente cada cierto intervalo
+                                Sube cambios a Supabase periódicamente (solo cuando hay cambios pendientes)
                             </p>
                         </div>
                         <Switch
-                            id="auto-analysis-enabled"
-                            checked={autoAnalysisEnabled}
-                            onCheckedChange={handleAutoAnalysisEnabledChange}
+                            id="sync-enabled"
+                            checked={syncEnabled}
+                            onCheckedChange={handleSyncEnabledChange}
                         />
                     </div>
 
-                    {/* Intervalo de análisis */}
-                    {autoAnalysisEnabled && (
-                        <div className="flex items-center justify-between space-x-4 pl-4 border-l-2">
-                            <div className="space-y-0.5 flex-1">
-                                <Label htmlFor="auto-analysis-interval" className="text-xs">
-                                    Intervalo (minutos)
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Cada cuántos minutos analizar
-                                </p>
-                            </div>
-                            <Input
-                                id="auto-analysis-interval"
-                                type="number"
-                                min="1"
-                                placeholder="5"
-                                className="h-8 text-sm w-20"
-                                value={autoAnalysisInterval}
-                                onChange={(e) => handleAutoAnalysisIntervalChange(parseInt(e.target.value) || 1)}
-                            />
-                        </div>
-                    )}
-
-                    {/* Sync automático */}
-                    {autoAnalysisEnabled && (
-                        <div className="flex items-center justify-between space-x-2 pl-4 border-l-2">
-                            <div className="space-y-0.5">
-                                <Label htmlFor="auto-sync-enabled" className="text-xs">
-                                    Sync Automático
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    Ejecutar sync automáticamente tras análisis (si hay cambios)
-                                </p>
-                            </div>
-                            <Switch
-                                id="auto-sync-enabled"
-                                checked={autoSyncEnabled}
-                                onCheckedChange={handleAutoSyncEnabledChange}
-                            />
-                        </div>
-                    )}
-
-                    {/* Evitar sync durante partido */}
-                    {autoAnalysisEnabled && (
-                        <div className="flex items-center justify-between space-x-2 pl-4 border-l-2">
-                            <div className="space-y-0.5">
-                                <Label htmlFor="skip-sync-during-match" className="text-xs">
-                                    Evitar Sync Durante Partido
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                    No ejecutar sync automático si hay un partido en curso
-                                </p>
-                            </div>
-                            <Switch
-                                id="skip-sync-during-match"
-                                checked={skipSyncDuringMatch}
-                                onCheckedChange={handleSkipSyncDuringMatchChange}
-                            />
-                        </div>
-                    )}
-
-                    {/* Resolver conflictos automáticamente */}
-                    <div className="flex items-center justify-between space-x-2">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="auto-resolve-conflicts" className="text-xs">
-                                Resolver Conflictos Automáticamente
+                    {/* Intervalo */}
+                    <div className="flex items-center justify-between space-x-4 pl-4 border-l-2">
+                        <div className="space-y-0.5 flex-1">
+                            <Label htmlFor="sync-interval" className="text-xs">
+                                Intervalo (minutos)
                             </Label>
                             <p className="text-xs text-muted-foreground">
-                                Sincronizar incluso si hay conflictos (local gana)
+                                Cada cuántos minutos sincronizar
                             </p>
                         </div>
-                        <Switch
-                            id="auto-resolve-conflicts"
-                            checked={autoResolveConflicts}
-                            onCheckedChange={handleAutoResolveConflictsChange}
-                        />
-                    </div>
-
-                    {/* Sync al guardar torneo */}
-                    <div className="flex items-center justify-between space-x-2">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="sync-after-summary-edit" className="text-xs">
-                                Sync al Guardar Torneo
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                                Ejecutar sync al guardar torneo (incluye finalizar partido y editar summaries)
-                            </p>
-                        </div>
-                        <Switch
-                            id="sync-after-summary-edit"
-                            checked={syncAfterSummaryEdit}
-                            onCheckedChange={handleSyncAfterSummaryEditChange}
+                        <Input
+                            id="sync-interval"
+                            type="number"
+                            min="1"
+                            placeholder="3"
+                            className="h-8 text-sm w-20"
+                            value={syncIntervalMinutes}
+                            onChange={(e) => handleSyncIntervalChange(parseInt(e.target.value) || 3)}
                         />
                     </div>
                 </div>

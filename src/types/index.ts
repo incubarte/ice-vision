@@ -512,12 +512,9 @@ export interface ConfigFields { // Interface for easier picking of fields
   playoffBracketHighlightStyle: PlayoffBracketHighlightStyle;
   showShotsData: boolean;
   enableOlympiaTransition: boolean;
-  // Auto-sync configuration
-  autoSyncAnalysisIntervalMinutes: number;
-  autoSyncEnabled: boolean;
-  autoSyncResolveConflicts: boolean;
-  autoSyncSkipDuringMatch: boolean;
-  autoSyncAfterSummaryEdit: boolean; // Triggers after saving tournament (includes match finish + summary edits)
+  // Sync configuration
+  syncEnabled: boolean;        // Upload changes to Supabase (only when dirty, only in local mode)
+  syncIntervalMinutes: number; // How often to check and sync (default: 3)
   enableLiveSync: boolean; // Backup: Upload live.json from local storage to Supabase when clock stops (only works in local mode)
   showPlayerPhotosInGoalCelebration: boolean; // Show player photos during goal celebrations
   // Roster presentation configuration

@@ -20,8 +20,7 @@ let syncInProgress = false;
  */
 export async function triggerSync(
     config: ConfigState,
-    trigger: 'after-summary-edit',
-    isMatchInProgress?: boolean
+    trigger: 'after-summary-edit'
 ): Promise<{ executed: boolean; message: string; filesSync: number }> {
     if (syncInProgress) {
         console.log('[Sync Trigger] Already running — skipping');
@@ -30,16 +29,8 @@ export async function triggerSync(
 
     syncInProgress = true;
     try {
-        // Check if this trigger is enabled
-        if (trigger === 'after-summary-edit' && !config.autoSyncAfterSummaryEdit) {
-            console.log('[Sync Trigger] After-summary-edit sync disabled in config');
-            return { executed: false, message: 'Sync tras guardar torneo desactivado', filesSync: 0 };
-        }
-
-        // Check if we should skip during match
-        if (config.autoSyncSkipDuringMatch && isMatchInProgress) {
-            console.log('[Sync Trigger] Skipping sync - match in progress');
-            return { executed: false, message: 'Sync omitido: partido en curso', filesSync: 0 };
+        if (!config.syncEnabled) {
+            return { executed: false, message: 'Sync desactivado en config', filesSync: 0 };
         }
 
         console.log(`[Sync Trigger] Executing sync triggered by: ${trigger}`);
@@ -49,23 +40,13 @@ export async function triggerSync(
 
         const totalChanges = analysis.summary.uploadCount + analysis.summary.downloadCount;
 
-        // 2. Check if there are changes
+        // 2. Nothing to do
         if (totalChanges === 0) {
             console.log('[Sync Trigger] No changes to sync');
             return { executed: false, message: 'Sin cambios para sincronizar', filesSync: 0 };
         }
 
-        // 3. Check if there are conflicts and auto-resolve is disabled
-        if (analysis.summary.conflictCount > 0 && !config.autoSyncResolveConflicts) {
-            console.log('[Sync Trigger] Conflicts detected but auto-resolve disabled');
-            return {
-                executed: false,
-                message: `${analysis.summary.conflictCount} conflictos detectados - sync omitido`,
-                filesSync: 0
-            };
-        }
-
-        // 4. Execute sync (excluding live.json and other clock-driven files)
+        // 3. Execute — local always wins, conflicts auto-resolved
         const result = await executeSync(analysis, {
             strategy: 'local-wins',
             trigger,

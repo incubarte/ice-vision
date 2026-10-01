@@ -175,6 +175,7 @@ export const getInitialState = (): GameState => {
       showShotsData: IN_CODE_INITIAL_SHOW_SHOTS_DATA,
       enableOlympiaTransition: IN_CODE_INITIAL_ENABLE_OLYMPIA_TRANSITION,
       enableLiveSync: IN_CODE_INITIAL_ENABLE_LIVE_SYNC,
+      enableMatchExpulsion: true,
       showPlayerPhotosInGoalCelebration: false,
       showRosterPresentation: true,
       rosterPresentationDuration: 30,
@@ -187,12 +188,9 @@ export const getInitialState = (): GameState => {
       selectedScoreboardLayoutProfileId: defaultInitialLayoutProfile.id,
       tunnel: IN_CODE_INITIAL_TUNNEL_STATE,
       replays: IN_CODE_INITIAL_REPLAYS_SETTINGS,
-      // Auto-sync defaults
-      autoSyncAnalysisIntervalMinutes: 0,
-      autoSyncEnabled: false,
-      autoSyncResolveConflicts: false,
-      autoSyncSkipDuringMatch: true,
-      autoSyncAfterSummaryEdit: false,
+      // Sync defaults
+      syncEnabled: true,
+      syncIntervalMinutes: 3,
     },
     tournament: {
       tournaments: [],

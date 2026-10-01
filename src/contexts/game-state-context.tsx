@@ -370,9 +370,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [processPendingSyncs]);
 
-  // Periodic manifest sync: every 3 minutes + on reconnect, fire sync-trigger.
+  // Periodic manifest sync: every syncIntervalMinutes + on reconnect, fire sync-trigger.
   // Writes only mark the dirty flag; this timer is what actually uploads to Supabase.
   // The server-side semaphore in triggerSync prevents concurrent runs.
+  const syncIntervalMinutes = state.config.syncIntervalMinutes ?? 3;
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return;
     if (!process.env.NEXT_PUBLIC_LOCAL_MODE) return;
@@ -385,7 +386,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
       }).catch(err => console.error('[PeriodicSync] Failed:', err));
     };
 
-    const interval = setInterval(runSync, 3 * 60 * 1000);
+    const interval = setInterval(runSync, syncIntervalMinutes * 60 * 1000);
     if (typeof window !== 'undefined') {
       window.addEventListener('online', runSync);
     }
@@ -395,7 +396,8 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
         window.removeEventListener('online', runSync);
       }
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncIntervalMinutes]);
 
   return (
     <GameStateContext.Provider value={{ state, dispatch, isLoading, triggerSync: processPendingSyncs, refreshTournament }}>
