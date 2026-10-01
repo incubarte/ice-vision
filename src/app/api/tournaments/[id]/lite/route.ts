@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readTournament, readTournaments } from '@/lib/data-access';
+import { readTournament, readTournaments, readMatchResultsFromSummaries } from '@/lib/data-access';
 import { readTournamentCache, writeTournamentCache, isTournamentCacheFresh } from '@/lib/tournament-cache-store';
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
@@ -90,18 +90,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     // Non-LOCAL_MODE: read from storageProvider (Supabase in cloud deployments)
     try {
-        const tournamentDetails = await readTournament(tournamentId, { includeSummaries: false });
+        const [tournamentDetails, tournamentsData, matchResults] = await Promise.all([
+            readTournament(tournamentId, { includeSummaries: false }),
+            readTournaments(),
+            readMatchResultsFromSummaries(tournamentId),
+        ]);
 
         if (!tournamentDetails) {
-            const tournamentsData = await readTournaments();
             const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
             if (!tournamentMeta) {
                 return NextResponse.json({ message: `Tournament ${tournamentId} not found` }, { status: 404 });
             }
-            return NextResponse.json({ tournament: { ...tournamentMeta, teams: [], categories: [], clubs: [], matches: [] } });
+            return NextResponse.json({ tournament: { ...tournamentMeta, teams: [], categories: [], clubs: [], matches: [] }, matchResults: {} });
         }
 
-        const tournamentsData = await readTournaments();
         const tournamentMeta = (tournamentsData?.tournaments || []).find((t: any) => t.id === tournamentId);
 
         return NextResponse.json({
@@ -113,6 +115,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                 categories: tournamentDetails.categories || [],
                 matches: tournamentDetails.matches || [],
             },
+            matchResults,
         });
     } catch (error) {
         if (error instanceof Error) {

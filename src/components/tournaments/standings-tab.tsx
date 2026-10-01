@@ -17,7 +17,8 @@ import { es } from 'date-fns/locale';
 import { HockeyPuckSpinner } from '@/components/ui/hockey-puck-spinner';
 
 const StandingsTable = ({ categoryName, categoryId, tournament }: { categoryName: string, categoryId: string, tournament: any }) => {
-    const stats = useStandings(tournament, categoryId);
+    const { state } = useGameState();
+    const stats = useStandings(tournament, categoryId, state.tournament.matchResults);
     const [isExpanded, setIsExpanded] = useState(false);
 
     if (stats.length === 0) {
@@ -254,7 +255,8 @@ function getWinnerTeam(match: MatchData, tournament: Tournament, standings: any[
 }
 
 const PlayoffBracket = ({ categoryName, categoryId, tournament }: { categoryName: string, categoryId: string, tournament: Tournament }) => {
-    const standings = useStandings(tournament, categoryId);
+    const { state } = useGameState();
+    const standings = useStandings(tournament, categoryId, state.tournament.matchResults);
 
     // Verificar si la clasificación está completa
     const classificationStatus = useMemo(() =>
@@ -593,7 +595,8 @@ const Playoff58Bracket = ({ categoryId, tournament, miniTournamentName }: {
     tournament: Tournament;
     miniTournamentName: string;
 }) => {
-    const standings = useStandings(tournament, categoryId);
+    const { state } = useGameState();
+    const standings = useStandings(tournament, categoryId, state.tournament.matchResults);
 
     const classificationStatus = useMemo(() =>
         isClassificationComplete(tournament, categoryId),
@@ -844,7 +847,8 @@ const RelegationTable = ({ categoryName, categoryId, tournament }: {
     categoryId: string;
     tournament: Tournament;
 }) => {
-    const stats = useRelegationStandings(tournament, categoryId, 4);
+    const { state } = useGameState();
+    const stats = useRelegationStandings(tournament, categoryId, 4, state.tournament.matchResults);
     const [isExpanded, setIsExpanded] = useState(false);
 
     if (stats.length === 0) return null;

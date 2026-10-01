@@ -380,8 +380,10 @@ export function FixtureCalendarView({ tournamentId }: FixtureCalendarViewProps =
                     const isFinal = isPlayoff && match.playoffType === 'final';
                     const isSemifinal = isPlayoff && match.playoffType === 'semifinal';
                     const is3erPuesto = isPlayoff && match.playoffType === '3er-puesto';
-                    const scores = match.result
-                        ? { home: match.result.homeScore, away: match.result.awayScore }
+                    const derivedResult = state.tournament.matchResults?.[match.id];
+                    const effectiveResult = derivedResult || match.result;
+                    const scores = effectiveResult
+                        ? { home: effectiveResult.homeScore, away: effectiveResult.awayScore }
                         : match.summary ? calculateScoreFromSummary(match.summary) : null;
 
                     const isHighlighted = filteredMatchIds ? filteredMatchIds.has(match.id) : true;
@@ -499,11 +501,13 @@ export function FixtureCalendarView({ tournamentId }: FixtureCalendarViewProps =
                 </div>
               </div>
 
-              {(selectedMatch.result || selectedMatch.summary) && (() => {
-                const scores = selectedMatch.result
-                    ? { home: selectedMatch.result.homeScore, away: selectedMatch.result.awayScore }
+              {(state.tournament.matchResults?.[selectedMatch.id] || selectedMatch.result || selectedMatch.summary) && (() => {
+                const derivedSelectedResult = state.tournament.matchResults?.[selectedMatch.id];
+                const effectiveSelectedResult = derivedSelectedResult || selectedMatch.result;
+                const scores = effectiveSelectedResult
+                    ? { home: effectiveSelectedResult.homeScore, away: effectiveSelectedResult.awayScore }
                     : calculateScoreFromSummary(selectedMatch.summary!);
-                const resultType = selectedMatch.result?.resultType;
+                const resultType = effectiveSelectedResult?.resultType;
                 return (
                   <div className="space-y-1">
                     <div className="text-sm text-muted-foreground">Resultado</div>

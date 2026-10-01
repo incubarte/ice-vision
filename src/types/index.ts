@@ -702,6 +702,8 @@ export interface TournamentState {
   selectedTournamentId: string | null;
   selectedMatchCategory: string;
   offlineMode?: boolean;        // true when activeTournament loaded from cache
+  /** Derived from summaries server-side. Source of truth for standings and result display. */
+  matchResults?: Record<string, MatchResult>;
 }
 
 export interface ConfigState extends Omit<FormatAndTimingsProfileData, 'id' | 'name'>, ConfigFields {
@@ -1039,6 +1041,7 @@ export type GameAction =
   | { type: 'CLEAR_PENDING_SUMMARY_GENERATION' }
   | { type: 'LOAD_PENDING_SYNCS'; payload: PendingSync[] }
   | { type: 'ADD_PENDING_SYNC'; payload: PendingSync }
+  | { type: 'SET_MATCH_RESULTS'; payload: Record<string, MatchResult> }
   | { type: 'RESOLVE_SYNC'; payload: { id: string } }
   | { type: 'SYNC_ATTEMPT_FAILED'; payload: { id: string; error: string } }
   | { type: 'SET_OFFLINE_MODE'; payload: boolean }

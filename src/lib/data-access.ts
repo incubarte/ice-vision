@@ -1,5 +1,5 @@
 import type { ConfigState, LiveState, MatchData, Tournament, GameSummary, TournamentsData, ShotsMetrics, PreMatchData, MatchResult } from '@/types';
-import { calculateScoreFromSummary } from '@/lib/match-helpers';
+import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 import { storageProvider } from './storage';
 import { FileNotFoundError, StorageProvider } from './storage/providers';
 import { updateManifestEntry } from './sync-manifest';
@@ -121,6 +121,10 @@ export async function readTournament(
         const partialTournament: Partial<Tournament> = { ...teamsData, ...fixtureData };
 
         if (partialTournament.matches && includeSummaries) {
+            // TODO: remove migratedMatchIds and write-back block after new persistence model is deployed to prod
+            const migratedMatchIds = new Set<string>();
+            const now = new Date();
+
             const matchSummaryPromises = partialTournament.matches.map(async (match: MatchData) => {
                 const summaryKey = `${tournamentPrefix}summaries/${match.id}.json`;
                 const summary = await readJsonFile<GameSummary>(summaryKey);
@@ -129,12 +133,19 @@ export async function readTournament(
                 if (!result && summary) {
                     try {
                         const scores = calculateScoreFromSummary(summary);
+                        const wentToOT = hasOvertimeOrShootout(summary);
+                        const hadShootout = !!(summary.shootout &&
+                            (summary.shootout.homeAttempts.length > 0 || summary.shootout.awayAttempts.length > 0));
                         result = {
                             homeScore: scores.home,
                             awayScore: scores.away,
-                            resultType: 'regulation' as const,
+                            resultType: hadShootout ? 'shootout' : wentToOT ? 'overtime' : 'regulation',
                             finishedAt: (summary as any)?.endedAt || new Date().toISOString(),
                         };
+                        // Only flag past matches for write-back to avoid touching future matches
+                        if (match.date && new Date(match.date) < now) {
+                            migratedMatchIds.add(match.id);
+                        }
                     } catch { /* ignore */ }
                 }
                 // Strip summary — local app doesn't need it; result field carries what's needed
@@ -145,6 +156,22 @@ export async function readTournament(
                 return { ...matchWithoutSummary, ...(result ? { result } : {}) };
             });
             partialTournament.matches = await Promise.all(matchSummaryPromises);
+
+            // TODO: remove after new persistence model is deployed to prod
+            // Write derived results back to fixture.json so future reads don't need to re-derive
+            // (and so the incorrect hardcoded 'regulation' resultType doesn't persist)
+            if (migratedMatchIds.size > 0) {
+                try {
+                    const fixtureData = { matches: partialTournament.matches.map(m => {
+                        const { summary: _, ...rest } = m as any;
+                        return rest;
+                    })};
+                    await storageProvider.writeFile(fixtureKey, JSON.stringify(fixtureData, null, 2));
+                    console.log(`[data-access] Migrated result.resultType for ${migratedMatchIds.size} match(es) in tournament ${tournamentId}`);
+                } catch (writeErr) {
+                    console.warn('[data-access] Could not write back migrated results:', writeErr);
+                }
+            }
         } else if (partialTournament.matches) {
             // Still apply phase migration even without summaries
             partialTournament.matches = partialTournament.matches.map((match: MatchData) => ({
@@ -303,4 +330,50 @@ export async function deletePreMatchData(
     } catch {
         // Ignore — file may already be deleted
     }
+}
+
+/**
+ * Reads every match summary for a tournament and derives a lean MatchResult map.
+ * This is the authoritative source for standings and fixture result display —
+ * it bypasses fixture.json's result field which may be stale or wrong.
+ *
+ * Returns a map of matchId → MatchResult. Matches without a summary are omitted.
+ * Uses the provided provider (default: storageProvider).
+ */
+export async function readMatchResultsFromSummaries(
+    tournamentId: string,
+    provider?: StorageProvider
+): Promise<Record<string, MatchResult>> {
+    const p = provider || storageProvider;
+    const fixtureKey = `tournaments/${tournamentId}/fixture.json`;
+
+    let matchIds: string[] = [];
+    try {
+        const raw = await p.readFile(fixtureKey);
+        const fixture = JSON.parse(raw) as { matches: MatchData[] };
+        matchIds = (fixture.matches || []).map(m => m.id);
+    } catch {
+        return {};
+    }
+
+    const results: Record<string, MatchResult> = {};
+    await Promise.all(matchIds.map(async (matchId) => {
+        const summaryKey = `tournaments/${tournamentId}/summaries/${matchId}.json`;
+        try {
+            const raw = await p.readFile(summaryKey);
+            const summary = JSON.parse(raw) as GameSummary;
+            const scores = calculateScoreFromSummary(summary);
+            const hadShootout = !!(summary.shootout &&
+                (summary.shootout.homeAttempts.length > 0 || summary.shootout.awayAttempts.length > 0));
+            const wentToOT = hasOvertimeOrShootout(summary);
+            results[matchId] = {
+                homeScore: scores.home,
+                awayScore: scores.away,
+                resultType: hadShootout ? 'shootout' : wentToOT ? 'overtime' : 'regulation',
+                finishedAt: (summary as any)?.endedAt || new Date().toISOString(),
+            };
+        } catch { /* no summary for this match */ }
+    }));
+
+    return results;
 }

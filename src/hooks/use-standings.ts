@@ -2,11 +2,25 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { Tournament, TeamData, CategoryData, MatchPhase, MatchData, MatchResultType } from '@/types';
+import type { Tournament, MatchPhase, MatchData, MatchResult, MatchResultType } from '@/types';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 import { getTeamDisplayName } from '@/lib/utils';
 
-function getMatchScore(match: MatchData): { home: number; away: number; resultType: MatchResultType; wentToOTOrSO: boolean } | null {
+function getMatchScore(
+  match: MatchData,
+  matchResults?: Record<string, MatchResult>
+): { home: number; away: number; resultType: MatchResultType; wentToOTOrSO: boolean } | null {
+  // 1. Server-derived results (from summaries) — most authoritative
+  const derived = matchResults?.[match.id];
+  if (derived) {
+    return {
+      home: derived.homeScore,
+      away: derived.awayScore,
+      resultType: derived.resultType,
+      wentToOTOrSO: derived.resultType !== 'regulation',
+    };
+  }
+  // 2. Stored result in fixture
   if (match.result) {
     return {
       home: match.result.homeScore,
@@ -15,10 +29,18 @@ function getMatchScore(match: MatchData): { home: number; away: number; resultTy
       wentToOTOrSO: match.result.resultType !== 'regulation',
     };
   }
+  // 3. Inline summary (legacy)
   if (match.summary) {
     const scores = calculateScoreFromSummary(match.summary);
     const wentToOTOrSO = hasOvertimeOrShootout(match.summary);
-    return { home: scores.home, away: scores.away, resultType: 'regulation', wentToOTOrSO };
+    const hadShootout = !!(match.summary.shootout &&
+      (match.summary.shootout.homeAttempts.length > 0 || match.summary.shootout.awayAttempts.length > 0));
+    return {
+      home: scores.home,
+      away: scores.away,
+      resultType: hadShootout ? 'shootout' : wentToOTOrSO ? 'overtime' : 'regulation',
+      wentToOTOrSO,
+    };
   }
   return null;
 }
@@ -42,10 +64,11 @@ export interface TeamStats {
 function computeStandings(
   tournament: Tournament,
   categoryId: string,
-  phase: MatchPhase
+  phase: MatchPhase,
+  matchResults?: Record<string, MatchResult>
 ): (TeamStats & { rank: number })[] {
   const finishedMatches = (tournament.matches || []).filter(m =>
-    (m.result || m.summary) &&
+    (matchResults?.[m.id] || m.result || m.summary) &&
     m.categoryId === categoryId &&
     m.phase === phase
   );
@@ -69,7 +92,7 @@ function computeStandings(
     finishedMatches
       .filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id)
       .forEach(match => {
-        const score = getMatchScore(match);
+        const score = getMatchScore(match, matchResults);
         if (!score) return;
         teamStats.pj++;
         const { home: homeGoals, away: awayGoals, wentToOTOrSO } = score;
@@ -119,13 +142,17 @@ function computeStandings(
   return rankedStats;
 }
 
-export function useStandings(tournament: Tournament | null | undefined, categoryId: string) {
+export function useStandings(
+  tournament: Tournament | null | undefined,
+  categoryId: string,
+  matchResults?: Record<string, MatchResult>
+) {
   const standings = useMemo(() => {
     if (!tournament || !categoryId) return [];
 
     // Solo considerar partidos de fase de clasificación para la tabla de posiciones
     const finishedMatches = (tournament.matches || []).filter(m =>
-      (m.result || m.summary) &&
+      (matchResults?.[m.id] || m.result || m.summary) &&
       m.categoryId === categoryId &&
       m.phase === 'clasificacion'
     );
@@ -141,7 +168,7 @@ export function useStandings(tournament: Tournament | null | undefined, category
         finishedMatches
           .filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id)
           .forEach(match => {
-            const score = getMatchScore(match);
+            const score = getMatchScore(match, matchResults);
             if (!score) return;
 
             teamStats.pj++;
@@ -205,7 +232,7 @@ export function useStandings(tournament: Tournament | null | undefined, category
 
       return rankedStats;
 
-  }, [tournament, categoryId]);
+  }, [tournament, categoryId, matchResults]);
 
   return standings;
 }
@@ -220,11 +247,12 @@ export function useStandings(tournament: Tournament | null | undefined, category
 export function useRelegationStandings(
   tournament: Tournament | null | undefined,
   categoryId: string,
-  positionOffset: number = 4
+  positionOffset: number = 4,
+  matchResults?: Record<string, MatchResult>
 ): (TeamStats & { rank: number; displayRank: number })[] {
   return useMemo(() => {
     if (!tournament || !categoryId) return [];
-    const base = computeStandings(tournament, categoryId, 'relegation');
+    const base = computeStandings(tournament, categoryId, 'relegation', matchResults);
     return base.map(t => ({ ...t, displayRank: t.rank + positionOffset }));
-  }, [tournament, categoryId, positionOffset]);
+  }, [tournament, categoryId, positionOffset, matchResults]);
 }

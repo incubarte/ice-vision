@@ -53,7 +53,7 @@ export function StandingsDisplay() {
     return { homeTeamId: homeTeam.id, awayTeamId: awayTeam.id };
   }, [currentMatch, currentTournament, homeTeamName, awayTeamName, homeTeamSubName, awayTeamSubName, selectedMatchCategory]);
   
-  const standings = useStandings(currentTournament, selectedMatchCategory);
+  const standings = useStandings(currentTournament, selectedMatchCategory, state.tournament.matchResults);
 
   const displayedStandings = useMemo(() => {
     if (!teamIds) {

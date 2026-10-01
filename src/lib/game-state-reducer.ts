@@ -2477,6 +2477,10 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = { ...state, _pendingSyncs: [...(state._pendingSyncs || []), action.payload] };
       break;
     }
+    case 'SET_MATCH_RESULTS': {
+      newState = { ...state, tournament: { ...state.tournament, matchResults: action.payload } };
+      break;
+    }
     case 'RESOLVE_SYNC': {
       newState = { ...state, _pendingSyncs: (state._pendingSyncs || []).filter(s => s.id !== action.payload.id) };
       break;

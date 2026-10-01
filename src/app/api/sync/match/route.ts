@@ -170,6 +170,14 @@ export async function POST(request: NextRequest) {
       matches: updatedMatches,
     };
     await writeTournament(updatedTournament, provider);
+
+    // Verify the result was actually persisted before claiming success.
+    const verifyTournament = await readTournament(tournamentId);
+    const verifiedMatch = (verifyTournament?.matches || []).find(m => m.id === matchId);
+    if (!verifiedMatch?.result) {
+      console.error(`[sync/match] Write verification failed: result for match ${matchId} not found after write`);
+      return NextResponse.json({ success: false, error: 'Write verification failed: result not persisted' }, { status: 500 });
+    }
     console.log(`[sync/match] Tournament ${tournamentId} updated`);
 
     // 8. Trigger cloud sync (fire-and-forget)

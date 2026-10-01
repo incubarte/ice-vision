@@ -1,10 +1,21 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { Tournament, MatchData, MatchResultType } from '@/types';
+import type { Tournament, MatchData, MatchResult } from '@/types';
 import { calculateScoreFromSummary, hasOvertimeOrShootout } from '@/lib/match-helpers';
 
-function getMatchScore(match: MatchData): { home: number; away: number; wentToOTOrSO: boolean } | null {
+function getMatchScore(
+  match: MatchData,
+  matchResults?: Record<string, MatchResult>
+): { home: number; away: number; wentToOTOrSO: boolean } | null {
+  const derived = matchResults?.[match.id];
+  if (derived) {
+    return {
+      home: derived.homeScore,
+      away: derived.awayScore,
+      wentToOTOrSO: derived.resultType !== 'regulation',
+    };
+  }
   if (match.result) {
     return {
       home: match.result.homeScore,
@@ -42,13 +53,14 @@ interface TeamStatsWithChange extends TeamStats {
 function calculateStandings(
   tournament: Tournament | null | undefined,
   categoryId: string,
+  matchResults?: Record<string, MatchResult>,
   excludeMatchId?: string
 ): TeamStats[] {
   if (!tournament || !categoryId) return [];
 
   const finishedMatches = (tournament.matches || [])
     .filter(m =>
-      (m.result || m.summary) &&
+      (matchResults?.[m.id] || m.result || m.summary) &&
       m.categoryId === categoryId &&
       m.phase === 'clasificacion'
     )
@@ -66,7 +78,7 @@ function calculateStandings(
     finishedMatches
       .filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id)
       .forEach(match => {
-        const score = getMatchScore(match);
+        const score = getMatchScore(match, matchResults);
         if (!score) return;
 
         teamStats.pj++;
@@ -133,12 +145,13 @@ function calculateStandings(
 export function useStandingsWithChanges(
   tournament: Tournament | null | undefined,
   categoryId: string,
-  currentMatchId?: string
+  currentMatchId?: string,
+  matchResults?: Record<string, MatchResult>
 ): TeamStatsWithChange[] {
   const standingsWithChanges = useMemo(() => {
     if (!tournament || !categoryId || !currentMatchId) {
       // If no current match, just return current standings without changes
-      const current = calculateStandings(tournament, categoryId);
+      const current = calculateStandings(tournament, categoryId, matchResults);
       return current.map(team => ({
         ...team,
         positionChange: 'same' as const,
@@ -147,10 +160,10 @@ export function useStandingsWithChanges(
     }
 
     // Calculate standings BEFORE this match (excluding current match)
-    const standingsBefore = calculateStandings(tournament, categoryId, currentMatchId);
+    const standingsBefore = calculateStandings(tournament, categoryId, matchResults, currentMatchId);
 
     // Calculate standings AFTER this match (including current match)
-    const standingsAfter = calculateStandings(tournament, categoryId);
+    const standingsAfter = calculateStandings(tournament, categoryId, matchResults);
 
     // Create a map of previous ranks
     const previousRanks = new Map<string, number>();
@@ -175,7 +188,7 @@ export function useStandingsWithChanges(
         previousRank
       };
     });
-  }, [tournament, categoryId, currentMatchId]);
+  }, [tournament, categoryId, currentMatchId, matchResults]);
 
   return standingsWithChanges;
 }

@@ -94,7 +94,7 @@ export function AddEditMatchDialog({ isOpen, onOpenChange, tournament, matchToEd
     }, [categoryId, tournament]);
 
     // Standings de clasificación — necesarios para filtrar equipos por posición
-    const standings = useStandings(tournament, categoryId);
+    const standings = useStandings(tournament, categoryId, state.tournament.matchResults);
 
     // ¿Hay partidos de clasificación jugados? Si no, no podemos derivar posiciones
     const hasClassificationData = standings.length > 0 && standings.some(s => s.pj > 0);

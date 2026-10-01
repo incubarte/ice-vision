@@ -38,6 +38,7 @@ import { ChevronDown } from "lucide-react";
 import { FolderFileList } from "@/components/sync/folder-file-list";
 import { RemoteFileManager } from "@/components/sync/remote-file-manager";
 import { PendingSyncsCard } from "@/components/sync/pending-syncs-card";
+import { SyncKeyCard } from "@/components/sync/sync-key-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -2045,13 +2046,22 @@ function SyncHistoryCard({ tournaments }: { tournaments: Tournament[] }) {
 function MigrateResultsCard() {
     const { toast } = useToast();
     const [isRunning, setIsRunning] = useState(false);
-    const [report, setReport] = useState<{ tournamentId: string; migrated: number; skipped: number }[] | null>(null);
+    const [report, setReport] = useState<{ tournamentId: string; migrated: number; corrected: number; skipped: number; errors: number }[] | null>(null);
 
     const handleMigrate = async () => {
         setIsRunning(true);
         setReport(null);
         try {
-            const res = await fetch('/api/migrate/derive-results', { method: 'POST' });
+            const syncKey = localStorage.getItem('cloudSyncKey');
+            const adminRaw = localStorage.getItem('adminAccess');
+            let adminSecret = syncKey;
+            if (!adminSecret && adminRaw) {
+                try { const p = JSON.parse(adminRaw); if (p.expiresAt > Date.now()) adminSecret = p.secret; } catch { /* ignore */ }
+            }
+            const res = await fetch('/api/migrate/derive-results', {
+                method: 'POST',
+                headers: { ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}) },
+            });
             const data = await res.json();
             if (data.success) {
                 setReport(data.report);
@@ -2084,7 +2094,7 @@ function MigrateResultsCard() {
                         {report.map(r => (
                             <div key={r.tournamentId}>
                                 <span className="font-mono">{r.tournamentId.slice(0, 8)}…</span>
-                                {' — '}{r.migrated} migrados, {r.skipped} sin summary
+                                {' — '}{r.migrated} nuevos, {r.corrected} corregidos, {r.skipped} sin summary{r.errors > 0 ? `, ${r.errors} errores` : ''}
                             </div>
                         ))}
                     </div>
@@ -2500,6 +2510,7 @@ export default function AdminPage() {
 
             {/* SYNC 2.0 TAB */}
             <TabsContent value="sync2" className="space-y-6 mt-6">
+                <SyncKeyCard />
                 <PendingSyncsCard />
                 <MigrateResultsCard />
             </TabsContent>

@@ -42,6 +42,14 @@ export async function POST(request: NextRequest) {
     const provider = isAdminRequest ? createAdminStorageProvider() : undefined;
     await writeTournament({ ...tournament, matches: updatedMatches } as any, provider);
 
+    // Verify the write actually persisted before claiming success.
+    const verifyTournament = await readTournament(tournamentId);
+    const verified = (verifyTournament?.matches || []).some(m => m.id === match.id);
+    if (!verified) {
+      console.error(`[Sync/AddMatch] Write verification failed: match ${match.id} not found after write`);
+      return NextResponse.json({ success: false, error: 'Write verification failed: match not persisted' }, { status: 500 });
+    }
+
     console.log(`[Sync/AddMatch] Match ${match.id} ${alreadyExists ? 'updated' : 'added'} in tournament ${tournamentId}`);
     return NextResponse.json({ success: true, upserted: match.id, wasUpdate: alreadyExists });
   } catch (error) {

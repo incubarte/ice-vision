@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const DEFAULT_RESOLUTION = 2000;
+const DEFAULT_RESOLUTION = 2500;
 const MIN_RESOLUTION = 800;
 const MAX_RESOLUTION = 4000;
 

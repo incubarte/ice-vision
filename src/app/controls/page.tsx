@@ -758,6 +758,11 @@ export default function ControlsPage() {
   const [localPort, setLocalPort] = useState<string>('');
   const [isConnectingTunnel, setIsConnectingTunnel] = useState(false);
   const [isShootoutConfirmOpen, setIsShootoutConfirmOpen] = useState(false);
+  const [hasSyncKey, setHasSyncKey] = useState(true);
+
+  useEffect(() => {
+    setHasSyncKey(!!localStorage.getItem('cloudSyncKey'));
+  }, []);
 
   const stateRef = useRef(state);
   useEffect(() => {
@@ -1281,9 +1286,24 @@ export default function ControlsPage() {
 
   const stuckSyncs = (state._pendingSyncs || []).filter(s => s.attempts >= 3);
   const showSyncErrorBanner = stuckSyncs.length > 0 && !state.tournament.offlineMode;
+  const showMissingKeyBanner = !hasSyncKey && !state.tournament.offlineMode;
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8">
+      {showMissingKeyBanner && (
+        <div className="p-4 rounded-lg bg-amber-600 text-white border-2 border-amber-400 shadow-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-6 w-6 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-bold">Clave de sync no configurada</p>
+              <p className="mt-0.5 text-amber-100 text-sm">
+                El sistema no puede sincronizar partidos ni jugadores con la nube hasta que se configure la clave de Vercel.
+                Ir a <strong>Admin → Sync 2.0</strong> para configurarla.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {showSyncErrorBanner && (
         <div className="p-5 rounded-lg bg-red-600 text-white border-2 border-red-400 shadow-lg">
           <div className="flex items-start gap-4">

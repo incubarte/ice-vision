@@ -302,7 +302,7 @@ export function Header() {
         <div className="flex flex-1 items-center justify-end space-x-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="hidden md:flex items-center gap-2 text-sm text-amber-400 mr-4 hover:text-amber-300 transition-colors">
+                <Button suppressHydrationWarning variant="ghost" className="hidden md:flex items-center gap-2 text-sm text-amber-400 mr-4 hover:text-amber-300 transition-colors">
                   {selectedTournament ? (
                       <>
                         <TournamentLogo tournamentId={selectedTournament.id} size={48} />

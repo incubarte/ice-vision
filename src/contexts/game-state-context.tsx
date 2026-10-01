@@ -164,7 +164,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
       if (data.tournament) {
         dispatch({ type: 'LOAD_TOURNAMENT_CONTEXT', payload: { tournamentData: data.tournament } });
         dispatch({ type: 'SET_OFFLINE_MODE', payload: false });
-        console.log(`[GameState] Tournament ${tournamentId} loaded${force ? ' (forced)' : ''}`);
+        if (data.matchResults) {
+          dispatch({ type: 'SET_MATCH_RESULTS', payload: data.matchResults });
+        }
+        console.log(`[GameState] Tournament ${tournamentId} loaded${force ? ' (forced)' : ''}, ${Object.keys(data.matchResults || {}).length} match results`);
       }
     } catch (error) {
       console.error('[GameState] Error fetching tournament details:', error);
@@ -276,6 +279,11 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
 
   function readAdminSecretFromStorage(): string | null {
     if (typeof window === 'undefined') return null;
+    // Prefer the dedicated cloud sync key over the admin session secret
+    try {
+      const syncKey = localStorage.getItem('cloudSyncKey');
+      if (syncKey) return syncKey;
+    } catch { /* ignore */ }
     try {
       const raw = localStorage.getItem('adminAccess');
       if (!raw) return null;
@@ -321,14 +329,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
           } else if (sync.payload.type === 'SYNC_MATCH') {
             const { matchId, tournamentId, result, liveSnapshot } = sync.payload;
             const adminSecret = readAdminSecretFromStorage();
-            const cloudUrl = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
-            const res = await fetch(`${cloudUrl}/api/sync/match`, {
+            const res = await fetch('/api/cloud-relay', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
-              },
-              body: JSON.stringify({ matchId, tournamentId, result, liveSnapshot }),
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: '/api/sync/match', payload: { matchId, tournamentId, result, liveSnapshot }, adminSecret }),
             });
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
@@ -337,14 +341,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
           } else if (sync.payload.type === 'SYNC_STAFF') {
             const { tournamentId, staff } = sync.payload;
             const adminSecret = readAdminSecretFromStorage();
-            const cloudUrl = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
-            const res = await fetch(`${cloudUrl}/api/sync/staff`, {
+            const res = await fetch('/api/cloud-relay', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
-              },
-              body: JSON.stringify({ tournamentId, staff }),
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: '/api/sync/staff', payload: { tournamentId, staff }, adminSecret }),
             });
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
@@ -353,14 +353,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
           } else if (sync.payload.type === 'ADD_MATCH') {
             const { tournamentId, match } = sync.payload;
             const adminSecret = readAdminSecretFromStorage();
-            const cloudUrl = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
-            const res = await fetch(`${cloudUrl}/api/sync/add-match`, {
+            const res = await fetch('/api/cloud-relay', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
-              },
-              body: JSON.stringify({ tournamentId, match }),
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: '/api/sync/add-match', payload: { tournamentId, match }, adminSecret }),
             });
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
@@ -369,14 +365,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
           } else if (sync.payload.type === 'SYNC_TEAM_PLAYERS') {
             const { tournamentId, teamId, players } = sync.payload;
             const adminSecret = readAdminSecretFromStorage();
-            const cloudUrl = process.env.NEXT_PUBLIC_CLOUD_ADMIN_URL || 'https://ice-vision.vercel.app';
-            const res = await fetch(`${cloudUrl}/api/sync/team-players`, {
+            const res = await fetch('/api/cloud-relay', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
-              },
-              body: JSON.stringify({ tournamentId, teamId, players }),
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: '/api/sync/team-players', payload: { tournamentId, teamId, players }, adminSecret }),
             });
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
