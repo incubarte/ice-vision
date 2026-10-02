@@ -305,7 +305,10 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{stat.categoryName}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{stat.teamName}</TableCell>
+                      <TableCell className="text-sm">
+                        <div>{stat.teamName}</div>
+                        {stat.teamSubName && <div className="text-xs text-muted-foreground">{stat.teamSubName}</div>}
+                      </TableCell>
                       <TableCell className="text-center font-mono">{stat.goals}</TableCell>
                       <TableCell className="text-center font-mono">{stat.assists}</TableCell>
                       <TableCell className="text-center font-mono">{stat.shots}</TableCell>
@@ -380,7 +383,7 @@ export function PlayerStatsTab({ tournamentId }: PlayerStatsTabProps = {}) {
                           <span className="text-sm text-muted-foreground">#{gkStat.playerNumber}</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {gkStat.teamName} • {gkStat.categoryName}
+                          {gkStat.teamName}{gkStat.teamSubName ? ` - ${gkStat.teamSubName}` : ''} • {gkStat.categoryName}
                         </p>
                       </div>
                       <div className="text-right">

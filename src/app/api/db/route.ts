@@ -4,7 +4,6 @@ import type { GameState, ConfigState, LiveState, TournamentsData, ShotsMetrics, 
 import { setGameState, setConfig, getGameState, getConfig, setTournaments, getTournaments, setShotsMetrics, getShotsMetrics } from '@/lib/server-side-store';
 import { readConfig, writeConfig, readLiveState, writeLiveState, readTournaments, writeTournaments, readShotsMetrics, writeShotsMetrics, readTournament } from '@/lib/data-access';
 import { checkAndTriggerStartupSync } from '@/lib/sync-dirty-tracker';
-import { readPendingSyncs } from '@/lib/pending-syncs-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +35,6 @@ export async function GET(request: Request) {
           selectedMatchCategory: persistedSelectedMatchCategory || '',
         },
         _initialConfigLoadComplete: false,
-        _pendingSyncs: [],
       };
       return NextResponse.json(initialState);
     } catch (error) {
@@ -54,8 +52,6 @@ export async function GET(request: Request) {
         getShotsMetrics(),
         getTournaments()
     ]);
-    const pendingSyncs = readPendingSyncs();
-
     // Server-side hydration: If a tournament is selected, load its full data
     const persistedSelectedTournamentId = (config as Record<string, unknown>)?.selectedTournamentId as string | null | undefined;
     const persistedSelectedMatchCategory = (config as Record<string, unknown>)?.selectedMatchCategory as string | undefined;
@@ -94,7 +90,6 @@ export async function GET(request: Request) {
       },
       live: mergedLiveState,
       _initialConfigLoadComplete: false,
-      _pendingSyncs: pendingSyncs,
     }
 
     return NextResponse.json(initialState);

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Mic, MicOff, Check, Trash2 } from 'lucide-react';
+import { Mic, MicOff, Check, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { sendRemoteCommand } from '@/app/actions';
 import type { PenaltyTypeDefinition } from '@/types';
 
@@ -45,25 +45,21 @@ export default function MobileShotsV2Page() {
   const [isContinuousMode, setIsContinuousMode] = useState(true);
   const [penaltyTypes, setPenaltyTypes] = useState<PenaltyTypeDefinition[]>([]);
 
-  // Load config from localStorage on mount, with defaults
-  const getInitialSilenceDuration = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('voice-config-silence-duration');
-      if (saved) return parseInt(saved);
-    }
-    return 1500;
-  };
+  const [silenceDuration, setSilenceDuration] = useState(1500);
+  const [volumeThreshold, setVolumeThreshold] = useState(25);
+  const [mobileCode, setMobileCode] = useState('');
 
-  const getInitialVolumeThreshold = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('voice-config-volume-threshold');
-      if (saved) return parseInt(saved);
-    }
-    return 25;
-  };
-
-  const [silenceDuration, setSilenceDuration] = useState(getInitialSilenceDuration());
-  const [volumeThreshold, setVolumeThreshold] = useState(getInitialVolumeThreshold());
+  // Load persisted config from localStorage after mount (avoids SSR/client hydration mismatch)
+  useEffect(() => {
+    const saved = localStorage.getItem('voice-config-silence-duration');
+    if (saved) setSilenceDuration(parseInt(saved));
+    const savedThreshold = localStorage.getItem('voice-config-volume-threshold');
+    if (savedThreshold) setVolumeThreshold(parseInt(savedThreshold));
+    const savedCode = localStorage.getItem('voice-config-mobile-code');
+    if (savedCode) setMobileCode(savedCode);
+  }, []);
+  const [codeTestStatus, setCodeTestStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [currentVolume, setCurrentVolume] = useState(0);
   const [isDetectingSpeech, setIsDetectingSpeech] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -362,6 +358,7 @@ export default function MobileShotsV2Page() {
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob);
+      if (mobileCode) formData.append('mobileCode', mobileCode);
       const response = await fetch('/api/voice/transcribe', { method: 'POST', body: formData });
       const result = await response.json();
 
@@ -473,67 +470,125 @@ export default function MobileShotsV2Page() {
           <div className="flex flex-col gap-4">
             {/* Mode Toggle + Config */}
             <Card className="p-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="continuous-mode" className="text-sm font-medium">
-                  Modo Continuo {isContinuousMode && '(Recomendado)'}
-                </Label>
-                <button
-                  id="continuous-mode"
-                  onClick={() => {
-                    if (isRecording) isContinuousMode ? stopContinuousRecording() : stopRecording();
-                    setIsContinuousMode(!isContinuousMode);
+              {/* Mobile events code */}
+              <div className="flex items-center gap-2 mb-3">
+                <Label htmlFor="mobile-code" className="text-xs font-medium whitespace-nowrap">Código mobile</Label>
+                <input
+                  id="mobile-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={3}
+                  placeholder="---"
+                  value={mobileCode}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 3);
+                    setMobileCode(val);
+                    setCodeTestStatus('idle');
+                    if (typeof window !== 'undefined') localStorage.setItem('voice-config-mobile-code', val);
                   }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isContinuousMode ? 'bg-primary' : 'bg-muted'}`}
+                  className="w-16 text-center font-mono font-bold text-sm border rounded px-2 py-1 bg-background"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2.5 text-xs"
+                  disabled={mobileCode.length !== 3}
+                  onClick={async () => {
+                    setCodeTestStatus('idle');
+                    try {
+                      const res = await fetch('/api/voice/verify-code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mobileCode }),
+                      });
+                      const data = await res.json();
+                      setCodeTestStatus(data.valid ? 'ok' : 'error');
+                    } catch {
+                      setCodeTestStatus('error');
+                    }
+                  }}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isContinuousMode ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+                  {codeTestStatus === 'ok' ? <Check className="h-3.5 w-3.5 text-green-500" /> : codeTestStatus === 'error' ? <X className="h-3.5 w-3.5 text-red-500" /> : 'Test'}
+                </Button>
+                {codeTestStatus === 'ok' && <span className="text-[10px] text-green-600">OK</span>}
+                {codeTestStatus === 'error' && <span className="text-[10px] text-red-500">Código incorrecto</span>}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {isContinuousMode
-                  ? 'Click para activar → hablá con pausas → click para desactivar'
-                  : 'Mantén presionado para grabar → suelta para enviar'}
-              </p>
 
-              {isContinuousMode && (
-                <div className="mt-3 pt-3 border-t space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="silence-duration" className="text-xs font-medium">Pausa para procesar</Label>
-                      <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">{(silenceDuration / 1000).toFixed(1)}s</span>
-                    </div>
-                    <input
-                      id="silence-duration"
-                      type="range" min="500" max="3000" step="100"
-                      value={silenceDuration}
-                      onChange={(e) => setSilenceDuration(parseInt(e.target.value))}
-                      disabled={isRecording}
-                      className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                      <span>0.5s (rápido)</span><span>3s (lento)</span>
-                    </div>
-                  </div>
+              {/* Collapsible audio settings */}
+              <button
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+                onClick={() => setIsConfigOpen(v => !v)}
+              >
+                {isConfigOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                <span>Configuración de audio</span>
+              </button>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="volume-threshold" className="text-xs font-medium">Filtro de ruido</Label>
-                      <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">{volumeThreshold}%</span>
-                    </div>
-                    <input
-                      id="volume-threshold"
-                      type="range" min="5" max="50" step="1"
-                      value={volumeThreshold}
-                      onChange={(e) => setVolumeThreshold(parseInt(e.target.value))}
-                      disabled={isRecording}
-                      className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                      <span>5% (muy sensible)</span><span>50% (solo voz alta)</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      💡 Si procesa ruidos de fondo → subir. Si no detecta tu voz → bajar.
-                    </p>
+              {isConfigOpen && (
+                <div className="mt-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="continuous-mode" className="text-sm font-medium">
+                      Modo Continuo {isContinuousMode && '(Recomendado)'}
+                    </Label>
+                    <button
+                      id="continuous-mode"
+                      onClick={() => {
+                        if (isRecording) isContinuousMode ? stopContinuousRecording() : stopRecording();
+                        setIsContinuousMode(!isContinuousMode);
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isContinuousMode ? 'bg-primary' : 'bg-muted'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isContinuousMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {isContinuousMode
+                      ? 'Click para activar → hablá con pausas → click para desactivar'
+                      : 'Mantén presionado para grabar → suelta para enviar'}
+                  </p>
+
+                  {isContinuousMode && (
+                    <div className="pt-3 border-t space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label htmlFor="silence-duration" className="text-xs font-medium">Pausa para procesar</Label>
+                          <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">{(silenceDuration / 1000).toFixed(1)}s</span>
+                        </div>
+                        <input
+                          id="silence-duration"
+                          type="range" min="500" max="3000" step="100"
+                          value={silenceDuration}
+                          onChange={(e) => setSilenceDuration(parseInt(e.target.value))}
+                          disabled={isRecording}
+                          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                          <span>0.5s (rápido)</span><span>3s (lento)</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label htmlFor="volume-threshold" className="text-xs font-medium">Filtro de ruido</Label>
+                          <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">{volumeThreshold}%</span>
+                        </div>
+                        <input
+                          id="volume-threshold"
+                          type="range" min="5" max="50" step="1"
+                          value={volumeThreshold}
+                          onChange={(e) => setVolumeThreshold(parseInt(e.target.value))}
+                          disabled={isRecording}
+                          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                          <span>5% (muy sensible)</span><span>50% (solo voz alta)</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          💡 Si procesa ruidos de fondo → subir. Si no detecta tu voz → bajar.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>

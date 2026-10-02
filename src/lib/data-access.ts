@@ -148,12 +148,12 @@ export async function readTournament(
                         }
                     } catch { /* ignore */ }
                 }
-                // Strip summary — local app doesn't need it; result field carries what's needed
-                const { summary: _summary, ...matchWithoutSummary } = {
+                return {
                     ...match,
                     phase: match.phase || 'clasificacion' as const,
+                    ...(result ? { result } : {}),
+                    ...(summary ? { summary } : {}),
                 };
-                return { ...matchWithoutSummary, ...(result ? { result } : {}) };
             });
             partialTournament.matches = await Promise.all(matchSummaryPromises);
 

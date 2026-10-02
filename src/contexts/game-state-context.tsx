@@ -51,7 +51,6 @@ type GameStateContextType = {
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
   isLoading: boolean;
-  triggerSync: () => Promise<void>;
   refreshTournament: (force?: boolean) => Promise<void>;
 };
 
@@ -199,8 +198,6 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return;
     const { selectedTournamentId } = state.tournament;
     if (!selectedTournamentId || isLoading) return;
-    const hasPending = (state._pendingSyncs || []).length > 0;
-    if (hasPending && !force) return;
 
     // In LOCAL_MODE with force: sync with Supabase first so local disk is current.
     if (force && process.env.NEXT_PUBLIC_LOCAL_MODE === 'true') {
@@ -216,7 +213,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     }
 
     await fetchActiveTournament(selectedTournamentId, force);
-  }, [state.tournament.selectedTournamentId, state._pendingSyncs, isLoading, fetchActiveTournament]);
+  }, [state.tournament.selectedTournamentId, isLoading, fetchActiveTournament]);
 
   // Refresh on reconnect: re-read tournament from local disk (and sync if LOCAL_MODE).
   useEffect(() => {
@@ -226,18 +223,6 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener('online', doRefresh);
   }, [refreshTournament, isLoading]);
 
-  // When the pending sync queue is fully drained, immediately refresh from cloud.
-  const prevPendingCountRef = useRef(0);
-  useEffect(() => {
-    const currentCount = (state._pendingSyncs || []).length;
-    const { selectedTournamentId } = state.tournament;
-    if (prevPendingCountRef.current > 0 && currentCount === 0 && selectedTournamentId && !isLoading) {
-      console.log('[GameState] Pending syncs drained — refreshing tournament from cloud');
-      fetchActiveTournament(selectedTournamentId);
-    }
-    prevPendingCountRef.current = currentCount;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state._pendingSyncs?.length]);
 
 
   const prevStateRef = useRef<GameState>(state);
@@ -286,102 +271,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(timerId);
   }, [state.live?.clock, isPageVisible, isLoading, state.config.tickIntervalMs]);
 
-  // Note: Summary generation has moved to the cloud service via SYNC_MATCH pending sync.
 
-  const isSyncingRef = useRef(false);
-
-  function readAdminSecretFromStorage(): string | null {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = localStorage.getItem('adminAccess');
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (parsed.expiresAt > Date.now()) return parsed.secret;
-      return null;
-    } catch { return null; }
-  }
-
-  const processPendingSyncs = useCallback(async () => {
-    if (isSyncingRef.current) return;
-    const pending = state._pendingSyncs;
-    if (!pending || pending.length === 0) return;
-
-    isSyncingRef.current = true;
-    console.log(`[Sync] Processing ${pending.length} pending sync(s)...`);
-
-    try {
-      // Process in order (preserves ADD_PLAYER before SAVE_SUMMARY dependency)
-      for (const sync of pending) {
-        try {
-          if (sync.payload.type === 'ADD_PLAYER') {
-            const { tournamentId } = sync.payload;
-            const tournament = state.tournament.activeTournament;
-            if (!tournament || tournament.id !== tournamentId) continue;
-            const result = await saveTournamentOnServer(tournament);
-            if (result?.success === false) throw new Error(result.message || 'Save failed');
-          } else if (sync.payload.type === 'SAVE_SUMMARY') {
-            const { matchId, tournamentId, summary } = sync.payload;
-            const adminSecret = readAdminSecretFromStorage();
-            const res = await fetch('/api/match-summary', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
-              },
-              body: JSON.stringify({ tournamentId, matchId, summary }),
-            });
-            if (!res.ok) {
-              const data = await res.json().catch(() => ({}));
-              throw new Error(data?.error || `HTTP ${res.status}`);
-            }
-          }
-          dispatch({ type: 'RESOLVE_SYNC', payload: { id: sync.id } });
-          console.log(`[Sync] Resolved sync ${sync.id} (${sync.payload.type})`);
-        } catch (err) {
-          const error = err instanceof Error ? err.message : 'Unknown error';
-          console.warn(`[Sync] Failed sync ${sync.id}:`, error);
-          dispatch({ type: 'SYNC_ATTEMPT_FAILED', payload: { id: sync.id, error } });
-        }
-      }
-    } finally {
-      isSyncingRef.current = false;
-    }
-  }, [state._pendingSyncs, state.tournament.activeTournament, dispatch]);
-
-  // Persist pending syncs to disk and process them.
-  // Skipped entirely in RO mode — pending syncs are a local scoreboard concept
-  // (offline queue for uploading changes). The viewer never generates syncs.
-  const prevSyncCountRef = useRef(0);
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return;
-    if (isLoading) return;
-    const current = state._pendingSyncs || [];
-    fetch('/api/pending-syncs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(current),
-    }).catch(err => console.error('[Sync] Failed to persist pending syncs:', err));
-
-    if (current.length > prevSyncCountRef.current && typeof navigator !== 'undefined' && navigator.onLine) {
-      processPendingSyncs();
-    }
-    prevSyncCountRef.current = current.length;
-  }, [state._pendingSyncs, isLoading, processPendingSyncs]);
-
-  // Auto-retry pending syncs (ADD_PLAYER, SAVE_SUMMARY): every 3 minutes + on reconnect
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_READ_ONLY === 'true') return;
-    const interval = setInterval(processPendingSyncs, 3 * 60 * 1000);
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', processPendingSyncs);
-    }
-    return () => {
-      clearInterval(interval);
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('online', processPendingSyncs);
-      }
-    };
-  }, [processPendingSyncs]);
 
   // Periodic manifest sync: every syncIntervalMinutes + on reconnect, fire sync-trigger.
   // Writes only mark the dirty flag; this timer is what actually uploads to Supabase.
@@ -421,7 +311,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
   }, [syncIntervalMinutes]);
 
   return (
-    <GameStateContext.Provider value={{ state, dispatch, isLoading, triggerSync: processPendingSyncs, refreshTournament }}>
+    <GameStateContext.Provider value={{ state, dispatch, isLoading, refreshTournament }}>
       {children}
       <GameStateObserver />
     </GameStateContext.Provider>

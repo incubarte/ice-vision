@@ -204,7 +204,6 @@ export const getInitialState = (): GameState => {
       clock: { ...INITIAL_LIVE_DATA.clock, currentTime: defaultInitialProfile.defaultWarmUpDuration }
     },
     _initialConfigLoadComplete: false,
-    _pendingSyncs: [],
   };
 };
 
@@ -552,7 +551,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           activeTournament: serverTournament.activeTournament || state.tournament.activeTournament || null,
         },
         _initialConfigLoadComplete: true,
-        _pendingSyncs: serverState._pendingSyncs || [],
       };
 
       // Auto-select first tournament if none is selected but tournaments exist
@@ -593,24 +591,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         matches: tournamentData.matches || [],
         staff: tournamentData.staff,
       };
-
-      // Re-apply pending local changes on top of cloud data so in-flight edits
-      // are not lost when the tournament is refreshed from the cloud or after a page reload offline.
-      const pendingSyncs = state._pendingSyncs || [];
-      for (const sync of pendingSyncs) {
-        const p = sync.payload as any;
-        if (p.tournamentId !== hydratedId) continue;
-
-        if (p.type === 'ADD_PLAYER') {
-          // Legacy: add the player to the correct team if not already present
-          hydrated.teams = hydrated.teams.map((t: any) => {
-            if (t.id !== p.teamId) return t;
-            const already = (t.players || []).some((pl: any) => pl.id === p.player.id);
-            if (already) return t;
-            return { ...t, players: [...(t.players || []), p.player] };
-          });
-        }
-      }
 
       newState = {
         ...state,
@@ -2165,20 +2145,6 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       newState = {
         ...state,
         tournament: { ...state.tournament, activeTournament: { ...t, matches: newMatches } },
-        _pendingSyncs: [
-          ...(state._pendingSyncs || []),
-          {
-            id: safeUUID(),
-            createdAt: new Date().toISOString(),
-            attempts: 0,
-            payload: {
-              type: 'SAVE_SUMMARY' as const,
-              matchId,
-              tournamentId,
-              summary,
-            },
-          },
-        ],
       };
       break;
     }
@@ -2354,35 +2320,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       toastMessage = { title: "Jugador Añadido", description: `Jugador ${player.number ? `#${player.number} ` : ''}${player.name} añadido.` };
       break;
     }
-    case 'LOAD_PENDING_SYNCS': {
-      newState = { ...state, _pendingSyncs: action.payload };
-      break;
-    }
-    case 'ADD_PENDING_SYNC': {
-      newState = { ...state, _pendingSyncs: [...(state._pendingSyncs || []), action.payload] };
-      break;
-    }
     case 'SET_MATCH_RESULTS': {
       newState = { ...state, tournament: { ...state.tournament, matchResults: action.payload } };
       break;
     }
-    case 'RESOLVE_SYNC': {
-      newState = { ...state, _pendingSyncs: (state._pendingSyncs || []).filter(s => s.id !== action.payload.id) };
-      break;
-    }
     case 'SET_OFFLINE_MODE': {
       newState = { ...state, tournament: { ...state.tournament, offlineMode: action.payload } };
-      break;
-    }
-    case 'SYNC_ATTEMPT_FAILED': {
-      newState = {
-        ...state,
-        _pendingSyncs: (state._pendingSyncs || []).map(s =>
-          s.id === action.payload.id
-            ? { ...s, attempts: s.attempts + 1, lastAttemptAt: new Date().toISOString(), lastError: action.payload.error }
-            : s
-        ),
-      };
       break;
     }
     case 'UPDATE_PLAYER_IN_TEAM': {

@@ -81,7 +81,6 @@ export async function POST(request: NextRequest) {
         selectedMatchCategory: persistedSelectedMatchCategory || '',
       },
       _initialConfigLoadComplete: true,
-      _pendingSyncs: [],
     };
 
     // Log debug info

@@ -9,6 +9,7 @@ interface PlayerStats {
   playerName: string;
   teamId: string;
   teamName: string;
+  teamSubName?: string;
   categoryName: string;
   goals: number;
   assists: number;
@@ -44,6 +45,7 @@ export function usePlayerStats(tournament: Tournament | null | undefined, catego
                         playerName: player.name,
                         teamId: team.id,
                         teamName: team.name,
+                        teamSubName: team.subName,
                         categoryName: category?.name || 'N/A',
                         goals: 0,
                         assists: 0,

@@ -622,33 +622,6 @@ export interface SyncLogFileEntry {
   snapshotId?: string; // timestamp of snapshot if conflict
 }
 
-export type PendingSyncType = 'ADD_PLAYER' | 'SAVE_SUMMARY';
-
-export interface PendingSyncAddPlayer {
-  type: 'ADD_PLAYER';
-  tournamentId: string;
-  teamId: string;
-  player: PlayerData;
-}
-
-export interface PendingSyncSaveSummary {
-  type: 'SAVE_SUMMARY';
-  matchId: string;
-  tournamentId: string;
-  summary: GameSummary;
-}
-
-export type PendingSyncPayload = PendingSyncAddPlayer | PendingSyncSaveSummary;
-
-export interface PendingSync {
-  id: string;
-  createdAt: string;     // ISO string
-  attempts: number;
-  lastAttemptAt?: string;
-  lastError?: string;
-  payload: PendingSyncPayload;
-}
-
 export interface TournamentState {
   tournaments: TournamentMetadata[];
   activeTournament: Tournament | null;
@@ -837,6 +810,7 @@ export interface LiveState {
   } | null;
   matchId: string | null;
   matchContext: MatchContext | null;  // Snapshot of tournament data at game setup
+  mobileEventsCode?: string;  // 3-digit code generated per match for mobile event validation
   playedPeriods: string[];
   assignedStaff?: MatchStaffAssignment;  // Staff assigned to this match
   periodStartTimestamps?: Record<string, string>;  // Period name -> ISO timestamp when it started
@@ -992,11 +966,7 @@ export type GameAction =
   | { type: 'SET_ACTIVE_GOALKEEPER'; payload: { team: Team; playerNumber: string | null } }
   | { type: 'TRIGGER_SUMMARY_GENERATION'; payload: { matchId: string; tournamentId: string } }
   | { type: 'CLEAR_PENDING_SUMMARY_GENERATION' }
-  | { type: 'LOAD_PENDING_SYNCS'; payload: PendingSync[] }
-  | { type: 'ADD_PENDING_SYNC'; payload: PendingSync }
   | { type: 'SET_MATCH_RESULTS'; payload: Record<string, MatchResult> }
-  | { type: 'RESOLVE_SYNC'; payload: { id: string } }
-  | { type: 'SYNC_ATTEMPT_FAILED'; payload: { id: string; error: string } }
   | { type: 'SET_OFFLINE_MODE'; payload: boolean }
   | { type: 'UPDATE_MATCH_SUMMARY_IN_STATE'; payload: { matchId: string; summary: GameSummary } };
 
@@ -1015,7 +985,6 @@ export interface GameState {
     variant?: "default" | "destructive";
   } | null;
   _pendingSummaryGeneration?: { matchId: string; tournamentId: string } | null;
-  _pendingSyncs: PendingSync[];
 }
 
 

@@ -171,11 +171,11 @@ function isClassificationComplete(tournament: Tournament, categoryId: string): {
     // Total de partidos = (n * (n-1) / 2) * rounds
     const expectedMatches = (numTeams * (numTeams - 1) / 2) * rounds;
 
-    // Contar partidos de clasificación jugados (con summary) para esta categoría
+    // Contar partidos de clasificación jugados para esta categoría
     const playedMatches = tournament.matches?.filter(m =>
         m.categoryId === categoryId &&
         m.phase === 'clasificacion' &&
-        m.summary
+        (m.summary || m.result)
     ).length || 0;
 
     const result = {

@@ -71,9 +71,24 @@ export async function POST(req: NextRequest) {
     // Get audio from request
     const formData = await req.formData();
     const audioFile = formData.get('audio') as File;
+    const mobileCode = formData.get('mobileCode') as string | null;
 
     if (!audioFile) {
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
+    }
+
+    // Validate mobile code: if live state has a code set, the request must include it and it must match
+    try {
+      const livePath = path.join(process.cwd(), 'tmp', 'new-storage', 'data', 'live.json');
+      const liveData = JSON.parse(await readFile(livePath, 'utf-8'));
+      const expectedCode = liveData.mobileEventsCode;
+      if (expectedCode) {
+        if (!mobileCode || mobileCode !== expectedCode) {
+          return NextResponse.json({ success: false, error: 'Código mobile incorrecto' }, { status: 403 });
+        }
+      }
+    } catch {
+      // If can't read live state, allow through
     }
 
     const parseTime = Date.now();

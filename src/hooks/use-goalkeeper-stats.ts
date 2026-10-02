@@ -18,6 +18,7 @@ export interface GoalkeeperStats {
   playerNumber: string;
   teamId: string;
   teamName: string;
+  teamSubName?: string;
   categoryName: string;
   totalShotsAgainst: number;
   totalGoalsAgainst: number;
@@ -54,6 +55,7 @@ export function useGoalkeeperStats(tournament: Tournament | null | undefined, ca
               playerNumber: gk.number,
               teamId: team.id,
               teamName: team.name,
+              teamSubName: team.subName,
               categoryName: category?.name || 'N/A',
               totalShotsAgainst: 0,
               totalGoalsAgainst: 0,

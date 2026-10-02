@@ -285,7 +285,8 @@ function SetupPageContent() {
         }
 
         dispatch({ type: 'UPDATE_SELECTED_FT_PROFILE_DATA', payload: tempFormatSettings });
-        dispatch({ type: 'UPDATE_LIVE_STATE', payload: { matchId: matchIdToSet } });
+        const mobileEventsCode = String(Math.floor(100 + Math.random() * 900));
+        dispatch({ type: 'UPDATE_LIVE_STATE', payload: { matchId: matchIdToSet, mobileEventsCode } });
 
         // Set match context snapshot for tournament matches
         if (isTournamentMatch && selectedTournament && selectedTournamentId) {

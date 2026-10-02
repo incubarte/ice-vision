@@ -698,6 +698,12 @@ export const VoiceControls = forwardRef<VoiceControlsHandle, VoiceControlsProps>
             <span className="text-xs">{isMicEnabled ? 'Voz ON' : 'Voz OFF'}</span>
           </Button>
         </div>
+        {state.live?.mobileEventsCode && (
+          <div className="px-4 pb-2.5 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Mobile events code:</span>
+            <span className="font-mono font-bold text-sm tracking-widest">{state.live.mobileEventsCode}</span>
+          </div>
+        )}
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-[250px_1fr_250px] gap-4">
